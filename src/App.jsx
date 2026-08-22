@@ -124,6 +124,33 @@ async function insertStaff(row, token) {
   return data[0];
 }
 
+async function uploadJustificatif(file, token) {
+  const safeName = Date.now() + "-" + file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+  const uploadRes = await fetch(SUPABASE_URL + "/storage/v1/object/justificatifs/" + safeName, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + token,
+      "Content-Type": file.type || "application/octet-stream",
+    },
+    body: file,
+  });
+  if (!uploadRes.ok) {
+    const body = await uploadRes.text().catch(() => "");
+    throw new Error("Echec de l'upload : " + uploadRes.status + " - " + body.slice(0, 150));
+  }
+
+  // Genere un lien signe valable 1 an pour pouvoir consulter le document plus tard
+  const signRes = await fetch(SUPABASE_URL + "/storage/v1/object/sign/justificatifs/" + safeName, {
+    method: "POST",
+    headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify({ expiresIn: 60 * 60 * 24 * 365 }),
+  });
+  if (!signRes.ok) throw new Error("Echec de la generation du lien du document");
+  const signData = await signRes.json();
+  return SUPABASE_URL + "/storage/v1" + signData.signedURL;
+}
+
 // Convertit une ligne Supabase (colonnes en snake_case) vers le format utilise par l'interface
 function mapStaffRow(row) {
   return {
@@ -135,6 +162,7 @@ function mapStaffRow(row) {
     status: row.status,
     updated: row.updated_label,
     next: row.next_label,
+    documentUrl: row.document_url,
   };
 }
 
@@ -396,13 +424,15 @@ function Dashboard({ staff, establishments }) {
   );
 }
 
-function AddStaffModal({ onClose, onAdd, establishments }) {
+function AddStaffModal({ onClose, onAdd, establishments, token }) {
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
   const [site, setSite] = useState(establishments[0]?.id || "");
   const [vaccine, setVaccine] = useState("Grippe");
   const [status, setStatus] = useState("a_venir");
+  const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
 
   const inputStyle = {
     width: "100%",
@@ -427,17 +457,29 @@ function AddStaffModal({ onClose, onAdd, establishments }) {
   const submit = async () => {
     if (!name.trim() || !role.trim()) return;
     setSaving(true);
-    await onAdd({
-      name: name.trim(),
-      role: role.trim(),
-      establishment_id: site,
-      vaccine,
-      status,
-      updated_label: status === "conforme" ? new Date().toLocaleDateString("fr-FR") : "-",
-      next_label: status === "non_conforme" ? "Retard" : status === "a_venir" ? "A definir" : "-",
-    });
-    setSaving(false);
-    onClose();
+    setUploadError(null);
+    try {
+      let documentUrl = null;
+      if (file) {
+        documentUrl = await uploadJustificatif(file, token);
+      }
+      await onAdd({
+        name: name.trim(),
+        role: role.trim(),
+        establishment_id: site,
+        vaccine,
+        status,
+        updated_label: status === "conforme" ? new Date().toLocaleDateString("fr-FR") : "-",
+        next_label: status === "non_conforme" ? "Retard" : status === "a_venir" ? "A definir" : "-",
+        document_url: documentUrl,
+      });
+      onClose();
+    } catch (err) {
+      console.error("Erreur:", err);
+      setUploadError(err.message || "Erreur lors de l'enregistrement");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -500,6 +542,18 @@ function AddStaffModal({ onClose, onAdd, establishments }) {
           <option value="non_conforme">Non conforme</option>
         </select>
 
+        <label style={labelStyle}>Justificatif (optionnel)</label>
+        <input
+          type="file"
+          accept="application/pdf,image/*"
+          onChange={(e) => setFile(e.target.files?.[0] || null)}
+          style={{ ...inputStyle, padding: "6px 8px" }}
+        />
+
+        {uploadError && (
+          <div style={{ color: TOKENS.danger, fontSize: 12, marginBottom: 10 }}>{uploadError}</div>
+        )}
+
         <button
           onClick={submit}
           disabled={saving}
@@ -525,7 +579,7 @@ function AddStaffModal({ onClose, onAdd, establishments }) {
   );
 }
 
-function StaffView({ staff, onAddStaff, establishments }) {
+function StaffView({ staff, onAddStaff, establishments, token }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [showModal, setShowModal] = useState(false);
@@ -600,13 +654,13 @@ function StaffView({ staff, onAddStaff, establishments }) {
         </button>
       </div>
 
-      {showModal && <AddStaffModal onClose={() => setShowModal(false)} onAdd={onAddStaff} establishments={establishments} />}
+      {showModal && <AddStaffModal onClose={() => setShowModal(false)} onAdd={onAddStaff} establishments={establishments} token={token} />}
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'IBM Plex Sans', sans-serif" }}>
           <thead>
             <tr style={{ background: TOKENS.paperDim, borderBottom: "1px solid " + TOKENS.line }}>
-              {["Nom", "Fonction", "Etablissement", "Vaccin", "Statut", "Derniere MaJ", "Echeance"].map((h) => (
+              {["Nom", "Fonction", "Etablissement", "Vaccin", "Statut", "Derniere MaJ", "Echeance", "Document"].map((h) => (
                 <th
                   key={h}
                   style={{
@@ -643,6 +697,20 @@ function StaffView({ staff, onAddStaff, establishments }) {
                 </td>
                 <td style={{ padding: "11px 16px", fontSize: 12.5, color: s.status === "non_conforme" ? TOKENS.danger : TOKENS.inkSoft, fontFamily: "'IBM Plex Mono', monospace" }}>
                   {s.next}
+                </td>
+                <td style={{ padding: "11px 16px", fontSize: 12.5 }}>
+                  {s.documentUrl ? (
+                    <a
+                      href={s.documentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: TOKENS.brand, fontFamily: "'IBM Plex Sans', sans-serif", textDecoration: "underline" }}
+                    >
+                      Voir
+                    </a>
+                  ) : (
+                    <span style={{ color: TOKENS.inkSoft }}>-</span>
+                  )}
                 </td>
               </tr>
             ))}
@@ -1162,7 +1230,7 @@ export default function VigiePrototype() {
             </div>
           )}
           {view === "dashboard" && <Dashboard staff={staff} establishments={establishments} />}
-          {view === "staff" && <StaffView staff={staff} onAddStaff={handleAddStaff} establishments={establishments} />}
+          {view === "staff" && <StaffView staff={staff} onAddStaff={handleAddStaff} establishments={establishments} token={token} />}
           {view === "alerts" && <AlertsView staff={staff} establishments={establishments} />}
           {view === "reports" && <ReportsView staff={staff} establishments={establishments} />}
         </div>
