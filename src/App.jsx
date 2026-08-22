@@ -33,16 +33,66 @@ const FONTS_LINK =
 
 const SUPABASE_URL = "https://uhyiwqsyyikwguvlfira.supabase.co";
 const SUPABASE_KEY = "sb_publishable_ggavuXHi0hGp1KSAS2edUw_jHIHY8Bf";
+const SESSION_KEY = "vigie_session";
 
-const supabaseHeaders = {
-  apikey: SUPABASE_KEY,
-  Authorization: "Bearer " + SUPABASE_KEY,
-  "Content-Type": "application/json",
-};
+function getStoredSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
 
-async function fetchEstablishments() {
+function saveSession(session) {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  } catch (e) {
+    console.error("Impossible d'enregistrer la session:", e);
+  }
+}
+
+function clearSession() {
+  try {
+    localStorage.removeItem(SESSION_KEY);
+  } catch (e) {
+    // ignore
+  }
+}
+
+function authHeaders(accessToken) {
+  return {
+    apikey: SUPABASE_KEY,
+    Authorization: "Bearer " + (accessToken || SUPABASE_KEY),
+    "Content-Type": "application/json",
+  };
+}
+
+async function signUp(email, password) {
+  const res = await fetch(SUPABASE_URL + "/auth/v1/signup", {
+    method: "POST",
+    headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.msg || data.error_description || "Erreur d'inscription");
+  return data;
+}
+
+async function signIn(email, password) {
+  const res = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=password", {
+    method: "POST",
+    headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error_description || data.msg || "Identifiants incorrects");
+  return data;
+}
+
+async function fetchEstablishments(token) {
   const res = await fetch(SUPABASE_URL + "/rest/v1/establishments?select=*", {
-    headers: supabaseHeaders,
+    headers: authHeaders(token),
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
@@ -51,9 +101,9 @@ async function fetchEstablishments() {
   return res.json();
 }
 
-async function fetchStaff() {
+async function fetchStaff(token) {
   const res = await fetch(SUPABASE_URL + "/rest/v1/staff?select=*", {
-    headers: supabaseHeaders,
+    headers: authHeaders(token),
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
@@ -62,10 +112,10 @@ async function fetchStaff() {
   return res.json();
 }
 
-async function insertStaff(row) {
+async function insertStaff(row, token) {
   const res = await fetch(SUPABASE_URL + "/rest/v1/staff", {
     method: "POST",
-    headers: { ...supabaseHeaders, Prefer: "return=representation" },
+    headers: { ...authHeaders(token), Prefer: "return=representation" },
     body: JSON.stringify(row),
   });
   if (!res.ok) throw new Error("Erreur d'enregistrement");
@@ -707,18 +757,182 @@ function ReportsView() {
   );
 }
 
+function LoginScreen({ onLogin }) {
+  const [mode, setMode] = useState("login"); // "login" ou "signup"
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [info, setInfo] = useState(null);
+
+  const inputStyle = {
+    width: "100%",
+    padding: "10px 12px",
+    borderRadius: 6,
+    border: "1px solid " + TOKENS.line,
+    fontFamily: "'IBM Plex Sans', sans-serif",
+    fontSize: 14,
+    outline: "none",
+    boxSizing: "border-box",
+    marginBottom: 12,
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setInfo(null);
+    setLoading(true);
+    try {
+      if (mode === "signup") {
+        await signUp(email, password);
+        setInfo("Compte cree. Verifiez votre email pour confirmer, puis connectez-vous.");
+        setMode("login");
+      } else {
+        const session = await signIn(email, password);
+        onLogin(session);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        minHeight: "90vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "'IBM Plex Sans', sans-serif",
+      }}
+    >
+      <form
+        onSubmit={submit}
+        style={{
+          background: "#fff",
+          border: "1px solid " + TOKENS.line,
+          borderRadius: 10,
+          padding: 32,
+          width: 360,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
+          <div
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 6,
+              background: TOKENS.brand,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <ShieldCheck size={16} color="#fff" />
+          </div>
+          <span style={{ fontFamily: "'Fraunces', serif", fontSize: 21, fontWeight: 600, color: TOKENS.ink }}>
+            Vigie
+          </span>
+        </div>
+
+        <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 16, fontWeight: 600, color: TOKENS.ink, margin: "0 0 16px" }}>
+          {mode === "login" ? "Connexion" : "Creer un compte"}
+        </h2>
+
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={inputStyle}
+          required
+        />
+        <input
+          type="password"
+          placeholder="Mot de passe"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={inputStyle}
+          required
+          minLength={6}
+        />
+
+        {error && (
+          <div style={{ color: TOKENS.danger, fontSize: 12.5, marginBottom: 12 }}>{error}</div>
+        )}
+        {info && (
+          <div style={{ color: TOKENS.ok, fontSize: 12.5, marginBottom: 12 }}>{info}</div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            width: "100%",
+            padding: "10px",
+            borderRadius: 6,
+            border: "none",
+            background: TOKENS.brand,
+            color: "#fff",
+            fontFamily: "'IBM Plex Sans', sans-serif",
+            fontSize: 13.5,
+            fontWeight: 500,
+            cursor: loading ? "default" : "pointer",
+            opacity: loading ? 0.7 : 1,
+          }}
+        >
+          {loading ? "Patientez..." : mode === "login" ? "Se connecter" : "Creer mon compte"}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setMode(mode === "login" ? "signup" : "login");
+            setError(null);
+            setInfo(null);
+          }}
+          style={{
+            width: "100%",
+            padding: "8px",
+            marginTop: 10,
+            border: "none",
+            background: "none",
+            color: TOKENS.inkSoft,
+            fontFamily: "'IBM Plex Sans', sans-serif",
+            fontSize: 12.5,
+            cursor: "pointer",
+            textDecoration: "underline",
+          }}
+        >
+          {mode === "login" ? "Pas encore de compte ? Creez-en un" : "Deja un compte ? Connectez-vous"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 export default function VigiePrototype() {
+  const [session, setSession] = useState(() => getStoredSession());
   const [view, setView] = useState("dashboard");
   const [staff, setStaff] = useState([]);
   const [establishments, setEstablishments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const token = session?.access_token;
+
   useEffect(() => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     async function load() {
+      setLoading(true);
       try {
-        const [estabRows, staffRows] = await Promise.all([fetchEstablishments(), fetchStaff()]);
+        const [estabRows, staffRows] = await Promise.all([fetchEstablishments(token), fetchStaff(token)]);
         if (!cancelled) {
           setEstablishments(estabRows);
           setStaff(staffRows.map(mapStaffRow));
@@ -734,17 +948,33 @@ export default function VigiePrototype() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [token]);
 
   const handleAddStaff = async (newStaffRow) => {
     try {
-      const inserted = await insertStaff(newStaffRow);
+      const inserted = await insertStaff(newStaffRow, token);
       setStaff((prev) => [...prev, mapStaffRow(inserted)]);
     } catch (err) {
       console.error("Erreur de sauvegarde Supabase:", err);
       setError("Echec de l'enregistrement du salarie. Reessayez.");
     }
   };
+
+  const handleLogin = (newSession) => {
+    saveSession(newSession);
+    setSession(newSession);
+  };
+
+  const handleLogout = () => {
+    clearSession();
+    setSession(null);
+    setStaff([]);
+    setEstablishments([]);
+  };
+
+  if (!session) {
+    return <LoginScreen onLogin={handleLogin} />;
+  }
 
   const titles = {
     dashboard: "Tableau de bord",
@@ -822,6 +1052,22 @@ export default function VigiePrototype() {
                 MG
               </div>
               Groupe EHPAD Rhône Solidarité
+              <button
+                onClick={handleLogout}
+                style={{
+                  marginLeft: 12,
+                  padding: "5px 10px",
+                  borderRadius: 5,
+                  border: "1px solid " + TOKENS.line,
+                  background: "#fff",
+                  color: TOKENS.inkSoft,
+                  fontFamily: "'IBM Plex Sans', sans-serif",
+                  fontSize: 11.5,
+                  cursor: "pointer",
+                }}
+              >
+                Deconnexion
+              </button>
             </div>
           </div>
           {error && (
