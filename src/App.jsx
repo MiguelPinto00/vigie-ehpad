@@ -9,7 +9,6 @@ import {
   Plus,
   X,
   ChevronRight,
-  ShieldCheck,
   Building2,
   Loader2,
 } from "lucide-react";
@@ -31,6 +30,17 @@ const TOKENS = {
 
 const FONTS_LINK =
   "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap";
+
+function LogoMark({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+      <path d="M 20 12 L 4 26 L 20 22 L 36 26 Z" fill="#C98A3D" opacity="0.28" />
+      <line x1="20" y1="32" x2="20" y2="15" stroke="#1F4E4A" strokeWidth="3" strokeLinecap="round" />
+      <rect x="8" y="30" width="24" height="6" rx="1.5" fill="#1F4E4A" />
+      <circle cx="20" cy="12" r="5" fill="#C98A3D" />
+    </svg>
+  );
+}
 
 const SUPABASE_URL = "https://uhyiwqsyyikwguvlfira.supabase.co";
 const SUPABASE_KEY = "sb_publishable_ggavuXHi0hGp1KSAS2edUw_jHIHY8Bf";
@@ -285,16 +295,16 @@ function Sidebar({ view, setView }) {
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 10px 22px" }}>
         <div
           style={{
-            width: 26,
-            height: 26,
-            borderRadius: 5,
-            background: "rgba(255,255,255,0.14)",
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            background: TOKENS.paper,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <ShieldCheck size={15} color="#fff" strokeWidth={2.25} />
+          <LogoMark size={17} />
         </div>
         <span style={{ fontFamily: "'Fraunces', serif", fontSize: 19, fontWeight: 600, color: "#fff" }}>
           Vigie
@@ -964,16 +974,17 @@ function LoginScreen({ onLogin }) {
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
           <div
             style={{
-              width: 30,
-              height: 30,
-              borderRadius: 6,
-              background: TOKENS.brand,
+              width: 32,
+              height: 32,
+              borderRadius: 7,
+              background: TOKENS.paperDim,
+              border: "1px solid " + TOKENS.line,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <ShieldCheck size={16} color="#fff" />
+            <LogoMark size={20} />
           </div>
           <span style={{ fontFamily: "'Fraunces', serif", fontSize: 21, fontWeight: 600, color: TOKENS.ink }}>
             Vigie
@@ -1066,6 +1077,19 @@ export default function VigiePrototype() {
 
   const token = session?.access_token;
 
+  const handleLogout = () => {
+    clearSession();
+    setSession(null);
+    setStaff([]);
+    setEstablishments([]);
+    setError(null);
+  };
+
+  const isSessionExpired = (err) => {
+    const msg = (err.message || "").toLowerCase();
+    return msg.includes("401") || msg.includes("jwt expired") || msg.includes("expired");
+  };
+
   useEffect(() => {
     if (!token) {
       setLoading(false);
@@ -1082,7 +1106,13 @@ export default function VigiePrototype() {
         }
       } catch (err) {
         console.error("Erreur de chargement Supabase:", err);
-        if (!cancelled) setError("Erreur technique : " + (err.message || String(err)));
+        if (!cancelled) {
+          if (isSessionExpired(err)) {
+            handleLogout();
+          } else {
+            setError("Erreur technique : " + (err.message || String(err)));
+          }
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -1099,20 +1129,17 @@ export default function VigiePrototype() {
       setStaff((prev) => [...prev, mapStaffRow(inserted)]);
     } catch (err) {
       console.error("Erreur de sauvegarde Supabase:", err);
-      setError("Echec de l'enregistrement du salarie. Reessayez.");
+      if (isSessionExpired(err)) {
+        handleLogout();
+      } else {
+        setError("Echec de l'enregistrement du salarie. Reessayez.");
+      }
     }
   };
 
   const handleLogin = (newSession) => {
     saveSession(newSession);
     setSession(newSession);
-  };
-
-  const handleLogout = () => {
-    clearSession();
-    setSession(null);
-    setStaff([]);
-    setEstablishments([]);
   };
 
   if (!session) {
