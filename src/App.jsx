@@ -731,12 +731,38 @@ function StaffView({ staff, onAddStaff, establishments, token }) {
   );
 }
 
-function AlertsView({ staff, establishments }) {
+function AlertsView({ staff, establishments, userEmail }) {
   const alerts = staff.filter((s) => s.status !== "conforme");
+  const [sendState, setSendState] = useState({});
+
+  const sendAlert = async (s) => {
+    setSendState((prev) => ({ ...prev, [s.id]: "sending" }));
+    try {
+      const res = await fetch("/api/send-alert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          toEmail: userEmail,
+          staffName: s.name,
+          establishmentName: establishments.find((e) => e.id === s.site)?.name || "-",
+          vaccine: s.vaccine,
+          reason: s.status === "non_conforme" ? "Aucun justificatif enregistre" : "Echeance proche (" + s.next + ")",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Echec de l'envoi");
+      setSendState((prev) => ({ ...prev, [s.id]: "sent" }));
+    } catch (err) {
+      console.error("Erreur d'envoi:", err);
+      setSendState((prev) => ({ ...prev, [s.id]: "error" }));
+    }
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {alerts.map((s) => {
         const isOverdue = s.status === "non_conforme";
+        const state = sendState[s.id];
         return (
           <div
             key={s.id}
@@ -761,8 +787,16 @@ function AlertsView({ staff, establishments }) {
                   ? `Aucun justificatif d'immunisation ${s.vaccine?.toLowerCase() || ""} enregistre.`
                   : `Echeance de controle (${s.vaccine}) : ${s.next}.`}
               </div>
+              {state === "sent" && (
+                <div style={{ fontSize: 11.5, color: TOKENS.ok, marginTop: 4 }}>Email envoye</div>
+              )}
+              {state === "error" && (
+                <div style={{ fontSize: 11.5, color: TOKENS.danger, marginTop: 4 }}>Echec de l'envoi, reessayez</div>
+              )}
             </div>
             <button
+              onClick={() => sendAlert(s)}
+              disabled={state === "sending"}
               style={{
                 padding: "6px 12px",
                 borderRadius: 6,
@@ -771,11 +805,12 @@ function AlertsView({ staff, establishments }) {
                 color: TOKENS.ink,
                 fontFamily: "'IBM Plex Sans', sans-serif",
                 fontSize: 12.5,
-                cursor: "pointer",
+                cursor: state === "sending" ? "default" : "pointer",
                 whiteSpace: "nowrap",
+                opacity: state === "sending" ? 0.6 : 1,
               }}
             >
-              Relancer par email
+              {state === "sending" ? "Envoi..." : "Relancer par email"}
             </button>
           </div>
         );
@@ -1258,7 +1293,7 @@ export default function VigiePrototype() {
           )}
           {view === "dashboard" && <Dashboard staff={staff} establishments={establishments} />}
           {view === "staff" && <StaffView staff={staff} onAddStaff={handleAddStaff} establishments={establishments} token={token} />}
-          {view === "alerts" && <AlertsView staff={staff} establishments={establishments} />}
+          {view === "alerts" && <AlertsView staff={staff} establishments={establishments} userEmail={session?.user?.email} />}
           {view === "reports" && <ReportsView staff={staff} establishments={establishments} />}
         </div>
       </div>
