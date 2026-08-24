@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Building2,
   Loader2,
+  Settings,
 } from "lucide-react";
 
 const TOKENS = {
@@ -130,6 +131,17 @@ async function insertStaff(row, token) {
     body: JSON.stringify(row),
   });
   if (!res.ok) throw new Error("Erreur d'enregistrement");
+  const data = await res.json();
+  return data[0];
+}
+
+async function updateEstablishmentEmail(establishmentId, contactEmail, token) {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/establishments?id=eq." + establishmentId, {
+    method: "PATCH",
+    headers: { ...authHeaders(token), Prefer: "return=representation" },
+    body: JSON.stringify({ contact_email: contactEmail }),
+  });
+  if (!res.ok) throw new Error("Erreur de mise a jour");
   const data = await res.json();
   return data[0];
 }
@@ -314,6 +326,7 @@ function Sidebar({ view, setView }) {
       <NavItem icon={Users} label="Salaries" active={view === "staff"} onClick={() => setView("staff")} />
       <NavItem icon={BellRing} label="Alertes" active={view === "alerts"} onClick={() => setView("alerts")} />
       <NavItem icon={FileDown} label="Rapports" active={view === "reports"} onClick={() => setView("reports")} />
+      <NavItem icon={Settings} label="Parametres" active={view === "settings"} onClick={() => setView("settings")} />
       <div style={{ marginTop: 20, padding: "12px 10px 4px", borderTop: "1px solid rgba(255,255,255,0.12)" }}>
         <div style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>
           3 etablissements suivis
@@ -819,6 +832,89 @@ function AlertsView({ staff, establishments, userEmail }) {
   );
 }
 
+function SettingsView({ establishments, token, onUpdate }) {
+  const [drafts, setDrafts] = useState(() =>
+    Object.fromEntries(establishments.map((e) => [e.id, e.contact_email || ""]))
+  );
+  const [saving, setSaving] = useState({});
+  const [saved, setSaved] = useState({});
+
+  const inputStyle = {
+    flex: 1,
+    padding: "8px 10px",
+    borderRadius: 6,
+    border: "1px solid " + TOKENS.line,
+    fontFamily: "'IBM Plex Sans', sans-serif",
+    fontSize: 13,
+    outline: "none",
+  };
+
+  const save = async (id) => {
+    setSaving((prev) => ({ ...prev, [id]: true }));
+    setSaved((prev) => ({ ...prev, [id]: false }));
+    try {
+      const updated = await updateEstablishmentEmail(id, drafts[id].trim(), token);
+      onUpdate(updated);
+      setSaved((prev) => ({ ...prev, [id]: true }));
+    } catch (err) {
+      console.error("Erreur de sauvegarde:", err);
+    } finally {
+      setSaving((prev) => ({ ...prev, [id]: false }));
+    }
+  };
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px", maxWidth: 640 }}>
+      <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
+        Email de contact par etablissement
+      </h3>
+      <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 18px" }}>
+        Le resume quotidien de conformite sera envoye a cette adresse pour chaque etablissement.
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {establishments.map((e) => (
+          <div key={e.id}>
+            <label style={{ display: "block", fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, fontWeight: 500, color: TOKENS.ink, marginBottom: 5 }}>
+              {e.name}
+            </label>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                type="email"
+                placeholder="email@etablissement.fr"
+                value={drafts[e.id] || ""}
+                onChange={(ev) => setDrafts((prev) => ({ ...prev, [e.id]: ev.target.value }))}
+                style={inputStyle}
+              />
+              <button
+                onClick={() => save(e.id)}
+                disabled={saving[e.id]}
+                style={{
+                  padding: "8px 14px",
+                  borderRadius: 6,
+                  border: "none",
+                  background: TOKENS.brand,
+                  color: "#fff",
+                  fontFamily: "'IBM Plex Sans', sans-serif",
+                  fontSize: 12.5,
+                  fontWeight: 500,
+                  cursor: saving[e.id] ? "default" : "pointer",
+                  opacity: saving[e.id] ? 0.6 : 1,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {saving[e.id] ? "..." : "Enregistrer"}
+              </button>
+            </div>
+            {saved[e.id] && (
+              <div style={{ fontSize: 11.5, color: TOKENS.ok, marginTop: 4 }}>Enregistre</div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ReportsView({ staff, establishments }) {
   const [generating, setGenerating] = useState(false);
 
@@ -1186,6 +1282,7 @@ export default function VigiePrototype() {
     staff: "Salaries",
     alerts: "Alertes",
     reports: "Rapports",
+    settings: "Parametres",
   };
 
   if (loading) {
@@ -1295,6 +1392,15 @@ export default function VigiePrototype() {
           {view === "staff" && <StaffView staff={staff} onAddStaff={handleAddStaff} establishments={establishments} token={token} />}
           {view === "alerts" && <AlertsView staff={staff} establishments={establishments} userEmail={session?.user?.email} />}
           {view === "reports" && <ReportsView staff={staff} establishments={establishments} />}
+          {view === "settings" && (
+            <SettingsView
+              establishments={establishments}
+              token={token}
+              onUpdate={(updated) =>
+                setEstablishments((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
+              }
+            />
+          )}
         </div>
       </div>
     </div>
