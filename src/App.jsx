@@ -1042,7 +1042,7 @@ function AlertsView({ staff, establishments, userEmail }) {
   );
 }
 
-function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment, onDeleteEstablishment, organizationName, onRenameOrganization, currentUserEmail, onDeleteAccount }) {
+function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment, onDeleteEstablishment, organizationName, onRenameOrganization, currentUserEmail, onDeleteAccount, staffCount }) {
   const [orgNameDraft, setOrgNameDraft] = useState(organizationName || "");
   const [renamingOrg, setRenamingOrg] = useState(false);
   const [orgRenamed, setOrgRenamed] = useState(false);
@@ -1287,6 +1287,50 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
         </div>
         {orgRenamed && <div style={{ fontSize: 11.5, color: TOKENS.ok, marginTop: 8 }}>Enregistre</div>}
         {orgRenameError && <div style={{ fontSize: 11.5, color: TOKENS.danger, marginTop: 8 }}>{orgRenameError}</div>}
+      </div>
+
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
+            Abonnement
+          </h3>
+          <span
+            style={{
+              padding: "3px 10px",
+              borderRadius: 4,
+              fontSize: 11.5,
+              fontWeight: 500,
+              color: TOKENS.brand,
+              background: TOKENS.okBg,
+              fontFamily: "'IBM Plex Sans', sans-serif",
+            }}
+          >
+            Beta gratuite
+          </span>
+        </div>
+        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 16px" }}>
+          Vigie est actuellement en phase beta gratuite. Les offres payantes seront communiquees a l'avance avant tout changement.
+        </p>
+        <div style={{ display: "flex", gap: 12 }}>
+          <div style={{ flex: 1, padding: "12px 14px", background: TOKENS.paperDim, borderRadius: 6, textAlign: "center" }}>
+            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
+              {establishments.length}
+            </div>
+            <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginTop: 2 }}>Etablissements</div>
+          </div>
+          <div style={{ flex: 1, padding: "12px 14px", background: TOKENS.paperDim, borderRadius: 6, textAlign: "center" }}>
+            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
+              {staffCount}
+            </div>
+            <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginTop: 2 }}>Salaries suivis</div>
+          </div>
+          <div style={{ flex: 1, padding: "12px 14px", background: TOKENS.paperDim, borderRadius: 6, textAlign: "center" }}>
+            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
+              {members.length}
+            </div>
+            <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginTop: 2 }}>Membres d'equipe</div>
+          </div>
+        </div>
       </div>
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
@@ -2329,6 +2373,7 @@ export default function VigiePrototype() {
               organizationId={organizationId}
               organizationName={organizationName}
               currentUserEmail={session?.user?.email}
+              staffCount={staff.length}
               onRenameOrganization={(newName) => setOrganizationName(newName)}
               onAddEstablishment={(created) => setEstablishments((prev) => [...prev, created])}
               onDeleteEstablishment={(id) => {
