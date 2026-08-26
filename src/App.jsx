@@ -229,6 +229,25 @@ async function deleteInvitation(id, token) {
   return true;
 }
 
+async function removeOrganizationMember(userId, organizationId, token) {
+  const res = await fetch(
+    SUPABASE_URL +
+      "/rest/v1/organization_members?user_id=eq." +
+      userId +
+      "&organization_id=eq." +
+      organizationId,
+    {
+      method: "DELETE",
+      headers: authHeaders(token),
+    }
+  );
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error("Erreur lors du retrait du membre : " + res.status + " - " + body.slice(0, 150));
+  }
+  return true;
+}
+
 async function renameOrganization(organizationId, newName, token) {
   const res = await fetch(SUPABASE_URL + "/rest/v1/organizations?id=eq." + organizationId, {
     method: "PATCH",
@@ -1128,6 +1147,8 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState(null);
   const [inviteSent, setInviteSent] = useState(false);
+  const [removingMemberId, setRemovingMemberId] = useState(null);
+  const [removeMemberError, setRemoveMemberError] = useState(null);
 
   useEffect(() => {
     if (organizationName) setOrgNameDraft(organizationName);
@@ -1142,6 +1163,9 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
       })
       .catch((err) => console.error("Erreur de chargement equipe:", err));
   }, [organizationId, token]);
+
+  const currentUserRole = members.find((m) => m.email === currentUserEmail)?.role;
+  const isOwner = currentUserRole === "owner";
 
   const sendInvite = async () => {
     if (!inviteEmail.trim()) return;
@@ -1177,6 +1201,24 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
       setPendingInvites((prev) => prev.filter((i) => i.id !== id));
     } catch (err) {
       console.error("Erreur d'annulation:", err);
+    }
+  };
+
+  const handleRemoveMember = async (member) => {
+    const confirmed = window.confirm(
+      "Retirer " + member.email + " de l'organisation ? Cette personne perdra immediatement l'acces a toutes les donnees."
+    );
+    if (!confirmed) return;
+    setRemovingMemberId(member.user_id);
+    setRemoveMemberError(null);
+    try {
+      await removeOrganizationMember(member.user_id, organizationId, token);
+      setMembers((prev) => prev.filter((m) => m.user_id !== member.user_id));
+    } catch (err) {
+      console.error("Erreur de retrait:", err);
+      setRemoveMemberError(err.message || "Erreur lors du retrait du membre");
+    } finally {
+      setRemovingMemberId(null);
     }
   };
 
@@ -1560,26 +1602,54 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
         </div>
         {inviteSent && <div style={{ fontSize: 11.5, color: TOKENS.ok, marginBottom: 10 }}>Invitation envoyee</div>}
         {inviteError && <div style={{ fontSize: 11.5, color: TOKENS.danger, marginBottom: 10 }}>{inviteError}</div>}
+        {removeMemberError && <div style={{ fontSize: 11.5, color: TOKENS.danger, marginBottom: 10 }}>{removeMemberError}</div>}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {members.map((m) => (
-            <div
-              key={m.user_id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "8px 12px",
-                background: TOKENS.paperDim,
-                borderRadius: 6,
-                fontFamily: "'Inter', sans-serif",
-                fontSize: 13,
-              }}
-            >
-              <span>{m.email}{m.email === currentUserEmail ? " (vous)" : ""}</span>
-              <span style={{ fontSize: 11, color: TOKENS.inkSoft, textTransform: "uppercase" }}>{m.role}</span>
-            </div>
-          ))}
+          {members.map((m) => {
+            const canRemove = isOwner && m.email !== currentUserEmail;
+            return (
+              <div
+                key={m.user_id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "8px 12px",
+                  background: TOKENS.paperDim,
+                  borderRadius: 6,
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: 13,
+                }}
+              >
+                <span>{m.email}{m.email === currentUserEmail ? " (vous)" : ""}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 11, color: TOKENS.inkSoft, textTransform: "uppercase" }}>{m.role}</span>
+                  {canRemove && (
+                    <button
+                      onClick={() => handleRemoveMember(m)}
+                      disabled={removingMemberId === m.user_id}
+                      title="Retirer ce membre"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 24,
+                        height: 24,
+                        borderRadius: 5,
+                        border: "1px solid " + TOKENS.line,
+                        background: "#fff",
+                        color: TOKENS.danger,
+                        cursor: removingMemberId === m.user_id ? "default" : "pointer",
+                        opacity: removingMemberId === m.user_id ? 0.5 : 1,
+                      }}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
           {pendingInvites.map((inv) => (
             <div
               key={inv.id}
