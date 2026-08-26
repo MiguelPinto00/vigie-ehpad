@@ -261,7 +261,10 @@ async function fetchMyOrganization(token) {
     SUPABASE_URL + "/rest/v1/organization_members?select=organization_id,organizations(id,name)&limit=1",
     { headers: authHeaders(token) }
   );
-  if (!res.ok) throw new Error("Erreur de lecture de l'organisation");
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error("organization " + res.status + " - " + body.slice(0, 150));
+  }
   const data = await res.json();
   const row = data[0];
   return {
