@@ -23,7 +23,7 @@ const TOKENS = {
   paperDim: "#EEF1F5",
   ink: "#0F172A",
   inkSoft: "#64748B",
-  brand: "#1F4E4A",
+  brand: "#4F46E5",
   ok: "#059669",
   okBg: "#D1FAE5",
   warn: "#B45309",
@@ -410,13 +410,13 @@ function NavItem({ icon: Icon, label, active, onClick }) {
         gap: 10,
         width: "100%",
         padding: "9px 12px",
-        borderRadius: 6,
+        borderRadius: 7,
         border: "none",
-        background: active ? "rgba(255,255,255,0.12)" : "transparent",
-        color: active ? "#FFFFFF" : "rgba(255,255,255,0.68)",
+        background: active ? TOKENS.brand + "14" : "transparent",
+        color: active ? TOKENS.brand : TOKENS.inkSoft,
         fontFamily: "'Inter', sans-serif",
         fontSize: 13.5,
-        fontWeight: 500,
+        fontWeight: active ? 600 : 500,
         cursor: "pointer",
         textAlign: "left",
         transition: "background 0.15s ease, color 0.15s ease",
@@ -428,13 +428,14 @@ function NavItem({ icon: Icon, label, active, onClick }) {
   );
 }
 
-function Sidebar({ view, setView }) {
+function Sidebar({ view, setView, establishmentCount }) {
   return (
     <div
       style={{
         width: 224,
         flexShrink: 0,
-        background: TOKENS.brand,
+        background: "#FFFFFF",
+        borderRight: "1px solid " + TOKENS.line,
         padding: "20px 14px",
         display: "flex",
         flexDirection: "column",
@@ -448,7 +449,7 @@ function Sidebar({ view, setView }) {
             width: 28,
             height: 28,
             borderRadius: 6,
-            background: TOKENS.paper,
+            background: TOKENS.paperDim,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -456,7 +457,7 @@ function Sidebar({ view, setView }) {
         >
           <LogoMark size={17} />
         </div>
-        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 19, fontWeight: 600, color: "#fff" }}>
+        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 19, fontWeight: 600, color: TOKENS.ink }}>
           Vigie
         </span>
       </div>
@@ -465,9 +466,9 @@ function Sidebar({ view, setView }) {
       <NavItem icon={BellRing} label="Alertes" active={view === "alerts"} onClick={() => setView("alerts")} />
       <NavItem icon={FileDown} label="Rapports" active={view === "reports"} onClick={() => setView("reports")} />
       <NavItem icon={Settings} label="Parametres" active={view === "settings"} onClick={() => setView("settings")} />
-      <div style={{ marginTop: 20, padding: "12px 10px 4px", borderTop: "1px solid rgba(255,255,255,0.12)" }}>
-        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>
-          3 etablissements suivis
+      <div style={{ marginTop: 20, padding: "12px 10px 4px", borderTop: "1px solid " + TOKENS.line }}>
+        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11.5, color: TOKENS.inkSoft }}>
+          {establishmentCount} etablissement{establishmentCount === 1 ? "" : "s"} suivi{establishmentCount === 1 ? "" : "s"}
         </div>
       </div>
     </div>
@@ -2397,7 +2398,7 @@ export default function VigiePrototype() {
           border: "1px solid " + TOKENS.line,
         }}
       >
-        <Sidebar view={view} setView={setView} />
+        <Sidebar view={view} setView={setView} establishmentCount={establishments.length} />
         <div style={{ flex: 1, padding: "24px 30px", overflow: "auto" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
             <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
