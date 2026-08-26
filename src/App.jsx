@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 const TOKENS = {
-  paper: "#F8FAFC",
+  paper: "#EEF1F5",
   paperDim: "#EEF1F5",
   ink: "#0F172A",
   inkSoft: "#64748B",
@@ -480,7 +480,7 @@ function StatCard({ label, value, accent }) {
     <div
       style={{
         background: "#fff",
-        border: "1px solid " + TOKENS.line,
+        border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
         borderRadius: 8,
         padding: "16px 18px",
         flex: 1,
@@ -510,7 +510,7 @@ function Dashboard({ staff, establishments }) {
       <div
         style={{
           background: "#fff",
-          border: "1px solid " + TOKENS.line,
+          border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
           borderRadius: 8,
           padding: "24px 28px",
           display: "flex",
@@ -556,7 +556,7 @@ function Dashboard({ staff, establishments }) {
         <StatCard label="Non conformes" value={nonConforme} accent={TOKENS.danger} />
       </div>
 
-      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "18px 20px" }}>
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "18px 20px" }}>
         <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 12px" }}>
           Par etablissement
         </h3>
@@ -601,7 +601,7 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
     width: "100%",
     padding: "8px 10px",
     borderRadius: 6,
-    border: "1px solid " + TOKENS.line,
+    border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
     fontFamily: "'Inter', sans-serif",
     fontSize: 13,
     outline: "none",
@@ -783,7 +783,7 @@ function StaffView({ staff, onAddStaff, onUpdateStaff, onDeleteStaff, establishm
               width: "100%",
               padding: "8px 10px 8px 30px",
               borderRadius: 6,
-              border: "1px solid " + TOKENS.line,
+              border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
               fontFamily: "'Inter', sans-serif",
               fontSize: 13,
               outline: "none",
@@ -845,7 +845,7 @@ function StaffView({ staff, onAddStaff, onUpdateStaff, onDeleteStaff, establishm
         />
       )}
 
-      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, overflow: "hidden" }}>
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'Inter', sans-serif" }}>
           <thead>
             <tr style={{ background: TOKENS.paperDim, borderBottom: "1px solid " + TOKENS.line }}>
@@ -916,7 +916,7 @@ function StaffView({ staff, onAddStaff, onUpdateStaff, onDeleteStaff, establishm
                         width: 26,
                         height: 26,
                         borderRadius: 5,
-                        border: "1px solid " + TOKENS.line,
+                        border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
                         background: "#fff",
                         color: TOKENS.inkSoft,
                         cursor: "pointer",
@@ -935,7 +935,7 @@ function StaffView({ staff, onAddStaff, onUpdateStaff, onDeleteStaff, establishm
                         width: 26,
                         height: 26,
                         borderRadius: 5,
-                        border: "1px solid " + TOKENS.line,
+                        border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
                         background: "#fff",
                         color: TOKENS.danger,
                         cursor: deletingId === s.id ? "default" : "pointer",
@@ -995,7 +995,7 @@ function AlertsView({ staff, establishments, userEmail }) {
               alignItems: "center",
               gap: 14,
               background: "#fff",
-              border: "1px solid " + TOKENS.line,
+              border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
               borderLeft: "3px solid " + (isOverdue ? TOKENS.danger : TOKENS.warn),
               borderRadius: 6,
               padding: "14px 18px",
@@ -1024,7 +1024,7 @@ function AlertsView({ staff, establishments, userEmail }) {
               style={{
                 padding: "6px 12px",
                 borderRadius: 6,
-                border: "1px solid " + TOKENS.line,
+                border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
                 background: TOKENS.paperDim,
                 color: TOKENS.ink,
                 fontFamily: "'Inter', sans-serif",
@@ -1174,7 +1174,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
     flex: 1,
     padding: "8px 10px",
     borderRadius: 6,
-    border: "1px solid " + TOKENS.line,
+    border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
     fontFamily: "'Inter', sans-serif",
     fontSize: 13,
     outline: "none",
@@ -1271,7 +1271,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 640 }}>
-      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
         <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
           Nom de votre organisation
         </h3>
@@ -1286,7 +1286,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
               flex: 1,
               padding: "8px 10px",
               borderRadius: 6,
-              border: "1px solid " + TOKENS.line,
+              border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
               fontFamily: "'Inter', sans-serif",
               fontSize: 13,
               outline: "none",
@@ -1316,7 +1316,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
         {orgRenameError && <div style={{ fontSize: 11.5, color: TOKENS.danger, marginTop: 8 }}>{orgRenameError}</div>}
       </div>
 
-      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
           <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
             Abonnement
@@ -1360,7 +1360,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
         </div>
       </div>
 
-      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, flexWrap: "wrap", gap: 10 }}>
           <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
             Nos futures offres
@@ -1441,7 +1441,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
         </div>
       </div>
 
-      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
         <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
           Membres de l'equipe
         </h3>
@@ -1459,7 +1459,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
               flex: 1,
               padding: "8px 10px",
               borderRadius: 6,
-              border: "1px solid " + TOKENS.line,
+              border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
               fontFamily: "'Inter', sans-serif",
               fontSize: 13,
               outline: "none",
@@ -1543,7 +1543,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
         </div>
       </div>
 
-      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
         <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
           Ajouter un etablissement
         </h3>
@@ -1588,7 +1588,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
         )}
       </div>
 
-      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
       <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
         Vos etablissements
       </h3>
@@ -1666,7 +1666,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
                     width: 34,
                     height: 34,
                     borderRadius: 6,
-                    border: "1px solid " + TOKENS.line,
+                    border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
                     background: "#fff",
                     color: TOKENS.danger,
                     cursor: deletingEstabId === e.id ? "default" : "pointer",
@@ -1709,7 +1709,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
               flex: 1,
               padding: "8px 10px",
               borderRadius: 6,
-              border: "1px solid " + TOKENS.line,
+              border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
               fontFamily: "'Inter', sans-serif",
               fontSize: 13,
               outline: "none",
@@ -1819,7 +1819,7 @@ function ReportsView({ staff, establishments, organizationName }) {
     <div
       style={{
         background: "#fff",
-        border: "1px solid " + TOKENS.line,
+        border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
         borderRadius: 8,
         padding: "32px",
         textAlign: "center",
@@ -1882,7 +1882,7 @@ function LoginScreen({ onLogin }) {
     width: "100%",
     padding: "10px 12px",
     borderRadius: 6,
-    border: "1px solid " + TOKENS.line,
+    border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
     fontFamily: "'Inter', sans-serif",
     fontSize: 14,
     outline: "none",
@@ -1928,7 +1928,7 @@ function LoginScreen({ onLogin }) {
         onSubmit={submit}
         style={{
           background: "#fff",
-          border: "1px solid " + TOKENS.line,
+          border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
           borderRadius: 10,
           padding: 32,
           width: 360,
@@ -1941,7 +1941,7 @@ function LoginScreen({ onLogin }) {
               height: 32,
               borderRadius: 7,
               background: TOKENS.paperDim,
-              border: "1px solid " + TOKENS.line,
+              border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -2122,7 +2122,7 @@ function ResetPasswordScreen({ accessToken, onDone }) {
     width: "100%",
     padding: "10px 12px",
     borderRadius: 6,
-    border: "1px solid " + TOKENS.line,
+    border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
     fontFamily: "'Inter', sans-serif",
     fontSize: 14,
     outline: "none",
@@ -2166,7 +2166,7 @@ function ResetPasswordScreen({ accessToken, onDone }) {
         onSubmit={submit}
         style={{
           background: "#fff",
-          border: "1px solid " + TOKENS.line,
+          border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
           borderRadius: 10,
           padding: 32,
           width: 360,
@@ -2373,7 +2373,7 @@ export default function VigiePrototype() {
             minHeight: "90vh",
             background: TOKENS.paper,
             borderRadius: 10,
-            border: "1px solid " + TOKENS.line,
+            border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
             gap: 10,
             color: TOKENS.inkSoft,
             fontSize: 13.5,
@@ -2395,7 +2395,7 @@ export default function VigiePrototype() {
           background: TOKENS.paper,
           borderRadius: 10,
           overflow: "hidden",
-          border: "1px solid " + TOKENS.line,
+          border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
         }}
       >
         <Sidebar view={view} setView={setView} establishmentCount={establishments.length} />
@@ -2442,7 +2442,7 @@ export default function VigiePrototype() {
                   marginLeft: 12,
                   padding: "5px 10px",
                   borderRadius: 5,
-                  border: "1px solid " + TOKENS.line,
+                  border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
                   background: "#fff",
                   color: TOKENS.inkSoft,
                   fontFamily: "'Inter', sans-serif",
