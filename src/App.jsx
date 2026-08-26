@@ -187,6 +187,44 @@ async function deleteStaff(id, token) {
   return true;
 }
 
+async function fetchOrganizationMembers(organizationId, token) {
+  const res = await fetch(
+    SUPABASE_URL + "/rest/v1/organization_members?organization_id=eq." + organizationId + "&select=*",
+    { headers: authHeaders(token) }
+  );
+  if (!res.ok) throw new Error("Erreur de lecture des membres");
+  return res.json();
+}
+
+async function fetchInvitations(organizationId, token) {
+  const res = await fetch(
+    SUPABASE_URL + "/rest/v1/invitations?organization_id=eq." + organizationId + "&accepted=eq.false&select=*",
+    { headers: authHeaders(token) }
+  );
+  if (!res.ok) throw new Error("Erreur de lecture des invitations");
+  return res.json();
+}
+
+async function createInvitation(email, organizationId, token) {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/invitations", {
+    method: "POST",
+    headers: { ...authHeaders(token), Prefer: "return=representation" },
+    body: JSON.stringify({ email, organization_id: organizationId }),
+  });
+  if (!res.ok) throw new Error("Erreur de creation de l'invitation");
+  const data = await res.json();
+  return data[0];
+}
+
+async function deleteInvitation(id, token) {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/invitations?id=eq." + id, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error("Erreur de suppression de l'invitation");
+  return true;
+}
+
 async function renameOrganization(organizationId, newName, token) {
   const res = await fetch(SUPABASE_URL + "/rest/v1/organizations?id=eq." + organizationId, {
     method: "PATCH",
@@ -992,15 +1030,70 @@ function AlertsView({ staff, establishments, userEmail }) {
   );
 }
 
-function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment, organizationName, onRenameOrganization }) {
+function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment, organizationName, onRenameOrganization, currentUserEmail }) {
   const [orgNameDraft, setOrgNameDraft] = useState(organizationName || "");
   const [renamingOrg, setRenamingOrg] = useState(false);
   const [orgRenamed, setOrgRenamed] = useState(false);
   const [orgRenameError, setOrgRenameError] = useState(null);
 
+  const [members, setMembers] = useState([]);
+  const [pendingInvites, setPendingInvites] = useState([]);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState(null);
+  const [inviteSent, setInviteSent] = useState(false);
+
   useEffect(() => {
     if (organizationName) setOrgNameDraft(organizationName);
   }, [organizationName]);
+
+  useEffect(() => {
+    if (!organizationId) return;
+    Promise.all([fetchOrganizationMembers(organizationId, token), fetchInvitations(organizationId, token)])
+      .then(([m, i]) => {
+        setMembers(m);
+        setPendingInvites(i);
+      })
+      .catch((err) => console.error("Erreur de chargement equipe:", err));
+  }, [organizationId, token]);
+
+  const sendInvite = async () => {
+    if (!inviteEmail.trim()) return;
+    setInviting(true);
+    setInviteError(null);
+    setInviteSent(false);
+    try {
+      const invitation = await createInvitation(inviteEmail.trim(), organizationId, token);
+      if (!invitation) throw new Error("Aucune donnee retournee");
+      setPendingInvites((prev) => [...prev, invitation]);
+      await fetch("/api/send-invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          toEmail: inviteEmail.trim(),
+          organizationName,
+          inviterEmail: currentUserEmail,
+        }),
+      });
+      setInviteSent(true);
+      setInviteEmail("");
+    } catch (err) {
+      console.error("Erreur d'invitation:", err);
+      setInviteError(err.message || "Erreur lors de l'invitation");
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const cancelInvite = async (id) => {
+    try {
+      await deleteInvitation(id, token);
+      setPendingInvites((prev) => prev.filter((i) => i.id !== id));
+    } catch (err) {
+      console.error("Erreur d'annulation:", err);
+    }
+  };
+
   const [drafts, setDrafts] = useState(() =>
     Object.fromEntries(establishments.map((e) => [e.id, e.contact_email || ""]))
   );
@@ -1122,6 +1215,108 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
         </div>
         {orgRenamed && <div style={{ fontSize: 11.5, color: TOKENS.ok, marginTop: 8 }}>Enregistre</div>}
         {orgRenameError && <div style={{ fontSize: 11.5, color: TOKENS.danger, marginTop: 8 }}>{orgRenameError}</div>}
+      </div>
+
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
+        <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
+          Membres de l'equipe
+        </h3>
+        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
+          Invitez des collegues a rejoindre votre organisation. Ils devront s'inscrire avec la meme adresse email que celle invitee.
+        </p>
+
+        <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+          <input
+            type="email"
+            placeholder="email@collegue.fr"
+            value={inviteEmail}
+            onChange={(e) => setInviteEmail(e.target.value)}
+            style={{
+              flex: 1,
+              padding: "8px 10px",
+              borderRadius: 6,
+              border: "1px solid " + TOKENS.line,
+              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontSize: 13,
+              outline: "none",
+            }}
+          />
+          <button
+            onClick={sendInvite}
+            disabled={inviting || !inviteEmail.trim()}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 6,
+              border: "none",
+              background: TOKENS.brand,
+              color: "#fff",
+              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontSize: 12.5,
+              fontWeight: 500,
+              cursor: inviting ? "default" : "pointer",
+              opacity: inviting || !inviteEmail.trim() ? 0.6 : 1,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {inviting ? "..." : "Inviter"}
+          </button>
+        </div>
+        {inviteSent && <div style={{ fontSize: 11.5, color: TOKENS.ok, marginBottom: 10 }}>Invitation envoyee</div>}
+        {inviteError && <div style={{ fontSize: 11.5, color: TOKENS.danger, marginBottom: 10 }}>{inviteError}</div>}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {members.map((m) => (
+            <div
+              key={m.user_id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "8px 12px",
+                background: TOKENS.paperDim,
+                borderRadius: 6,
+                fontFamily: "'IBM Plex Sans', sans-serif",
+                fontSize: 13,
+              }}
+            >
+              <span>{m.email}{m.email === currentUserEmail ? " (vous)" : ""}</span>
+              <span style={{ fontSize: 11, color: TOKENS.inkSoft, textTransform: "uppercase" }}>{m.role}</span>
+            </div>
+          ))}
+          {pendingInvites.map((inv) => (
+            <div
+              key={inv.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "8px 12px",
+                background: TOKENS.warnBg,
+                borderRadius: 6,
+                fontFamily: "'IBM Plex Sans', sans-serif",
+                fontSize: 13,
+              }}
+            >
+              <span>{inv.email}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 11, color: TOKENS.warn }}>En attente</span>
+                <button
+                  onClick={() => cancelInvite(inv.id)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: TOKENS.danger,
+                    cursor: "pointer",
+                    fontSize: 11,
+                    textDecoration: "underline",
+                  }}
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
@@ -1967,6 +2162,7 @@ export default function VigiePrototype() {
               token={token}
               organizationId={organizationId}
               organizationName={organizationName}
+              currentUserEmail={session?.user?.email}
               onRenameOrganization={(newName) => setOrganizationName(newName)}
               onAddEstablishment={(created) => setEstablishments((prev) => [...prev, created])}
               onUpdate={(updated) =>
