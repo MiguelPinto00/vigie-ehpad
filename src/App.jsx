@@ -560,31 +560,99 @@ function Dashboard({ staff, establishments }) {
         <StatCard label="Non conformes" value={nonConforme} accent={TOKENS.danger} />
       </div>
 
-      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "18px 20px" }}>
-        <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 12px" }}>
-          Par etablissement
-        </h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {establishments.map((e) => {
-            const siteStaff = staff.filter((s) => s.site === e.id);
-            const ok = siteStaff.filter((s) => s.status === "conforme").length;
-            const pct = siteStaff.length ? Math.round((ok / siteStaff.length) * 100) : 0;
-            return (
-              <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <Building2 size={15} color={TOKENS.inkSoft} style={{ flexShrink: 0 }} />
-                <div style={{ width: 190, fontFamily: "'Inter', sans-serif", fontSize: 13, color: TOKENS.ink }}>
-                  {e.name}
-                </div>
-                <div style={{ flex: 1, height: 6, background: TOKENS.paperDim, borderRadius: 3, overflow: "hidden" }}>
-                  <div style={{ width: pct + "%", height: "100%", background: TOKENS.brand, borderRadius: 3 }} />
-                </div>
-                <div style={{ width: 40, fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: TOKENS.inkSoft, textAlign: "right" }}>
-                  {pct}%
-                </div>
-              </div>
-            );
-          })}
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, overflow: "hidden" }}>
+        <div style={{ padding: "16px 20px 12px" }}>
+          <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
+            Detail par etablissement
+          </h3>
         </div>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: TOKENS.paperDim, borderTop: "1px solid " + TOKENS.line, borderBottom: "1px solid " + TOKENS.line }}>
+              {["Etablissement", "Salaries", "A jour", "Echeance proche", "Non conformes", "Conformite"].map((h, i) => (
+                <th
+                  key={h}
+                  style={{
+                    textAlign: i === 0 ? "left" : "center",
+                    padding: "9px 16px",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: TOKENS.inkSoft,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.03em",
+                    fontFamily: "'Inter', sans-serif",
+                  }}
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {establishments.map((e) => {
+              const siteStaff = staff.filter((s) => s.site === e.id);
+              const siteTotal = siteStaff.length;
+              const ok = siteStaff.filter((s) => s.status === "conforme").length;
+              const upcoming = siteStaff.filter((s) => s.status === "a_venir").length;
+              const bad = siteStaff.filter((s) => s.status === "non_conforme").length;
+              const pct = siteTotal ? Math.round((ok / siteTotal) * 100) : 0;
+              return (
+                <tr key={e.id} style={{ borderBottom: "1px solid " + TOKENS.line }}>
+                  <td style={{ padding: "12px 16px", fontFamily: "'Inter', sans-serif", fontSize: 13.5, fontWeight: 500, color: TOKENS.ink }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <Building2 size={14} color={TOKENS.inkSoft} style={{ flexShrink: 0 }} />
+                      {e.name}
+                    </div>
+                  </td>
+                  <td style={{ padding: "12px 16px", textAlign: "center", fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, color: TOKENS.ink }}>
+                    {siteTotal}
+                  </td>
+                  <td style={{ padding: "12px 16px", textAlign: "center", fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, color: TOKENS.ok, fontWeight: 600 }}>
+                    {ok}
+                  </td>
+                  <td style={{ padding: "12px 16px", textAlign: "center", fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, color: upcoming > 0 ? TOKENS.warn : TOKENS.inkSoft, fontWeight: upcoming > 0 ? 600 : 400 }}>
+                    {upcoming}
+                  </td>
+                  <td style={{ padding: "12px 16px", textAlign: "center", fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, color: bad > 0 ? TOKENS.danger : TOKENS.inkSoft, fontWeight: bad > 0 ? 600 : 400 }}>
+                    {bad}
+                  </td>
+                  <td style={{ padding: "12px 16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ flex: 1, height: 6, background: TOKENS.paperDim, borderRadius: 3, overflow: "hidden", minWidth: 60 }}>
+                        <div style={{ width: pct + "%", height: "100%", background: TOKENS.brand, borderRadius: 3 }} />
+                      </div>
+                      <span style={{ width: 36, fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: TOKENS.inkSoft, textAlign: "right", flexShrink: 0 }}>
+                        {pct}%
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+            {establishments.length > 1 && (
+              <tr style={{ background: TOKENS.paperDim }}>
+                <td style={{ padding: "12px 16px", fontFamily: "'Inter', sans-serif", fontSize: 13.5, fontWeight: 700, color: TOKENS.ink }}>
+                  Total
+                </td>
+                <td style={{ padding: "12px 16px", textAlign: "center", fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 700, color: TOKENS.ink }}>
+                  {total}
+                </td>
+                <td style={{ padding: "12px 16px", textAlign: "center", fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 700, color: TOKENS.ok }}>
+                  {conforme}
+                </td>
+                <td style={{ padding: "12px 16px", textAlign: "center", fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 700, color: TOKENS.warn }}>
+                  {aVenir}
+                </td>
+                <td style={{ padding: "12px 16px", textAlign: "center", fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 700, color: TOKENS.danger }}>
+                  {nonConforme}
+                </td>
+                <td style={{ padding: "12px 16px", fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, fontWeight: 700, color: TOKENS.ink }}>
+                  {percent}%
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
