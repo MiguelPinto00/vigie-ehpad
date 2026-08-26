@@ -502,7 +502,7 @@ function StatCard({ label, value, accent }) {
   );
 }
 
-function Dashboard({ staff, establishments }) {
+function Dashboard({ staff, establishments, setView }) {
   const total = staff.length;
   const conforme = staff.filter((s) => s.status === "conforme").length;
   const aVenir = staff.filter((s) => s.status === "a_venir").length;
@@ -532,6 +532,7 @@ function Dashboard({ staff, establishments }) {
             {nonConforme} salarie{nonConforme > 1 ? "s" : ""} sur {total} n'a pas de justificatif a jour (grippe ou rougeole). L'article L.3111-4 du code de la sante publique s'applique deja a votre personnel soignant.
           </p>
           <button
+            onClick={() => setView("alerts")}
             style={{
               marginTop: 14,
               display: "inline-flex",
@@ -2542,7 +2543,7 @@ export default function ConfiaPrototype() {
               {error}
             </div>
           )}
-          {view === "dashboard" && <Dashboard staff={staff} establishments={establishments} />}
+          {view === "dashboard" && <Dashboard staff={staff} establishments={establishments} setView={setView} />}
           {view === "staff" && <StaffView staff={staff} onAddStaff={handleAddStaff} onUpdateStaff={handleUpdateStaff} onDeleteStaff={handleDeleteStaff} establishments={establishments} token={token} />}
           {view === "alerts" && <AlertsView staff={staff} establishments={establishments} userEmail={session?.user?.email} />}
           {view === "reports" && <ReportsView staff={staff} establishments={establishments} organizationName={organizationName} />}
