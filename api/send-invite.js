@@ -25,17 +25,17 @@ export default async function handler(req, res) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Vigie <onboarding@resend.dev>",
+        from: "Confia <onboarding@resend.dev>",
         to: [toEmail],
-        subject: "Invitation a rejoindre " + (organizationName || "une organisation") + " sur Vigie",
+        subject: "Invitation a rejoindre " + (organizationName || "une organisation") + " sur Confia",
         html:
           "<p>Bonjour,</p>" +
           "<p><strong>" + (inviterEmail || "Un collegue") + "</strong> vous invite a rejoindre <strong>" +
           (organizationName || "son organisation") +
-          "</strong> sur Vigie, l'outil de suivi de conformite vaccinale.</p>" +
+          "</strong> sur Confia, l'outil de suivi de conformite vaccinale.</p>" +
           "<p>Pour rejoindre l'equipe, creez votre compte avec <strong>cette meme adresse email</strong> (" + toEmail + ") sur :</p>" +
           "<p><a href='https://vigie-ehpad.vercel.app'>https://vigie-ehpad.vercel.app</a></p>" +
-          "<p style='color:#888;font-size:12px;'>Cet email a ete envoye automatiquement par Vigie.</p>",
+          "<p style='color:#888;font-size:12px;'>Cet email a ete envoye automatiquement par Confia.</p>",
       }),
     });
 
