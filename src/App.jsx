@@ -16,6 +16,8 @@ import {
   Trash2,
   Eye,
   EyeOff,
+  ShieldCheck,
+  ClipboardCheck,
 } from "lucide-react";
 
 const TOKENS = {
@@ -2051,8 +2053,249 @@ function ReportsView({ staff, establishments, organizationName }) {
   );
 }
 
-function LoginScreen({ onLogin }) {
-  const [mode, setMode] = useState("login"); // "login" ou "signup"
+function LandingFeatureCard({ icon: Icon, title, description }) {
+  return (
+    <div
+      style={{
+        background: "#fff",
+        border: "1px solid " + TOKENS.line,
+        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
+        borderRadius: 10,
+        padding: "22px 22px",
+        flex: "1 1 220px",
+      }}
+    >
+      <div
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: 8,
+          background: TOKENS.paperDim,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: 14,
+        }}
+      >
+        <Icon size={19} color={TOKENS.brand} />
+      </div>
+      <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 6px" }}>
+        {title}
+      </h3>
+      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: TOKENS.inkSoft, lineHeight: 1.6, margin: 0 }}>
+        {description}
+      </p>
+    </div>
+  );
+}
+
+function LandingPage({ onGetStarted, onLogin }) {
+  return (
+    <div style={{ fontFamily: "'Inter', sans-serif", color: TOKENS.ink }}>
+      {/* Barre de navigation */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "18px 4px",
+          maxWidth: 1040,
+          margin: "0 auto",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 7,
+              background: TOKENS.paperDim,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <LogoMark size={18} />
+          </div>
+          <span style={{ fontSize: 17, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+            Confia
+          </span>
+        </div>
+        <button
+          onClick={onLogin}
+          style={{
+            background: "none",
+            border: "1px solid " + TOKENS.line,
+            borderRadius: 6,
+            padding: "8px 16px",
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 13,
+            fontWeight: 500,
+            color: TOKENS.ink,
+            cursor: "pointer",
+          }}
+        >
+          Se connecter
+        </button>
+      </div>
+
+      {/* Hero */}
+      <div style={{ maxWidth: 780, margin: "0 auto", padding: "56px 20px 40px", textAlign: "center" }}>
+        <span
+          style={{
+            display: "inline-block",
+            padding: "5px 14px",
+            borderRadius: 20,
+            background: TOKENS.okBg,
+            color: TOKENS.ok,
+            fontSize: 12.5,
+            fontWeight: 600,
+            marginBottom: 20,
+          }}
+        >
+          Loi de financement de la securite sociale 2026 — obligation vaccinale medico-social
+        </span>
+        <h1 style={{ fontSize: 36, fontWeight: 700, lineHeight: 1.25, margin: "0 0 18px" }}>
+          La conformite vaccinale de votre EHPAD,
+          <br />
+          enfin maitrisee.
+        </h1>
+        <p style={{ fontSize: 15.5, color: TOKENS.inkSoft, lineHeight: 1.65, maxWidth: 620, margin: "0 auto 30px" }}>
+          Depuis le 1er janvier 2026, l'obligation vaccinale contre la grippe s'applique a l'ensemble du
+          personnel soignant en EHPAD (article L.3111-4 du code de la sante publique). Une nouvelle
+          obligation rougeole est prevue par la LFSS 2026. Confia centralise le suivi de votre personnel,
+          automatise les relances et genere vos justificatifs de conformite.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+          <button
+            onClick={onGetStarted}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              background: TOKENS.brand,
+              color: "#fff",
+              border: "none",
+              borderRadius: 7,
+              padding: "13px 26px",
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 15,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Creer mon compte gratuitement <ChevronRight size={16} />
+          </button>
+          <span style={{ fontSize: 12, color: TOKENS.inkSoft }}>
+            Aucune carte bancaire requise — acces complet pendant la phase beta.
+          </span>
+        </div>
+      </div>
+
+      {/* Fonctionnalites */}
+      <div style={{ maxWidth: 1040, margin: "0 auto", padding: "20px 20px 60px" }}>
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+          <LandingFeatureCard
+            icon={Users}
+            title="Suivi centralise du personnel"
+            description="Visualisez en un coup d'oeil le statut vaccinal de chaque salarie, etablissement par etablissement."
+          />
+          <LandingFeatureCard
+            icon={BellRing}
+            title="Alertes automatiques"
+            description="Recevez chaque jour un resume de conformite par email, sans avoir a verifier manuellement."
+          />
+          <LandingFeatureCard
+            icon={FileDown}
+            title="Rapports prets pour un controle"
+            description="Generez en un clic un rapport PDF horodate a presenter lors d'une inspection ou d'un renouvellement d'agrement."
+          />
+          <LandingFeatureCard
+            icon={Building2}
+            title="Multi-etablissements"
+            description="Gerez plusieurs EHPAD et invitez votre equipe au sein d'une seule organisation."
+          />
+        </div>
+      </div>
+
+      {/* Section reglementaire */}
+      <div style={{ background: "#fff", borderTop: "1px solid " + TOKENS.line, borderBottom: "1px solid " + TOKENS.line }}>
+        <div style={{ maxWidth: 780, margin: "0 auto", padding: "44px 20px", textAlign: "center" }}>
+          <div
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 9,
+              background: TOKENS.paperDim,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px",
+            }}
+          >
+            <ShieldCheck size={21} color={TOKENS.brand} />
+          </div>
+          <h2 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 12px" }}>
+            Une obligation legale, un outil pense pour y repondre
+          </h2>
+          <p style={{ fontSize: 13.5, color: TOKENS.inkSoft, lineHeight: 1.7, margin: 0 }}>
+            L'obligation vaccinale grippe pour le personnel soignant en EHPAD est en vigueur depuis le 1er
+            janvier 2026. La LFSS 2026 prevoit egalement une nouvelle obligation vaccinale rougeole pour le
+            personnel du secteur medico-social, dont le decret d'application est attendu. Confia est un
+            outil de suivi interne qui vous aide a anticiper ces echeances ; il ne remplace pas un avis
+            juridique ou medical.
+          </p>
+        </div>
+      </div>
+
+      {/* Bandeau final */}
+      <div style={{ background: TOKENS.ink }}>
+        <div
+          style={{
+            maxWidth: 780,
+            margin: "0 auto",
+            padding: "48px 20px",
+            textAlign: "center",
+          }}
+        >
+          <ClipboardCheck size={26} color="#fff" style={{ marginBottom: 14 }} />
+          <h2 style={{ fontSize: 22, fontWeight: 600, color: "#fff", margin: "0 0 20px" }}>
+            Anticipez vos obligations vaccinales des aujourd'hui.
+          </h2>
+          <button
+            onClick={onGetStarted}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              background: TOKENS.brand,
+              color: "#fff",
+              border: "none",
+              borderRadius: 7,
+              padding: "12px 24px",
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 14.5,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Creer mon compte gratuitement <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div style={{ maxWidth: 1040, margin: "0 auto", padding: "24px 20px", textAlign: "center" }}>
+        <span style={{ fontSize: 12, color: TOKENS.inkSoft }}>
+          Confia — Suivi de conformite vaccinale pour le secteur medico-social
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function LoginScreen({ onLogin, initialMode, onBackToLanding }) {
+  const [mode, setMode] = useState(initialMode || "login"); // "login", "signup" ou "forgot"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [orgName, setOrgName] = useState("");
@@ -2135,6 +2378,26 @@ function LoginScreen({ onLogin }) {
             Confia
           </span>
         </div>
+
+        {onBackToLanding && (
+          <button
+            type="button"
+            onClick={onBackToLanding}
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              marginBottom: 14,
+              color: TOKENS.inkSoft,
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 12.5,
+              cursor: "pointer",
+              textDecoration: "underline",
+            }}
+          >
+            ← Retour a l'accueil
+          </button>
+        )}
 
         <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 600, color: TOKENS.ink, margin: "0 0 16px" }}>
           {mode === "login" ? "Connexion" : mode === "signup" ? "Creer un compte" : "Mot de passe oublie"}
@@ -2403,6 +2666,8 @@ function ResetPasswordScreen({ accessToken, onDone }) {
 
 export default function ConfiaPrototype() {
   const [session, setSession] = useState(() => getStoredSession());
+  const [showLanding, setShowLanding] = useState(true);
+  const [authInitialMode, setAuthInitialMode] = useState("login");
   const [view, setView] = useState("dashboard");
   const [staff, setStaff] = useState([]);
   const [establishments, setEstablishments] = useState([]);
@@ -2533,7 +2798,27 @@ export default function ConfiaPrototype() {
   }
 
   if (!session) {
-    return <LoginScreen onLogin={handleLogin} />;
+    if (showLanding) {
+      return (
+        <LandingPage
+          onGetStarted={() => {
+            setAuthInitialMode("signup");
+            setShowLanding(false);
+          }}
+          onLogin={() => {
+            setAuthInitialMode("login");
+            setShowLanding(false);
+          }}
+        />
+      );
+    }
+    return (
+      <LoginScreen
+        onLogin={handleLogin}
+        initialMode={authInitialMode}
+        onBackToLanding={() => setShowLanding(true)}
+      />
+    );
   }
 
   const titles = {
