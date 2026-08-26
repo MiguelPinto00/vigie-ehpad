@@ -1120,6 +1120,32 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [billingPeriod, setBillingPeriod] = useState("monthly");
+
+  const plans = [
+    {
+      name: "Starter",
+      monthly: "29\u20ac",
+      annual: "290\u20ac",
+      tagline: "Pour un etablissement isole",
+      features: ["1 etablissement", "Salaries illimites", "Alertes email manuelles", "Export PDF", "Upload de justificatifs"],
+    },
+    {
+      name: "Pro",
+      monthly: "89\u20ac",
+      annual: "890\u20ac",
+      tagline: "Pour les petits groupes",
+      features: ["Jusqu'a 5 etablissements", "Alertes automatiques quotidiennes", "Jusqu'a 5 membres d'equipe", "Tout Starter inclus"],
+      highlighted: true,
+    },
+    {
+      name: "Entreprise",
+      monthly: "A partir de 199\u20ac",
+      annual: "A partir de 1990\u20ac",
+      tagline: "Pour les grands groupes",
+      features: ["Etablissements illimites", "Membres d'equipe illimites", "Support prioritaire", "Tout Pro inclus"],
+    },
+  ];
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteAccountError, setDeleteAccountError] = useState(null);
 
@@ -1330,6 +1356,87 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
             </div>
             <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginTop: 2 }}>Membres d'equipe</div>
           </div>
+        </div>
+      </div>
+
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, flexWrap: "wrap", gap: 10 }}>
+          <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
+            Nos futures offres
+          </h3>
+          <div style={{ display: "flex", background: TOKENS.paperDim, borderRadius: 6, padding: 3 }}>
+            {["monthly", "annual"].map((period) => (
+              <button
+                key={period}
+                onClick={() => setBillingPeriod(period)}
+                style={{
+                  padding: "5px 12px",
+                  borderRadius: 5,
+                  border: "none",
+                  background: billingPeriod === period ? TOKENS.brand : "transparent",
+                  color: billingPeriod === period ? "#fff" : TOKENS.inkSoft,
+                  fontFamily: "'IBM Plex Sans', sans-serif",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
+              >
+                {period === "monthly" ? "Mensuel" : "Annuel (2 mois offerts)"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 18px" }}>
+          Toutes les fonctionnalites sont accessibles gratuitement pendant la periode beta. Voici les offres a venir.
+        </p>
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+          {plans.map((plan) => (
+            <div
+              key={plan.name}
+              style={{
+                flex: "1 1 200px",
+                border: "1px solid " + (plan.highlighted ? TOKENS.brand : TOKENS.line),
+                borderRadius: 8,
+                padding: "16px 16px",
+                position: "relative",
+                background: plan.highlighted ? TOKENS.okBg : "#fff",
+              }}
+            >
+              {plan.highlighted && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: -9,
+                    left: 14,
+                    background: TOKENS.brand,
+                    color: "#fff",
+                    fontSize: 10,
+                    fontWeight: 500,
+                    padding: "2px 8px",
+                    borderRadius: 4,
+                    fontFamily: "'IBM Plex Sans', sans-serif",
+                  }}
+                >
+                  Populaire
+                </span>
+              )}
+              <div style={{ fontFamily: "'Fraunces', serif", fontSize: 16, fontWeight: 600, color: TOKENS.ink, marginTop: 4 }}>
+                {plan.name}
+              </div>
+              <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginBottom: 10 }}>{plan.tagline}</div>
+              <div style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
+                {billingPeriod === "monthly" ? plan.monthly : plan.annual}
+                <span style={{ fontSize: 12, fontWeight: 400, color: TOKENS.inkSoft }}>
+                  {billingPeriod === "monthly" ? "/mois" : "/an"}
+                </span>
+              </div>
+              <ul style={{ margin: "12px 0 0", padding: "0 0 0 16px", fontSize: 12, color: TOKENS.inkSoft, lineHeight: 1.8 }}>
+                {plan.features.map((f) => (
+                  <li key={f}>{f}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       </div>
 
