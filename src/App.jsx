@@ -146,13 +146,18 @@ async function updateEstablishmentEmail(establishmentId, contactEmail, token) {
   return data[0];
 }
 
-async function fetchMyOrganizationId(token) {
-  const res = await fetch(SUPABASE_URL + "/rest/v1/organization_members?select=organization_id&limit=1", {
-    headers: authHeaders(token),
-  });
+async function fetchMyOrganization(token) {
+  const res = await fetch(
+    SUPABASE_URL + "/rest/v1/organization_members?select=organization_id,organizations(id,name)&limit=1",
+    { headers: authHeaders(token) }
+  );
   if (!res.ok) throw new Error("Erreur de lecture de l'organisation");
   const data = await res.json();
-  return data[0]?.organization_id || null;
+  const row = data[0];
+  return {
+    id: row?.organization_id || null,
+    name: row?.organizations?.name || null,
+  };
 }
 
 async function insertEstablishment(name, city, organizationId, token) {
@@ -1019,7 +1024,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
   );
 }
 
-function ReportsView({ staff, establishments }) {
+function ReportsView({ staff, establishments, organizationName }) {
   const [generating, setGenerating] = useState(false);
 
   const generatePDF = () => {
@@ -1037,7 +1042,7 @@ function ReportsView({ staff, establishments }) {
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
-      doc.text("Groupe EHPAD Rhone Solidarite", 14, 26);
+      doc.text(organizationName || "Vigie", 14, 26);
       doc.text("Genere le " + today, 14, 32);
       doc.text("Taux de conformite global : " + percent + "% (" + conforme + "/" + total + ")", 14, 40);
 
@@ -1308,6 +1313,7 @@ export default function VigiePrototype() {
   const [staff, setStaff] = useState([]);
   const [establishments, setEstablishments] = useState([]);
   const [organizationId, setOrganizationId] = useState(null);
+  const [organizationName, setOrganizationName] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -1335,15 +1341,16 @@ export default function VigiePrototype() {
     async function load() {
       setLoading(true);
       try {
-        const [estabRows, staffRows, orgId] = await Promise.all([
+        const [estabRows, staffRows, org] = await Promise.all([
           fetchEstablishments(token),
           fetchStaff(token),
-          fetchMyOrganizationId(token),
+          fetchMyOrganization(token),
         ]);
         if (!cancelled) {
           setEstablishments(estabRows);
           setStaff(staffRows.map(mapStaffRow));
-          setOrganizationId(orgId);
+          setOrganizationId(org.id);
+          setOrganizationName(org.name);
         }
       } catch (err) {
         console.error("Erreur de chargement Supabase:", err);
@@ -1461,9 +1468,14 @@ export default function VigiePrototype() {
                   fontWeight: 600,
                 }}
               >
-                MG
+                {(organizationName || session?.user?.email || "?")
+                  .split(/\s+/)
+                  .map((w) => w[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase()}
               </div>
-              Groupe EHPAD Rhône Solidarité
+              {organizationName || "Chargement..."}
               <button
                 onClick={handleLogout}
                 style={{
@@ -1501,7 +1513,7 @@ export default function VigiePrototype() {
           {view === "dashboard" && <Dashboard staff={staff} establishments={establishments} />}
           {view === "staff" && <StaffView staff={staff} onAddStaff={handleAddStaff} establishments={establishments} token={token} />}
           {view === "alerts" && <AlertsView staff={staff} establishments={establishments} userEmail={session?.user?.email} />}
-          {view === "reports" && <ReportsView staff={staff} establishments={establishments} />}
+          {view === "reports" && <ReportsView staff={staff} establishments={establishments} organizationName={organizationName} />}
           {view === "settings" && (
             <SettingsView
               establishments={establishments}
