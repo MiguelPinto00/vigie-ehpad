@@ -104,6 +104,34 @@ async function signIn(email, password) {
   return data;
 }
 
+async function requestPasswordReset(email) {
+  const res = await fetch(SUPABASE_URL + "/auth/v1/recover", {
+    method: "POST",
+    headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.msg || data.error_description || "Erreur lors de l'envoi");
+  }
+  return true;
+}
+
+async function updatePasswordWithToken(accessToken, newPassword) {
+  const res = await fetch(SUPABASE_URL + "/auth/v1/user", {
+    method: "PUT",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + accessToken,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ password: newPassword }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.msg || data.error_description || "Erreur lors du changement de mot de passe");
+  return data;
+}
+
 async function fetchEstablishments(token) {
   const res = await fetch(SUPABASE_URL + "/rest/v1/establishments?select=*", {
     headers: authHeaders(token),
@@ -1357,6 +1385,9 @@ function LoginScreen({ onLogin }) {
         await signUp(email, password, orgName.trim());
         setInfo("Compte cree. Verifiez votre email pour confirmer, puis connectez-vous.");
         setMode("login");
+      } else if (mode === "forgot") {
+        await requestPasswordReset(email.trim());
+        setInfo("Si un compte existe avec cet email, un lien de reinitialisation a ete envoye.");
       } else {
         const session = await signIn(email, password);
         onLogin(session);
@@ -1409,7 +1440,7 @@ function LoginScreen({ onLogin }) {
         </div>
 
         <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 16, fontWeight: 600, color: TOKENS.ink, margin: "0 0 16px" }}>
-          {mode === "login" ? "Connexion" : "Creer un compte"}
+          {mode === "login" ? "Connexion" : mode === "signup" ? "Creer un compte" : "Mot de passe oublie"}
         </h2>
 
         {mode === "signup" && (
@@ -1430,15 +1461,17 @@ function LoginScreen({ onLogin }) {
           style={inputStyle}
           required
         />
-        <input
-          type="password"
-          placeholder="Mot de passe"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={inputStyle}
-          required
-          minLength={6}
-        />
+        {mode !== "forgot" && (
+          <input
+            type="password"
+            placeholder="Mot de passe"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={inputStyle}
+            required
+            minLength={6}
+          />
+        )}
 
         {error && (
           <div style={{ color: TOKENS.danger, fontSize: 12.5, marginBottom: 12 }}>{error}</div>
@@ -1464,20 +1497,51 @@ function LoginScreen({ onLogin }) {
             opacity: loading ? 0.7 : 1,
           }}
         >
-          {loading ? "Patientez..." : mode === "login" ? "Se connecter" : "Creer mon compte"}
+          {loading
+            ? "Patientez..."
+            : mode === "login"
+            ? "Se connecter"
+            : mode === "signup"
+            ? "Creer mon compte"
+            : "Envoyer le lien de reinitialisation"}
         </button>
+
+        {mode === "login" && (
+          <button
+            type="button"
+            onClick={() => {
+              setMode("forgot");
+              setError(null);
+              setInfo(null);
+            }}
+            style={{
+              width: "100%",
+              padding: "8px",
+              marginTop: 6,
+              border: "none",
+              background: "none",
+              color: TOKENS.inkSoft,
+              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontSize: 12.5,
+              cursor: "pointer",
+              textDecoration: "underline",
+            }}
+          >
+            Mot de passe oublie ?
+          </button>
+        )}
 
         <button
           type="button"
           onClick={() => {
-            setMode(mode === "login" ? "signup" : "login");
+            setMode(mode === "signup" ? "login" : mode === "forgot" ? "login" : "signup");
             setError(null);
             setInfo(null);
           }}
           style={{
             width: "100%",
             padding: "8px",
-            marginTop: 10,
+            marginTop: 4,
             border: "none",
             background: "none",
             color: TOKENS.inkSoft,
@@ -1487,7 +1551,120 @@ function LoginScreen({ onLogin }) {
             textDecoration: "underline",
           }}
         >
-          {mode === "login" ? "Pas encore de compte ? Creez-en un" : "Deja un compte ? Connectez-vous"}
+          {mode === "login"
+            ? "Pas encore de compte ? Creez-en un"
+            : mode === "forgot"
+            ? "Retour a la connexion"
+            : "Deja un compte ? Connectez-vous"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function ResetPasswordScreen({ accessToken, onDone }) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const inputStyle = {
+    width: "100%",
+    padding: "10px 12px",
+    borderRadius: 6,
+    border: "1px solid " + TOKENS.line,
+    fontFamily: "'IBM Plex Sans', sans-serif",
+    fontSize: 14,
+    outline: "none",
+    boxSizing: "border-box",
+    marginBottom: 12,
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    if (password.length < 6) {
+      setError("Le mot de passe doit contenir au moins 6 caracteres.");
+      return;
+    }
+    if (password !== confirm) {
+      setError("Les deux mots de passe ne correspondent pas.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await updatePasswordWithToken(accessToken, password);
+      onDone();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        minHeight: "90vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "'IBM Plex Sans', sans-serif",
+      }}
+    >
+      <form
+        onSubmit={submit}
+        style={{
+          background: "#fff",
+          border: "1px solid " + TOKENS.line,
+          borderRadius: 10,
+          padding: 32,
+          width: 360,
+        }}
+      >
+        <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 16, fontWeight: 600, color: TOKENS.ink, margin: "0 0 16px" }}>
+          Choisir un nouveau mot de passe
+        </h2>
+
+        <input
+          type="password"
+          placeholder="Nouveau mot de passe"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={inputStyle}
+          required
+          minLength={6}
+        />
+        <input
+          type="password"
+          placeholder="Confirmer le mot de passe"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          style={inputStyle}
+          required
+          minLength={6}
+        />
+
+        {error && <div style={{ color: TOKENS.danger, fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
+
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            width: "100%",
+            padding: "10px",
+            borderRadius: 6,
+            border: "none",
+            background: TOKENS.brand,
+            color: "#fff",
+            fontFamily: "'IBM Plex Sans', sans-serif",
+            fontSize: 13.5,
+            fontWeight: 500,
+            cursor: loading ? "default" : "pointer",
+            opacity: loading ? 0.7 : 1,
+          }}
+        >
+          {loading ? "Patientez..." : "Enregistrer le nouveau mot de passe"}
         </button>
       </form>
     </div>
@@ -1503,6 +1680,14 @@ export default function VigiePrototype() {
   const [organizationName, setOrganizationName] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [recoveryToken] = useState(() => {
+    const hash = window.location.hash;
+    if (hash.includes("type=recovery")) {
+      const params = new URLSearchParams(hash.slice(1));
+      return params.get("access_token");
+    }
+    return null;
+  });
 
   const token = session?.access_token;
 
@@ -1604,6 +1789,18 @@ export default function VigiePrototype() {
     saveSession(newSession);
     setSession(newSession);
   };
+
+  if (recoveryToken) {
+    return (
+      <ResetPasswordScreen
+        accessToken={recoveryToken}
+        onDone={() => {
+          window.history.replaceState(null, "", window.location.pathname);
+          window.location.reload();
+        }}
+      />
+    );
+  }
 
   if (!session) {
     return <LoginScreen onLogin={handleLogin} />;
