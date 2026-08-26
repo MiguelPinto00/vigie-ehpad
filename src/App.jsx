@@ -12,6 +12,8 @@ import {
   Building2,
   Loader2,
   Settings,
+  Edit2,
+  Trash2,
 } from "lucide-react";
 
 const TOKENS = {
@@ -133,6 +135,26 @@ async function insertStaff(row, token) {
   if (!res.ok) throw new Error("Erreur d'enregistrement");
   const data = await res.json();
   return data[0];
+}
+
+async function updateStaff(id, updates, token) {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/staff?id=eq." + id, {
+    method: "PATCH",
+    headers: { ...authHeaders(token), Prefer: "return=representation" },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) throw new Error("Erreur de mise a jour du salarie");
+  const data = await res.json();
+  return data[0];
+}
+
+async function deleteStaff(id, token) {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/staff?id=eq." + id, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error("Erreur de suppression");
+  return true;
 }
 
 async function renameOrganization(organizationId, newName, token) {
@@ -483,12 +505,13 @@ function Dashboard({ staff, establishments }) {
   );
 }
 
-function AddStaffModal({ onClose, onAdd, establishments, token }) {
-  const [name, setName] = useState("");
-  const [role, setRole] = useState("");
-  const [site, setSite] = useState(establishments[0]?.id || "");
-  const [vaccine, setVaccine] = useState("Grippe");
-  const [status, setStatus] = useState("a_venir");
+function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
+  const isEditing = !!editingStaff;
+  const [name, setName] = useState(editingStaff?.name || "");
+  const [role, setRole] = useState(editingStaff?.role || "");
+  const [site, setSite] = useState(editingStaff?.site || establishments[0]?.id || "");
+  const [vaccine, setVaccine] = useState(editingStaff?.vaccine || "Grippe");
+  const [status, setStatus] = useState(editingStaff?.status || "a_venir");
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [uploadError, setUploadError] = useState(null);
@@ -518,11 +541,11 @@ function AddStaffModal({ onClose, onAdd, establishments, token }) {
     setSaving(true);
     setUploadError(null);
     try {
-      let documentUrl = null;
+      let documentUrl = editingStaff?.documentUrl || null;
       if (file) {
         documentUrl = await uploadJustificatif(file, token);
       }
-      await onAdd({
+      const payload = {
         name: name.trim(),
         role: role.trim(),
         establishment_id: site,
@@ -531,7 +554,8 @@ function AddStaffModal({ onClose, onAdd, establishments, token }) {
         updated_label: status === "conforme" ? new Date().toLocaleDateString("fr-FR") : "-",
         next_label: status === "non_conforme" ? "Retard" : status === "a_venir" ? "A definir" : "-",
         document_url: documentUrl,
-      });
+      };
+      await onSave(payload, editingStaff?.id);
       onClose();
     } catch (err) {
       console.error("Erreur:", err);
@@ -566,7 +590,7 @@ function AddStaffModal({ onClose, onAdd, establishments, token }) {
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 17, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
-            Ajouter un salarie
+            {isEditing ? "Modifier le salarie" : "Ajouter un salarie"}
           </h3>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: TOKENS.inkSoft }}>
             <X size={18} />
@@ -601,7 +625,9 @@ function AddStaffModal({ onClose, onAdd, establishments, token }) {
           <option value="non_conforme">Non conforme</option>
         </select>
 
-        <label style={labelStyle}>Justificatif (optionnel)</label>
+        <label style={labelStyle}>
+          Justificatif {isEditing && editingStaff?.documentUrl ? "(remplacer)" : "(optionnel)"}
+        </label>
         <input
           type="file"
           accept="application/pdf,image/*"
@@ -631,17 +657,19 @@ function AddStaffModal({ onClose, onAdd, establishments, token }) {
             marginTop: 4,
           }}
         >
-          {saving ? "Enregistrement..." : "Enregistrer"}
+          {saving ? "Enregistrement..." : isEditing ? "Enregistrer les modifications" : "Enregistrer"}
         </button>
       </div>
     </div>
   );
 }
 
-function StaffView({ staff, onAddStaff, establishments, token }) {
+function StaffView({ staff, onAddStaff, onUpdateStaff, onDeleteStaff, establishments, token }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [showModal, setShowModal] = useState(false);
+  const [editingStaff, setEditingStaff] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   const filtered = useMemo(() => {
     return staff.filter((s) => {
@@ -650,6 +678,16 @@ function StaffView({ staff, onAddStaff, establishments, token }) {
       return matchQuery && matchFilter;
     });
   }, [staff, query, filter]);
+
+  const handleDelete = async (s) => {
+    if (!window.confirm("Supprimer " + s.name + " ? Cette action est irreversible.")) return;
+    setDeletingId(s.id);
+    try {
+      await onDeleteStaff(s.id);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <div>
@@ -713,13 +751,24 @@ function StaffView({ staff, onAddStaff, establishments, token }) {
         </button>
       </div>
 
-      {showModal && <AddStaffModal onClose={() => setShowModal(false)} onAdd={onAddStaff} establishments={establishments} token={token} />}
+      {showModal && (
+        <StaffModal
+          onClose={() => {
+            setShowModal(false);
+            setEditingStaff(null);
+          }}
+          onSave={(payload, id) => (id ? onUpdateStaff(id, payload) : onAddStaff(payload))}
+          establishments={establishments}
+          token={token}
+          editingStaff={editingStaff}
+        />
+      )}
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'IBM Plex Sans', sans-serif" }}>
           <thead>
             <tr style={{ background: TOKENS.paperDim, borderBottom: "1px solid " + TOKENS.line }}>
-              {["Nom", "Fonction", "Etablissement", "Vaccin", "Statut", "Derniere MaJ", "Echeance", "Document"].map((h) => (
+              {["Nom", "Fonction", "Etablissement", "Vaccin", "Statut", "Derniere MaJ", "Echeance", "Document", "Actions"].map((h) => (
                 <th
                   key={h}
                   style={{
@@ -770,6 +819,51 @@ function StaffView({ staff, onAddStaff, establishments, token }) {
                   ) : (
                     <span style={{ color: TOKENS.inkSoft }}>-</span>
                   )}
+                </td>
+                <td style={{ padding: "11px 16px" }}>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button
+                      onClick={() => {
+                        setEditingStaff(s);
+                        setShowModal(true);
+                      }}
+                      title="Modifier"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 26,
+                        height: 26,
+                        borderRadius: 5,
+                        border: "1px solid " + TOKENS.line,
+                        background: "#fff",
+                        color: TOKENS.inkSoft,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Edit2 size={13} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(s)}
+                      disabled={deletingId === s.id}
+                      title="Supprimer"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 26,
+                        height: 26,
+                        borderRadius: 5,
+                        border: "1px solid " + TOKENS.line,
+                        background: "#fff",
+                        color: TOKENS.danger,
+                        cursor: deletingId === s.id ? "default" : "pointer",
+                        opacity: deletingId === s.id ? 0.5 : 1,
+                      }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -1478,6 +1572,34 @@ export default function VigiePrototype() {
     }
   };
 
+  const handleUpdateStaff = async (id, updates) => {
+    try {
+      const updated = await updateStaff(id, updates, token);
+      setStaff((prev) => prev.map((s) => (s.id === id ? mapStaffRow(updated) : s)));
+    } catch (err) {
+      console.error("Erreur de mise a jour Supabase:", err);
+      if (isSessionExpired(err)) {
+        handleLogout();
+      } else {
+        setError("Echec de la mise a jour du salarie. Reessayez.");
+      }
+    }
+  };
+
+  const handleDeleteStaff = async (id) => {
+    try {
+      await deleteStaff(id, token);
+      setStaff((prev) => prev.filter((s) => s.id !== id));
+    } catch (err) {
+      console.error("Erreur de suppression Supabase:", err);
+      if (isSessionExpired(err)) {
+        handleLogout();
+      } else {
+        setError("Echec de la suppression du salarie. Reessayez.");
+      }
+    }
+  };
+
   const handleLogin = (newSession) => {
     saveSession(newSession);
     setSession(newSession);
@@ -1604,7 +1726,7 @@ export default function VigiePrototype() {
             </div>
           )}
           {view === "dashboard" && <Dashboard staff={staff} establishments={establishments} />}
-          {view === "staff" && <StaffView staff={staff} onAddStaff={handleAddStaff} establishments={establishments} token={token} />}
+          {view === "staff" && <StaffView staff={staff} onAddStaff={handleAddStaff} onUpdateStaff={handleUpdateStaff} onDeleteStaff={handleDeleteStaff} establishments={establishments} token={token} />}
           {view === "alerts" && <AlertsView staff={staff} establishments={establishments} userEmail={session?.user?.email} />}
           {view === "reports" && <ReportsView staff={staff} establishments={establishments} organizationName={organizationName} />}
           {view === "settings" && (
