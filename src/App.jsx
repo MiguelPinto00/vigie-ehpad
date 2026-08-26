@@ -461,8 +461,8 @@ function Sidebar({ view, setView, establishmentCount }) {
         >
           <LogoMark size={17} />
         </div>
-        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 19, fontWeight: 600, color: TOKENS.ink }}>
-          Vigie
+        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 17, fontWeight: 700, color: TOKENS.ink, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+          Confia
         </span>
       </div>
       <NavItem icon={LayoutDashboard} label="Tableau de bord" active={view === "dashboard"} onClick={() => setView("dashboard")} />
@@ -1340,7 +1340,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
           </span>
         </div>
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 16px" }}>
-          Vigie est actuellement en phase beta gratuite. Les offres payantes seront communiquees a l'avance avant tout changement.
+          Confia est actuellement en phase beta gratuite. Les offres payantes seront communiquees a l'avance avant tout changement.
         </p>
         <div style={{ display: "flex", gap: 12 }}>
           <div style={{ flex: 1, padding: "12px 14px", background: TOKENS.paperDim, borderRadius: 6, textAlign: "center" }}>
@@ -1765,7 +1765,7 @@ function ReportsView({ staff, establishments, organizationName }) {
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
-      doc.text(organizationName || "Vigie", 14, 26);
+      doc.text(organizationName || "Confia", 14, 26);
       doc.text("Genere le " + today, 14, 32);
       doc.text("Taux de conformite global : " + percent + "% (" + conforme + "/" + total + ")", 14, 40);
 
@@ -1805,7 +1805,7 @@ function ReportsView({ staff, establishments, organizationName }) {
       doc.setFontSize(8);
       doc.setTextColor(150);
       doc.text(
-        "Document genere automatiquement par Vigie - a des fins de suivi interne.",
+        "Document genere automatiquement par Confia - a des fins de suivi interne.",
         14,
         290
       );
@@ -1953,8 +1953,8 @@ function LoginScreen({ onLogin }) {
           >
             <LogoMark size={20} />
           </div>
-          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 21, fontWeight: 600, color: TOKENS.ink }}>
-            Vigie
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 19, fontWeight: 700, color: TOKENS.ink, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+            Confia
           </span>
         </div>
 
@@ -2223,7 +2223,7 @@ function ResetPasswordScreen({ accessToken, onDone }) {
   );
 }
 
-export default function VigiePrototype() {
+export default function ConfiaPrototype() {
   const [session, setSession] = useState(() => getStoredSession());
   const [view, setView] = useState("dashboard");
   const [staff, setStaff] = useState([]);
