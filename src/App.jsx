@@ -1039,7 +1039,7 @@ function AlertsView({ staff, establishments, userEmail }) {
   );
 }
 
-function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment, onDeleteEstablishment, organizationName, onRenameOrganization, currentUserEmail }) {
+function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment, onDeleteEstablishment, organizationName, onRenameOrganization, currentUserEmail, onDeleteAccount }) {
   const [orgNameDraft, setOrgNameDraft] = useState(organizationName || "");
   const [renamingOrg, setRenamingOrg] = useState(false);
   const [orgRenamed, setOrgRenamed] = useState(false);
@@ -1116,6 +1116,29 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
   const [newCity, setNewCity] = useState("");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState(null);
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText.trim() !== currentUserEmail) return;
+    setDeletingAccount(true);
+    setDeleteAccountError(null);
+    try {
+      const res = await fetch("/api/delete-account", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erreur lors de la suppression");
+      onDeleteAccount();
+    } catch (err) {
+      console.error("Erreur suppression compte:", err);
+      setDeleteAccountError(err.message || "Erreur lors de la suppression");
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
 
   const inputStyle = {
     flex: 1,
@@ -1510,6 +1533,56 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
         })}
       </div>
       )}
+      </div>
+
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.danger + "44", borderRadius: 8, padding: "20px 24px" }}>
+        <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 15, fontWeight: 600, color: TOKENS.danger, margin: "0 0 4px" }}>
+          Zone de danger
+        </h3>
+        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
+          Supprimer votre compte est definitif et irreversible. Vos etablissements et salaries resteront lies a votre organisation mais vous n'y aurez plus acces.
+        </p>
+        <label style={{ display: "block", fontSize: 12, color: TOKENS.ink, marginBottom: 6 }}>
+          Tapez votre email (<strong>{currentUserEmail}</strong>) pour confirmer :
+        </label>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+            placeholder={currentUserEmail}
+            style={{
+              flex: 1,
+              padding: "8px 10px",
+              borderRadius: 6,
+              border: "1px solid " + TOKENS.line,
+              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontSize: 13,
+              outline: "none",
+            }}
+          />
+          <button
+            onClick={handleDeleteAccount}
+            disabled={deletingAccount || deleteConfirmText.trim() !== currentUserEmail}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 6,
+              border: "none",
+              background: TOKENS.danger,
+              color: "#fff",
+              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontSize: 12.5,
+              fontWeight: 500,
+              cursor: deletingAccount || deleteConfirmText.trim() !== currentUserEmail ? "default" : "pointer",
+              opacity: deletingAccount || deleteConfirmText.trim() !== currentUserEmail ? 0.5 : 1,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {deletingAccount ? "Suppression..." : "Supprimer mon compte"}
+          </button>
+        </div>
+        {deleteAccountError && (
+          <div style={{ fontSize: 11.5, color: TOKENS.danger, marginTop: 8 }}>{deleteAccountError}</div>
+        )}
       </div>
     </div>
   );
@@ -2262,6 +2335,7 @@ export default function VigiePrototype() {
               onUpdate={(updated) =>
                 setEstablishments((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
               }
+              onDeleteAccount={handleLogout}
             />
           )}
         </div>
