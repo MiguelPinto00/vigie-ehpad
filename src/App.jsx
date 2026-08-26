@@ -80,11 +80,11 @@ function authHeaders(accessToken) {
   };
 }
 
-async function signUp(email, password) {
+async function signUp(email, password, orgName) {
   const res = await fetch(SUPABASE_URL + "/auth/v1/signup", {
     method: "POST",
     headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, data: { org_name: orgName } }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.msg || data.error_description || "Erreur d'inscription");
@@ -131,6 +131,17 @@ async function insertStaff(row, token) {
     body: JSON.stringify(row),
   });
   if (!res.ok) throw new Error("Erreur d'enregistrement");
+  const data = await res.json();
+  return data[0];
+}
+
+async function renameOrganization(organizationId, newName, token) {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/organizations?id=eq." + organizationId, {
+    method: "PATCH",
+    headers: { ...authHeaders(token), Prefer: "return=representation" },
+    body: JSON.stringify({ name: newName }),
+  });
+  if (!res.ok) throw new Error("Erreur de renommage");
   const data = await res.json();
   return data[0];
 }
@@ -857,7 +868,15 @@ function AlertsView({ staff, establishments, userEmail }) {
   );
 }
 
-function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment }) {
+function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment, organizationName, onRenameOrganization }) {
+  const [orgNameDraft, setOrgNameDraft] = useState(organizationName || "");
+  const [renamingOrg, setRenamingOrg] = useState(false);
+  const [orgRenamed, setOrgRenamed] = useState(false);
+  const [orgRenameError, setOrgRenameError] = useState(null);
+
+  useEffect(() => {
+    if (organizationName) setOrgNameDraft(organizationName);
+  }, [organizationName]);
   const [drafts, setDrafts] = useState(() =>
     Object.fromEntries(establishments.map((e) => [e.id, e.contact_email || ""]))
   );
@@ -877,6 +896,24 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
     fontFamily: "'IBM Plex Sans', sans-serif",
     fontSize: 13,
     outline: "none",
+  };
+
+  const saveOrgName = async () => {
+    if (!orgNameDraft.trim()) return;
+    setRenamingOrg(true);
+    setOrgRenamed(false);
+    setOrgRenameError(null);
+    try {
+      const updated = await renameOrganization(organizationId, orgNameDraft.trim(), token);
+      if (!updated) throw new Error("Aucune donnee retournee");
+      onRenameOrganization(updated.name);
+      setOrgRenamed(true);
+    } catch (err) {
+      console.error("Erreur de renommage:", err);
+      setOrgRenameError(err.message || "Erreur lors du renommage");
+    } finally {
+      setRenamingOrg(false);
+    }
   };
 
   const createEstablishment = async () => {
@@ -918,6 +955,51 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 640 }}>
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
+        <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
+          Nom de votre organisation
+        </h3>
+        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
+          Ce nom est affiche en haut de l'application et sur vos rapports PDF.
+        </p>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            value={orgNameDraft}
+            onChange={(e) => setOrgNameDraft(e.target.value)}
+            style={{
+              flex: 1,
+              padding: "8px 10px",
+              borderRadius: 6,
+              border: "1px solid " + TOKENS.line,
+              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontSize: 13,
+              outline: "none",
+            }}
+          />
+          <button
+            onClick={saveOrgName}
+            disabled={renamingOrg || !orgNameDraft.trim()}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 6,
+              border: "none",
+              background: TOKENS.brand,
+              color: "#fff",
+              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontSize: 12.5,
+              fontWeight: 500,
+              cursor: renamingOrg ? "default" : "pointer",
+              opacity: renamingOrg || !orgNameDraft.trim() ? 0.6 : 1,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {renamingOrg ? "..." : "Enregistrer"}
+          </button>
+        </div>
+        {orgRenamed && <div style={{ fontSize: 11.5, color: TOKENS.ok, marginTop: 8 }}>Enregistre</div>}
+        {orgRenameError && <div style={{ fontSize: 11.5, color: TOKENS.danger, marginTop: 8 }}>{orgRenameError}</div>}
+      </div>
+
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
         <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
           Ajouter un etablissement
@@ -1154,6 +1236,7 @@ function LoginScreen({ onLogin }) {
   const [mode, setMode] = useState("login"); // "login" ou "signup"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [orgName, setOrgName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [info, setInfo] = useState(null);
@@ -1177,7 +1260,7 @@ function LoginScreen({ onLogin }) {
     setLoading(true);
     try {
       if (mode === "signup") {
-        await signUp(email, password);
+        await signUp(email, password, orgName.trim());
         setInfo("Compte cree. Verifiez votre email pour confirmer, puis connectez-vous.");
         setMode("login");
       } else {
@@ -1235,6 +1318,16 @@ function LoginScreen({ onLogin }) {
           {mode === "login" ? "Connexion" : "Creer un compte"}
         </h2>
 
+        {mode === "signup" && (
+          <input
+            type="text"
+            placeholder="Nom de votre etablissement ou organisation"
+            value={orgName}
+            onChange={(e) => setOrgName(e.target.value)}
+            style={inputStyle}
+            required
+          />
+        )}
         <input
           type="email"
           placeholder="Email"
@@ -1519,6 +1612,8 @@ export default function VigiePrototype() {
               establishments={establishments}
               token={token}
               organizationId={organizationId}
+              organizationName={organizationName}
+              onRenameOrganization={(newName) => setOrganizationName(newName)}
               onAddEstablishment={(created) => setEstablishments((prev) => [...prev, created])}
               onUpdate={(updated) =>
                 setEstablishments((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
