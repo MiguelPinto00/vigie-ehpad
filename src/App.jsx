@@ -23,7 +23,7 @@ const TOKENS = {
   paperDim: "#EEF1F5",
   ink: "#0F172A",
   inkSoft: "#64748B",
-  brand: "#4F46E5",
+  brand: "#0D9488",
   ok: "#059669",
   okBg: "#D1FAE5",
   warn: "#B45309",
