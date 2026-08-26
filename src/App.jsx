@@ -19,22 +19,22 @@ import {
 } from "lucide-react";
 
 const TOKENS = {
-  paper: "#FAF8F3",
-  paperDim: "#F2EEE4",
-  ink: "#16231F",
-  inkSoft: "#4B5651",
+  paper: "#F8FAFC",
+  paperDim: "#EEF1F5",
+  ink: "#0F172A",
+  inkSoft: "#64748B",
   brand: "#1F4E4A",
-  ok: "#4B7C63",
-  okBg: "#E7EFE9",
-  warn: "#C98A3D",
-  warnBg: "#F6EBDB",
-  danger: "#A6432F",
-  dangerBg: "#F3E4DF",
-  line: "#E4DFD3",
+  ok: "#059669",
+  okBg: "#D1FAE5",
+  warn: "#B45309",
+  warnBg: "#FEF3C7",
+  danger: "#DC2626",
+  dangerBg: "#FEE2E2",
+  line: "#E2E8F0",
 };
 
 const FONTS_LINK =
-  "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap";
+  "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap";
 
 function LogoMark({ size = 16 }) {
   return (
@@ -347,7 +347,7 @@ function Seal({ status }) {
         color: meta.color,
         background: meta.bg,
         border: "1px solid " + meta.color + "22",
-        fontFamily: "'IBM Plex Sans', sans-serif",
+        fontFamily: "'Inter', sans-serif",
         letterSpacing: "0.01em",
       }}
     >
@@ -389,10 +389,10 @@ function BeamGauge({ percent }) {
           justifyContent: "center",
         }}
       >
-        <div style={{ fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 600, color: TOKENS.ink, lineHeight: 1 }}>
+        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 30, fontWeight: 600, color: TOKENS.ink, lineHeight: 1 }}>
           {percent}%
         </div>
-        <div style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 11, color: TOKENS.inkSoft, marginTop: 4 }}>
+        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: TOKENS.inkSoft, marginTop: 4 }}>
           conformite
         </div>
       </div>
@@ -414,7 +414,7 @@ function NavItem({ icon: Icon, label, active, onClick }) {
         border: "none",
         background: active ? "rgba(255,255,255,0.12)" : "transparent",
         color: active ? "#FFFFFF" : "rgba(255,255,255,0.68)",
-        fontFamily: "'IBM Plex Sans', sans-serif",
+        fontFamily: "'Inter', sans-serif",
         fontSize: 13.5,
         fontWeight: 500,
         cursor: "pointer",
@@ -456,7 +456,7 @@ function Sidebar({ view, setView }) {
         >
           <LogoMark size={17} />
         </div>
-        <span style={{ fontFamily: "'Fraunces', serif", fontSize: 19, fontWeight: 600, color: "#fff" }}>
+        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 19, fontWeight: 600, color: "#fff" }}>
           Vigie
         </span>
       </div>
@@ -466,7 +466,7 @@ function Sidebar({ view, setView }) {
       <NavItem icon={FileDown} label="Rapports" active={view === "reports"} onClick={() => setView("reports")} />
       <NavItem icon={Settings} label="Parametres" active={view === "settings"} onClick={() => setView("settings")} />
       <div style={{ marginTop: 20, padding: "12px 10px 4px", borderTop: "1px solid rgba(255,255,255,0.12)" }}>
-        <div style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>
+        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>
           3 etablissements suivis
         </div>
       </div>
@@ -485,11 +485,11 @@ function StatCard({ label, value, accent }) {
         flex: 1,
       }}
     >
-      <div style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12, color: TOKENS.inkSoft, marginBottom: 8 }}>
+      <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: TOKENS.inkSoft, marginBottom: 8 }}>
         {label}
       </div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-        <span style={{ fontFamily: "'Fraunces', serif", fontSize: 26, fontWeight: 600, color: accent || TOKENS.ink }}>
+        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 26, fontWeight: 600, color: accent || TOKENS.ink }}>
           {value}
         </span>
       </div>
@@ -520,10 +520,10 @@ function Dashboard({ staff, establishments }) {
       >
         <BeamGauge percent={percent} />
         <div style={{ flex: 1 }}>
-          <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 19, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
+          <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 19, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
             Obligation vaccinale grippe — en vigueur depuis le 1er janvier 2026
           </h2>
-          <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 13.5, color: TOKENS.inkSoft, marginTop: 6, lineHeight: 1.55, maxWidth: 460 }}>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13.5, color: TOKENS.inkSoft, marginTop: 6, lineHeight: 1.55, maxWidth: 460 }}>
             {nonConforme} salarie{nonConforme > 1 ? "s" : ""} sur {total} n'a pas de justificatif a jour (grippe ou rougeole). L'article L.3111-4 du code de la sante publique s'applique deja a votre personnel soignant.
           </p>
           <button
@@ -537,7 +537,7 @@ function Dashboard({ staff, establishments }) {
               border: "none",
               borderRadius: 6,
               padding: "8px 14px",
-              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 13,
               fontWeight: 500,
               cursor: "pointer",
@@ -556,7 +556,7 @@ function Dashboard({ staff, establishments }) {
       </div>
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "18px 20px" }}>
-        <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 12px" }}>
+        <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 12px" }}>
           Par etablissement
         </h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -567,7 +567,7 @@ function Dashboard({ staff, establishments }) {
             return (
               <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <Building2 size={15} color={TOKENS.inkSoft} style={{ flexShrink: 0 }} />
-                <div style={{ width: 190, fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 13, color: TOKENS.ink }}>
+                <div style={{ width: 190, fontFamily: "'Inter', sans-serif", fontSize: 13, color: TOKENS.ink }}>
                   {e.name}
                 </div>
                 <div style={{ flex: 1, height: 6, background: TOKENS.paperDim, borderRadius: 3, overflow: "hidden" }}>
@@ -601,7 +601,7 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
     padding: "8px 10px",
     borderRadius: 6,
     border: "1px solid " + TOKENS.line,
-    fontFamily: "'IBM Plex Sans', sans-serif",
+    fontFamily: "'Inter', sans-serif",
     fontSize: 13,
     outline: "none",
     boxSizing: "border-box",
@@ -609,7 +609,7 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
   };
   const labelStyle = {
     display: "block",
-    fontFamily: "'IBM Plex Sans', sans-serif",
+    fontFamily: "'Inter', sans-serif",
     fontSize: 12,
     fontWeight: 500,
     color: TOKENS.inkSoft,
@@ -669,7 +669,7 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-          <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 17, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
+          <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 17, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
             {isEditing ? "Modifier le salarie" : "Ajouter un salarie"}
           </h3>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: TOKENS.inkSoft }}>
@@ -729,7 +729,7 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
             border: "none",
             background: TOKENS.brand,
             color: "#fff",
-            fontFamily: "'IBM Plex Sans', sans-serif",
+            fontFamily: "'Inter', sans-serif",
             fontSize: 13.5,
             fontWeight: 500,
             cursor: saving ? "default" : "pointer",
@@ -783,7 +783,7 @@ function StaffView({ staff, onAddStaff, onUpdateStaff, onDeleteStaff, establishm
               padding: "8px 10px 8px 30px",
               borderRadius: 6,
               border: "1px solid " + TOKENS.line,
-              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 13,
               outline: "none",
               boxSizing: "border-box",
@@ -800,7 +800,7 @@ function StaffView({ staff, onAddStaff, onUpdateStaff, onDeleteStaff, establishm
               border: "1px solid " + (filter === f ? TOKENS.brand : TOKENS.line),
               background: filter === f ? TOKENS.brand : "#fff",
               color: filter === f ? "#fff" : TOKENS.inkSoft,
-              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 12.5,
               cursor: "pointer",
               whiteSpace: "nowrap",
@@ -821,7 +821,7 @@ function StaffView({ staff, onAddStaff, onUpdateStaff, onDeleteStaff, establishm
             border: "none",
             background: TOKENS.ink,
             color: "#fff",
-            fontFamily: "'IBM Plex Sans', sans-serif",
+            fontFamily: "'Inter', sans-serif",
             fontSize: 13,
             fontWeight: 500,
             cursor: "pointer",
@@ -845,7 +845,7 @@ function StaffView({ staff, onAddStaff, onUpdateStaff, onDeleteStaff, establishm
       )}
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'Inter', sans-serif" }}>
           <thead>
             <tr style={{ background: TOKENS.paperDim, borderBottom: "1px solid " + TOKENS.line }}>
               {["Nom", "Fonction", "Etablissement", "Vaccin", "Statut", "Derniere MaJ", "Echeance", "Document", "Actions"].map((h) => (
@@ -892,7 +892,7 @@ function StaffView({ staff, onAddStaff, onUpdateStaff, onDeleteStaff, establishm
                       href={s.documentUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ color: TOKENS.brand, fontFamily: "'IBM Plex Sans', sans-serif", textDecoration: "underline" }}
+                      style={{ color: TOKENS.brand, fontFamily: "'Inter', sans-serif", textDecoration: "underline" }}
                     >
                       Voir
                     </a>
@@ -1002,10 +1002,10 @@ function AlertsView({ staff, establishments, userEmail }) {
           >
             <BellRing size={16} color={isOverdue ? TOKENS.danger : TOKENS.warn} style={{ flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 13.5, fontWeight: 500, color: TOKENS.ink }}>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13.5, fontWeight: 500, color: TOKENS.ink }}>
                 {s.name} - {establishments.find((e) => e.id === s.site)?.name}
               </div>
-              <div style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, marginTop: 2 }}>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, marginTop: 2 }}>
                 {isOverdue
                   ? `Aucun justificatif d'immunisation ${s.vaccine?.toLowerCase() || ""} enregistre.`
                   : `Echeance de controle (${s.vaccine}) : ${s.next}.`}
@@ -1026,7 +1026,7 @@ function AlertsView({ staff, establishments, userEmail }) {
                 border: "1px solid " + TOKENS.line,
                 background: TOKENS.paperDim,
                 color: TOKENS.ink,
-                fontFamily: "'IBM Plex Sans', sans-serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: 12.5,
                 cursor: state === "sending" ? "default" : "pointer",
                 whiteSpace: "nowrap",
@@ -1174,7 +1174,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
     padding: "8px 10px",
     borderRadius: 6,
     border: "1px solid " + TOKENS.line,
-    fontFamily: "'IBM Plex Sans', sans-serif",
+    fontFamily: "'Inter', sans-serif",
     fontSize: 13,
     outline: "none",
   };
@@ -1271,10 +1271,10 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 640 }}>
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
-        <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
+        <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
           Nom de votre organisation
         </h3>
-        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
           Ce nom est affiche en haut de l'application et sur vos rapports PDF.
         </p>
         <div style={{ display: "flex", gap: 8 }}>
@@ -1286,7 +1286,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
               padding: "8px 10px",
               borderRadius: 6,
               border: "1px solid " + TOKENS.line,
-              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 13,
               outline: "none",
             }}
@@ -1300,7 +1300,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
               border: "none",
               background: TOKENS.brand,
               color: "#fff",
-              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 12.5,
               fontWeight: 500,
               cursor: renamingOrg ? "default" : "pointer",
@@ -1317,7 +1317,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-          <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
+          <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
             Abonnement
           </h3>
           <span
@@ -1328,30 +1328,30 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
               fontWeight: 500,
               color: TOKENS.brand,
               background: TOKENS.okBg,
-              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontFamily: "'Inter', sans-serif",
             }}
           >
             Beta gratuite
           </span>
         </div>
-        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 16px" }}>
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 16px" }}>
           Vigie est actuellement en phase beta gratuite. Les offres payantes seront communiquees a l'avance avant tout changement.
         </p>
         <div style={{ display: "flex", gap: 12 }}>
           <div style={{ flex: 1, padding: "12px 14px", background: TOKENS.paperDim, borderRadius: 6, textAlign: "center" }}>
-            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
               {establishments.length}
             </div>
             <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginTop: 2 }}>Etablissements</div>
           </div>
           <div style={{ flex: 1, padding: "12px 14px", background: TOKENS.paperDim, borderRadius: 6, textAlign: "center" }}>
-            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
               {staffCount}
             </div>
             <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginTop: 2 }}>Salaries suivis</div>
           </div>
           <div style={{ flex: 1, padding: "12px 14px", background: TOKENS.paperDim, borderRadius: 6, textAlign: "center" }}>
-            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
               {members.length}
             </div>
             <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginTop: 2 }}>Membres d'equipe</div>
@@ -1361,7 +1361,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, flexWrap: "wrap", gap: 10 }}>
-          <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
+          <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
             Nos futures offres
           </h3>
           <div style={{ display: "flex", background: TOKENS.paperDim, borderRadius: 6, padding: 3 }}>
@@ -1375,7 +1375,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
                   border: "none",
                   background: billingPeriod === period ? TOKENS.brand : "transparent",
                   color: billingPeriod === period ? "#fff" : TOKENS.inkSoft,
-                  fontFamily: "'IBM Plex Sans', sans-serif",
+                  fontFamily: "'Inter', sans-serif",
                   fontSize: 12,
                   fontWeight: 500,
                   cursor: "pointer",
@@ -1386,7 +1386,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
             ))}
           </div>
         </div>
-        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 18px" }}>
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 18px" }}>
           Toutes les fonctionnalites sont accessibles gratuitement pendant la periode beta. Voici les offres a venir.
         </p>
         <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
@@ -1414,17 +1414,17 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
                     fontWeight: 500,
                     padding: "2px 8px",
                     borderRadius: 4,
-                    fontFamily: "'IBM Plex Sans', sans-serif",
+                    fontFamily: "'Inter', sans-serif",
                   }}
                 >
                   Populaire
                 </span>
               )}
-              <div style={{ fontFamily: "'Fraunces', serif", fontSize: 16, fontWeight: 600, color: TOKENS.ink, marginTop: 4 }}>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 600, color: TOKENS.ink, marginTop: 4 }}>
                 {plan.name}
               </div>
               <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginBottom: 10 }}>{plan.tagline}</div>
-              <div style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
                 {billingPeriod === "monthly" ? plan.monthly : plan.annual}
                 <span style={{ fontSize: 12, fontWeight: 400, color: TOKENS.inkSoft }}>
                   {billingPeriod === "monthly" ? "/mois" : "/an"}
@@ -1441,10 +1441,10 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
       </div>
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
-        <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
+        <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
           Membres de l'equipe
         </h3>
-        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
           Invitez des collegues a rejoindre votre organisation. Ils devront s'inscrire avec la meme adresse email que celle invitee.
         </p>
 
@@ -1459,7 +1459,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
               padding: "8px 10px",
               borderRadius: 6,
               border: "1px solid " + TOKENS.line,
-              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 13,
               outline: "none",
             }}
@@ -1473,7 +1473,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
               border: "none",
               background: TOKENS.brand,
               color: "#fff",
-              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 12.5,
               fontWeight: 500,
               cursor: inviting ? "default" : "pointer",
@@ -1498,7 +1498,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
                 padding: "8px 12px",
                 background: TOKENS.paperDim,
                 borderRadius: 6,
-                fontFamily: "'IBM Plex Sans', sans-serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: 13,
               }}
             >
@@ -1516,7 +1516,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
                 padding: "8px 12px",
                 background: TOKENS.warnBg,
                 borderRadius: 6,
-                fontFamily: "'IBM Plex Sans', sans-serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: 13,
               }}
             >
@@ -1543,10 +1543,10 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
       </div>
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
-        <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
+        <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
           Ajouter un etablissement
         </h3>
-        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
           Chaque etablissement que vous ajoutez ici est visible uniquement par votre organisation.
         </p>
         <div style={{ display: "flex", gap: 8 }}>
@@ -1571,7 +1571,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
               border: "none",
               background: TOKENS.brand,
               color: "#fff",
-              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 12.5,
               fontWeight: 500,
               cursor: creating ? "default" : "pointer",
@@ -1588,14 +1588,14 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
       </div>
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
-      <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
+      <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
         Vos etablissements
       </h3>
-      <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 18px" }}>
+      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 18px" }}>
         Modifiez le nom, la ville ou l'email de contact de chaque etablissement, ou supprimez-le.
       </p>
       {establishments.length === 0 ? (
-        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 13, color: TOKENS.inkSoft }}>
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: TOKENS.inkSoft }}>
           Ajoutez d'abord un etablissement ci-dessus.
         </p>
       ) : (
@@ -1644,7 +1644,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
                     border: "none",
                     background: TOKENS.brand,
                     color: "#fff",
-                    fontFamily: "'IBM Plex Sans', sans-serif",
+                    fontFamily: "'Inter', sans-serif",
                     fontSize: 12.5,
                     fontWeight: 500,
                     cursor: saving[e.id] ? "default" : "pointer",
@@ -1690,10 +1690,10 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
       </div>
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.danger + "44", borderRadius: 8, padding: "20px 24px" }}>
-        <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 15, fontWeight: 600, color: TOKENS.danger, margin: "0 0 4px" }}>
+        <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.danger, margin: "0 0 4px" }}>
           Zone de danger
         </h3>
-        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
           Supprimer votre compte est definitif et irreversible. Vos etablissements et salaries resteront lies a votre organisation mais vous n'y aurez plus acces.
         </p>
         <label style={{ display: "block", fontSize: 12, color: TOKENS.ink, marginBottom: 6 }}>
@@ -1709,7 +1709,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
               padding: "8px 10px",
               borderRadius: 6,
               border: "1px solid " + TOKENS.line,
-              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 13,
               outline: "none",
             }}
@@ -1723,7 +1723,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
               border: "none",
               background: TOKENS.danger,
               color: "#fff",
-              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 12.5,
               fontWeight: 500,
               cursor: deletingAccount || deleteConfirmText.trim() !== currentUserEmail ? "default" : "pointer",
@@ -1840,10 +1840,10 @@ function ReportsView({ staff, establishments, organizationName }) {
       >
         <FileDown size={20} color={TOKENS.brand} />
       </div>
-      <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 17, fontWeight: 600, color: TOKENS.ink, margin: "0 0 8px" }}>
+      <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 17, fontWeight: 600, color: TOKENS.ink, margin: "0 0 8px" }}>
         Rapport de conformite
       </h3>
-      <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 13, color: TOKENS.inkSoft, lineHeight: 1.6, margin: "0 0 18px" }}>
+      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: TOKENS.inkSoft, lineHeight: 1.6, margin: "0 0 18px" }}>
         Generez un export horodate, pret a presenter lors d'un controle ou d'un renouvellement d'agrement.
       </p>
       <button
@@ -1855,7 +1855,7 @@ function ReportsView({ staff, establishments, organizationName }) {
           border: "none",
           background: TOKENS.brand,
           color: "#fff",
-          fontFamily: "'IBM Plex Sans', sans-serif",
+          fontFamily: "'Inter', sans-serif",
           fontSize: 13.5,
           fontWeight: 500,
           cursor: generating ? "default" : "pointer",
@@ -1882,7 +1882,7 @@ function LoginScreen({ onLogin }) {
     padding: "10px 12px",
     borderRadius: 6,
     border: "1px solid " + TOKENS.line,
-    fontFamily: "'IBM Plex Sans', sans-serif",
+    fontFamily: "'Inter', sans-serif",
     fontSize: 14,
     outline: "none",
     boxSizing: "border-box",
@@ -1920,7 +1920,7 @@ function LoginScreen({ onLogin }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        fontFamily: "'IBM Plex Sans', sans-serif",
+        fontFamily: "'Inter', sans-serif",
       }}
     >
       <form
@@ -1948,12 +1948,12 @@ function LoginScreen({ onLogin }) {
           >
             <LogoMark size={20} />
           </div>
-          <span style={{ fontFamily: "'Fraunces', serif", fontSize: 21, fontWeight: 600, color: TOKENS.ink }}>
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 21, fontWeight: 600, color: TOKENS.ink }}>
             Vigie
           </span>
         </div>
 
-        <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 16, fontWeight: 600, color: TOKENS.ink, margin: "0 0 16px" }}>
+        <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 600, color: TOKENS.ink, margin: "0 0 16px" }}>
           {mode === "login" ? "Connexion" : mode === "signup" ? "Creer un compte" : "Mot de passe oublie"}
         </h2>
 
@@ -2003,7 +2003,7 @@ function LoginScreen({ onLogin }) {
             border: "none",
             background: TOKENS.brand,
             color: "#fff",
-            fontFamily: "'IBM Plex Sans', sans-serif",
+            fontFamily: "'Inter', sans-serif",
             fontSize: 13.5,
             fontWeight: 500,
             cursor: loading ? "default" : "pointer",
@@ -2034,7 +2034,7 @@ function LoginScreen({ onLogin }) {
               border: "none",
               background: "none",
               color: TOKENS.inkSoft,
-              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 12.5,
               cursor: "pointer",
               textDecoration: "underline",
@@ -2058,7 +2058,7 @@ function LoginScreen({ onLogin }) {
             border: "none",
             background: "none",
             color: TOKENS.inkSoft,
-            fontFamily: "'IBM Plex Sans', sans-serif",
+            fontFamily: "'Inter', sans-serif",
             fontSize: 12.5,
             cursor: "pointer",
             textDecoration: "underline",
@@ -2122,7 +2122,7 @@ function ResetPasswordScreen({ accessToken, onDone }) {
     padding: "10px 12px",
     borderRadius: 6,
     border: "1px solid " + TOKENS.line,
-    fontFamily: "'IBM Plex Sans', sans-serif",
+    fontFamily: "'Inter', sans-serif",
     fontSize: 14,
     outline: "none",
     boxSizing: "border-box",
@@ -2158,7 +2158,7 @@ function ResetPasswordScreen({ accessToken, onDone }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        fontFamily: "'IBM Plex Sans', sans-serif",
+        fontFamily: "'Inter', sans-serif",
       }}
     >
       <form
@@ -2171,7 +2171,7 @@ function ResetPasswordScreen({ accessToken, onDone }) {
           width: 360,
         }}
       >
-        <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 16, fontWeight: 600, color: TOKENS.ink, margin: "0 0 16px" }}>
+        <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 600, color: TOKENS.ink, margin: "0 0 16px" }}>
           Choisir un nouveau mot de passe
         </h2>
 
@@ -2204,7 +2204,7 @@ function ResetPasswordScreen({ accessToken, onDone }) {
             border: "none",
             background: TOKENS.brand,
             color: "#fff",
-            fontFamily: "'IBM Plex Sans', sans-serif",
+            fontFamily: "'Inter', sans-serif",
             fontSize: 13.5,
             fontWeight: 500,
             cursor: loading ? "default" : "pointer",
@@ -2363,7 +2363,7 @@ export default function VigiePrototype() {
 
   if (loading) {
     return (
-      <div style={{ fontFamily: "'IBM Plex Sans', sans-serif" }}>
+      <div style={{ fontFamily: "'Inter', sans-serif" }}>
         <div
           style={{
             display: "flex",
@@ -2386,7 +2386,7 @@ export default function VigiePrototype() {
   }
 
   return (
-    <div style={{ fontFamily: "'IBM Plex Sans', sans-serif" }}>
+    <div style={{ fontFamily: "'Inter', sans-serif" }}>
       <div
         style={{
           display: "flex",
@@ -2400,7 +2400,7 @@ export default function VigiePrototype() {
         <Sidebar view={view} setView={setView} />
         <div style={{ flex: 1, padding: "24px 30px", overflow: "auto" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-            <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
+            <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
               {titles[view]}
             </h1>
             <div
@@ -2408,7 +2408,7 @@ export default function VigiePrototype() {
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
-                fontFamily: "'IBM Plex Sans', sans-serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: 12.5,
                 color: TOKENS.inkSoft,
               }}
@@ -2444,7 +2444,7 @@ export default function VigiePrototype() {
                   border: "1px solid " + TOKENS.line,
                   background: "#fff",
                   color: TOKENS.inkSoft,
-                  fontFamily: "'IBM Plex Sans', sans-serif",
+                  fontFamily: "'Inter', sans-serif",
                   fontSize: 11.5,
                   cursor: "pointer",
                 }}
@@ -2461,7 +2461,7 @@ export default function VigiePrototype() {
                 border: "1px solid " + TOKENS.danger + "33",
                 borderRadius: 6,
                 padding: "10px 14px",
-                fontFamily: "'IBM Plex Sans', sans-serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: 12.5,
                 marginBottom: 16,
               }}
