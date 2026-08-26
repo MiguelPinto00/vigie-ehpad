@@ -25,7 +25,12 @@ export default async function handler(req, res) {
     ]);
 
     if (!estabRes.ok || !staffRes.ok) {
-      throw new Error("Erreur de lecture de la base de donnees");
+      const estabBody = await estabRes.text().catch(() => "");
+      const staffBody = await staffRes.text().catch(() => "");
+      throw new Error(
+        "Erreur de lecture (etab " + estabRes.status + ": " + estabBody.slice(0, 150) +
+        " | staff " + staffRes.status + ": " + staffBody.slice(0, 150) + ")"
+      );
     }
 
     const establishments = await estabRes.json();
