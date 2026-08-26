@@ -84,16 +84,16 @@ export default async function handler(req, res) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "Vigie <onboarding@resend.dev>",
+          from: "Confia <onboarding@resend.dev>",
           to: [recipient],
-          subject: "Vigie - Resume quotidien " + estab.name + " - " + today,
+          subject: "Confia - Resume quotidien " + estab.name + " - " + today,
           html:
             "<p>Bonjour,</p><p>Voici le point de conformite vaccinale du jour pour <strong>" +
             estab.name +
             "</strong>.</p>" +
             rowsHtml(nonConformes, "Non conformes") +
             rowsHtml(aVenir, "Echeances proches") +
-            "<p style='color:#888;font-size:12px;'>Cet email est envoye automatiquement chaque jour par Vigie.</p>",
+            "<p style='color:#888;font-size:12px;'>Cet email est envoye automatiquement chaque jour par Confia.</p>",
         }),
       });
 
