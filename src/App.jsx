@@ -39,10 +39,14 @@ const FONTS_LINK =
 function LogoMark({ size = 16 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
-      <path d="M 20 12 L 4 26 L 20 22 L 36 26 Z" fill="#C98A3D" opacity="0.28" />
-      <line x1="20" y1="32" x2="20" y2="15" stroke="#1F4E4A" strokeWidth="3" strokeLinecap="round" />
-      <rect x="8" y="30" width="24" height="6" rx="1.5" fill="#1F4E4A" />
-      <circle cx="20" cy="12" r="5" fill="#C98A3D" />
+      <path
+        d="M 5 24 L 13 24 L 18 8 L 23 33 L 28 24 L 35 24"
+        stroke="#0D9488"
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
     </svg>
   );
 }
