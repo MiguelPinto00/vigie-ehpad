@@ -146,6 +146,26 @@ async function updateEstablishmentEmail(establishmentId, contactEmail, token) {
   return data[0];
 }
 
+async function fetchMyOrganizationId(token) {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/organization_members?select=organization_id&limit=1", {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error("Erreur de lecture de l'organisation");
+  const data = await res.json();
+  return data[0]?.organization_id || null;
+}
+
+async function insertEstablishment(name, city, organizationId, token) {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/establishments", {
+    method: "POST",
+    headers: { ...authHeaders(token), Prefer: "return=representation" },
+    body: JSON.stringify({ name, city, organization_id: organizationId }),
+  });
+  if (!res.ok) throw new Error("Erreur de creation de l'etablissement");
+  const data = await res.json();
+  return data[0];
+}
+
 async function uploadJustificatif(file, token) {
   const safeName = Date.now() + "-" + file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
   const uploadRes = await fetch(SUPABASE_URL + "/storage/v1/object/justificatifs/" + safeName, {
@@ -832,13 +852,17 @@ function AlertsView({ staff, establishments, userEmail }) {
   );
 }
 
-function SettingsView({ establishments, token, onUpdate }) {
+function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment }) {
   const [drafts, setDrafts] = useState(() =>
     Object.fromEntries(establishments.map((e) => [e.id, e.contact_email || ""]))
   );
   const [saving, setSaving] = useState({});
   const [saved, setSaved] = useState({});
   const [errors, setErrors] = useState({});
+  const [newName, setNewName] = useState("");
+  const [newCity, setNewCity] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState(null);
 
   const inputStyle = {
     flex: 1,
@@ -848,6 +872,24 @@ function SettingsView({ establishments, token, onUpdate }) {
     fontFamily: "'IBM Plex Sans', sans-serif",
     fontSize: 13,
     outline: "none",
+  };
+
+  const createEstablishment = async () => {
+    if (!newName.trim()) return;
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const created = await insertEstablishment(newName.trim(), newCity.trim(), organizationId, token);
+      if (!created) throw new Error("Aucune donnee retournee");
+      onAddEstablishment(created);
+      setNewName("");
+      setNewCity("");
+    } catch (err) {
+      console.error("Erreur de creation:", err);
+      setCreateError(err.message || "Erreur lors de la creation");
+    } finally {
+      setCreating(false);
+    }
   };
 
   const save = async (id) => {
@@ -870,13 +912,64 @@ function SettingsView({ establishments, token, onUpdate }) {
   };
 
   return (
-    <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px", maxWidth: 640 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 640 }}>
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
+        <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
+          Ajouter un etablissement
+        </h3>
+        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
+          Chaque etablissement que vous ajoutez ici est visible uniquement par votre organisation.
+        </p>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            placeholder="Nom de l'etablissement"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            style={inputStyle}
+          />
+          <input
+            placeholder="Ville (optionnel)"
+            value={newCity}
+            onChange={(e) => setNewCity(e.target.value)}
+            style={{ ...inputStyle, flex: 0.6 }}
+          />
+          <button
+            onClick={createEstablishment}
+            disabled={creating || !newName.trim()}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 6,
+              border: "none",
+              background: TOKENS.brand,
+              color: "#fff",
+              fontFamily: "'IBM Plex Sans', sans-serif",
+              fontSize: 12.5,
+              fontWeight: 500,
+              cursor: creating ? "default" : "pointer",
+              opacity: creating || !newName.trim() ? 0.6 : 1,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {creating ? "..." : "Ajouter"}
+          </button>
+        </div>
+        {createError && (
+          <div style={{ fontSize: 11.5, color: TOKENS.danger, marginTop: 8 }}>{createError}</div>
+        )}
+      </div>
+
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
       <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
         Email de contact par etablissement
       </h3>
       <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 18px" }}>
         Le resume quotidien de conformite sera envoye a cette adresse pour chaque etablissement.
       </p>
+      {establishments.length === 0 ? (
+        <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 13, color: TOKENS.inkSoft }}>
+          Ajoutez d'abord un etablissement ci-dessus.
+        </p>
+      ) : (
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {establishments.map((e) => (
           <div key={e.id}>
@@ -919,6 +1012,8 @@ function SettingsView({ establishments, token, onUpdate }) {
             )}
           </div>
         ))}
+      </div>
+      )}
       </div>
     </div>
   );
@@ -1212,6 +1307,7 @@ export default function VigiePrototype() {
   const [view, setView] = useState("dashboard");
   const [staff, setStaff] = useState([]);
   const [establishments, setEstablishments] = useState([]);
+  const [organizationId, setOrganizationId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -1239,10 +1335,15 @@ export default function VigiePrototype() {
     async function load() {
       setLoading(true);
       try {
-        const [estabRows, staffRows] = await Promise.all([fetchEstablishments(token), fetchStaff(token)]);
+        const [estabRows, staffRows, orgId] = await Promise.all([
+          fetchEstablishments(token),
+          fetchStaff(token),
+          fetchMyOrganizationId(token),
+        ]);
         if (!cancelled) {
           setEstablishments(estabRows);
           setStaff(staffRows.map(mapStaffRow));
+          setOrganizationId(orgId);
         }
       } catch (err) {
         console.error("Erreur de chargement Supabase:", err);
@@ -1405,6 +1506,8 @@ export default function VigiePrototype() {
             <SettingsView
               establishments={establishments}
               token={token}
+              organizationId={organizationId}
+              onAddEstablishment={(created) => setEstablishments((prev) => [...prev, created])}
               onUpdate={(updated) =>
                 setEstablishments((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
               }
