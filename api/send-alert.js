@@ -25,7 +25,7 @@ export default async function handler(req, res) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Vigie <onboarding@resend.dev>",
+        from: "Confia <onboarding@resend.dev>",
         to: [toEmail],
         subject: "Relance conformite vaccinale - " + staffName,
         html:
@@ -40,8 +40,8 @@ export default async function handler(req, res) {
           "<br/><strong>Motif :</strong> " +
           reason +
           "</p>" +
-          "<p>Merci de mettre a jour le justificatif correspondant dans Vigie des que possible.</p>" +
-          "<p style='color:#888;font-size:12px;'>Cet email a ete envoye automatiquement par l'application Vigie.</p>",
+          "<p>Merci de mettre a jour le justificatif correspondant dans Confia des que possible.</p>" +
+          "<p style='color:#888;font-size:12px;'>Cet email a ete envoye automatiquement par l'application Confia.</p>",
       }),
     });
 
