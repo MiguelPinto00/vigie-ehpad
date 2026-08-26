@@ -14,6 +14,8 @@ import {
   Settings,
   Edit2,
   Trash2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 const TOKENS = {
@@ -1462,8 +1464,7 @@ function LoginScreen({ onLogin }) {
           required
         />
         {mode !== "forgot" && (
-          <input
-            type="password"
+          <PasswordInput
             placeholder="Mot de passe"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -1562,6 +1563,42 @@ function LoginScreen({ onLogin }) {
   );
 }
 
+function PasswordInput({ value, onChange, placeholder, style, required, minLength }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div style={{ position: "relative", marginBottom: style?.marginBottom ?? 12 }}>
+      <input
+        type={visible ? "text" : "password"}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        required={required}
+        minLength={minLength}
+        style={{ ...style, marginBottom: 0, paddingRight: 38 }}
+      />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        tabIndex={-1}
+        style={{
+          position: "absolute",
+          right: 10,
+          top: "50%",
+          transform: "translateY(-50%)",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          color: TOKENS.inkSoft,
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        {visible ? <EyeOff size={16} /> : <Eye size={16} />}
+      </button>
+    </div>
+  );
+}
+
 function ResetPasswordScreen({ accessToken, onDone }) {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -1626,8 +1663,7 @@ function ResetPasswordScreen({ accessToken, onDone }) {
           Choisir un nouveau mot de passe
         </h2>
 
-        <input
-          type="password"
+        <PasswordInput
           placeholder="Nouveau mot de passe"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -1635,8 +1671,7 @@ function ResetPasswordScreen({ accessToken, onDone }) {
           required
           minLength={6}
         />
-        <input
-          type="password"
+        <PasswordInput
           placeholder="Confirmer le mot de passe"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
