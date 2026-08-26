@@ -229,6 +229,17 @@ async function deleteInvitation(id, token) {
   return true;
 }
 
+async function checkAndInvite(email, organizationId) {
+  const res = await fetch("/api/check-and-invite", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, organizationId }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Erreur lors de la verification du compte");
+  return data;
+}
+
 async function removeOrganizationMember(userId, organizationId, token) {
   const res = await fetch(
     SUPABASE_URL +
@@ -1147,6 +1158,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState(null);
   const [inviteSent, setInviteSent] = useState(false);
+  const [inviteResultMessage, setInviteResultMessage] = useState(null);
   const [removingMemberId, setRemovingMemberId] = useState(null);
   const [removeMemberError, setRemoveMemberError] = useState(null);
 
@@ -1172,19 +1184,42 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
     setInviting(true);
     setInviteError(null);
     setInviteSent(false);
+    setInviteResultMessage(null);
     try {
-      const invitation = await createInvitation(inviteEmail.trim(), organizationId, token);
+      const email = inviteEmail.trim();
+
+      // Etape 1 : verifie si un compte existe deja avec cet email.
+      // Si oui, la personne est ajoutee directement (pas d'invitation fantome).
+      const check = await checkAndInvite(email, organizationId);
+
+      if (check.status === "already_member") {
+        setInviteError(check.message);
+        return;
+      }
+
+      if (check.status === "added_existing") {
+        const refreshedMembers = await fetchOrganizationMembers(organizationId, token);
+        setMembers(refreshedMembers);
+        setInviteResultMessage(check.message);
+        setInviteSent(true);
+        setInviteEmail("");
+        return;
+      }
+
+      // Etape 2 : aucun compte existant, on envoie une invitation classique par email
+      const invitation = await createInvitation(email, organizationId, token);
       if (!invitation) throw new Error("Aucune donnee retournee");
       setPendingInvites((prev) => [...prev, invitation]);
       await fetch("/api/send-invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          toEmail: inviteEmail.trim(),
+          toEmail: email,
           organizationName,
           inviterEmail: currentUserEmail,
         }),
       });
+      setInviteResultMessage("Invitation envoyee par email.");
       setInviteSent(true);
       setInviteEmail("");
     } catch (err) {
@@ -1600,7 +1635,11 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
             {inviting ? "..." : "Inviter"}
           </button>
         </div>
-        {inviteSent && <div style={{ fontSize: 11.5, color: TOKENS.ok, marginBottom: 10 }}>Invitation envoyee</div>}
+        {inviteSent && (
+          <div style={{ fontSize: 11.5, color: TOKENS.ok, marginBottom: 10 }}>
+            {inviteResultMessage || "Invitation envoyee"}
+          </div>
+        )}
         {inviteError && <div style={{ fontSize: 11.5, color: TOKENS.danger, marginBottom: 10 }}>{inviteError}</div>}
         {removeMemberError && <div style={{ fontSize: 11.5, color: TOKENS.danger, marginBottom: 10 }}>{removeMemberError}</div>}
 
