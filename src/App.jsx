@@ -236,15 +236,24 @@ async function renameOrganization(organizationId, newName, token) {
   return data[0];
 }
 
-async function updateEstablishmentEmail(establishmentId, contactEmail, token) {
+async function updateEstablishmentDetails(establishmentId, updates, token) {
   const res = await fetch(SUPABASE_URL + "/rest/v1/establishments?id=eq." + establishmentId, {
     method: "PATCH",
     headers: { ...authHeaders(token), Prefer: "return=representation" },
-    body: JSON.stringify({ contact_email: contactEmail }),
+    body: JSON.stringify(updates),
   });
   if (!res.ok) throw new Error("Erreur de mise a jour");
   const data = await res.json();
   return data[0];
+}
+
+async function deleteEstablishment(establishmentId, token) {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/establishments?id=eq." + establishmentId, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error("Erreur de suppression");
+  return true;
 }
 
 async function fetchMyOrganization(token) {
@@ -1030,7 +1039,7 @@ function AlertsView({ staff, establishments, userEmail }) {
   );
 }
 
-function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment, organizationName, onRenameOrganization, currentUserEmail }) {
+function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment, onDeleteEstablishment, organizationName, onRenameOrganization, currentUserEmail }) {
   const [orgNameDraft, setOrgNameDraft] = useState(organizationName || "");
   const [renamingOrg, setRenamingOrg] = useState(false);
   const [orgRenamed, setOrgRenamed] = useState(false);
@@ -1095,11 +1104,14 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
   };
 
   const [drafts, setDrafts] = useState(() =>
-    Object.fromEntries(establishments.map((e) => [e.id, e.contact_email || ""]))
+    Object.fromEntries(
+      establishments.map((e) => [e.id, { name: e.name || "", city: e.city || "", contact_email: e.contact_email || "" }])
+    )
   );
   const [saving, setSaving] = useState({});
   const [saved, setSaved] = useState({});
   const [errors, setErrors] = useState({});
+  const [deletingEstabId, setDeletingEstabId] = useState(null);
   const [newName, setNewName] = useState("");
   const [newCity, setNewCity] = useState("");
   const [creating, setCreating] = useState(false);
@@ -1151,12 +1163,29 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
     }
   };
 
+  useEffect(() => {
+    setDrafts((prev) => {
+      const next = { ...prev };
+      establishments.forEach((e) => {
+        if (!next[e.id]) {
+          next[e.id] = { name: e.name || "", city: e.city || "", contact_email: e.contact_email || "" };
+        }
+      });
+      return next;
+    });
+  }, [establishments]);
+
   const save = async (id) => {
     setSaving((prev) => ({ ...prev, [id]: true }));
     setSaved((prev) => ({ ...prev, [id]: false }));
     setErrors((prev) => ({ ...prev, [id]: null }));
     try {
-      const updated = await updateEstablishmentEmail(id, drafts[id].trim(), token);
+      const d = drafts[id];
+      const updated = await updateEstablishmentDetails(
+        id,
+        { name: d.name.trim(), city: d.city.trim(), contact_email: d.contact_email.trim() },
+        token
+      );
       if (!updated) {
         throw new Error("Aucune donnee retournee (droits d'acces manquants sur la base ?)");
       }
@@ -1167,6 +1196,23 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
       setErrors((prev) => ({ ...prev, [id]: err.message || "Erreur lors de l'enregistrement" }));
     } finally {
       setSaving((prev) => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const handleDeleteEstablishment = async (e) => {
+    const confirmed = window.confirm(
+      "Supprimer \"" + e.name + "\" ? Tous les salaries rattaches a cet etablissement seront egalement supprimes definitivement."
+    );
+    if (!confirmed) return;
+    setDeletingEstabId(e.id);
+    try {
+      await deleteEstablishment(e.id, token);
+      onDeleteEstablishment(e.id);
+    } catch (err) {
+      console.error("Erreur de suppression:", err);
+      setErrors((prev) => ({ ...prev, [e.id]: err.message || "Erreur lors de la suppression" }));
+    } finally {
+      setDeletingEstabId(null);
     }
   };
 
@@ -1366,58 +1412,102 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "20px 24px" }}>
       <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
-        Email de contact par etablissement
+        Vos etablissements
       </h3>
       <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 18px" }}>
-        Le resume quotidien de conformite sera envoye a cette adresse pour chaque etablissement.
+        Modifiez le nom, la ville ou l'email de contact de chaque etablissement, ou supprimez-le.
       </p>
       {establishments.length === 0 ? (
         <p style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 13, color: TOKENS.inkSoft }}>
           Ajoutez d'abord un etablissement ci-dessus.
         </p>
       ) : (
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {establishments.map((e) => (
-          <div key={e.id}>
-            <label style={{ display: "block", fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, fontWeight: 500, color: TOKENS.ink, marginBottom: 5 }}>
-              {e.name}
-            </label>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <input
-                type="email"
-                placeholder="email@etablissement.fr"
-                value={drafts[e.id] || ""}
-                onChange={(ev) => setDrafts((prev) => ({ ...prev, [e.id]: ev.target.value }))}
-                style={inputStyle}
-              />
-              <button
-                onClick={() => save(e.id)}
-                disabled={saving[e.id]}
-                style={{
-                  padding: "8px 14px",
-                  borderRadius: 6,
-                  border: "none",
-                  background: TOKENS.brand,
-                  color: "#fff",
-                  fontFamily: "'IBM Plex Sans', sans-serif",
-                  fontSize: 12.5,
-                  fontWeight: 500,
-                  cursor: saving[e.id] ? "default" : "pointer",
-                  opacity: saving[e.id] ? 0.6 : 1,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {saving[e.id] ? "..." : "Enregistrer"}
-              </button>
+      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        {establishments.map((e) => {
+          const d = drafts[e.id] || { name: "", city: "", contact_email: "" };
+          const setField = (field, value) =>
+            setDrafts((prev) => ({ ...prev, [e.id]: { ...prev[e.id], [field]: value } }));
+          return (
+            <div key={e.id} style={{ padding: "14px", background: TOKENS.paperDim, borderRadius: 8 }}>
+              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: "block", fontSize: 11.5, color: TOKENS.inkSoft, marginBottom: 4 }}>Nom</label>
+                  <input
+                    value={d.name}
+                    onChange={(ev) => setField("name", ev.target.value)}
+                    style={inputStyle}
+                  />
+                </div>
+                <div style={{ flex: 0.6 }}>
+                  <label style={{ display: "block", fontSize: 11.5, color: TOKENS.inkSoft, marginBottom: 4 }}>Ville</label>
+                  <input
+                    value={d.city}
+                    onChange={(ev) => setField("city", ev.target.value)}
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+              <label style={{ display: "block", fontSize: 11.5, color: TOKENS.inkSoft, marginBottom: 4 }}>
+                Email de contact (pour le resume quotidien)
+              </label>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <input
+                  type="email"
+                  placeholder="email@etablissement.fr"
+                  value={d.contact_email}
+                  onChange={(ev) => setField("contact_email", ev.target.value)}
+                  style={inputStyle}
+                />
+                <button
+                  onClick={() => save(e.id)}
+                  disabled={saving[e.id]}
+                  style={{
+                    padding: "8px 14px",
+                    borderRadius: 6,
+                    border: "none",
+                    background: TOKENS.brand,
+                    color: "#fff",
+                    fontFamily: "'IBM Plex Sans', sans-serif",
+                    fontSize: 12.5,
+                    fontWeight: 500,
+                    cursor: saving[e.id] ? "default" : "pointer",
+                    opacity: saving[e.id] ? 0.6 : 1,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {saving[e.id] ? "..." : "Enregistrer"}
+                </button>
+                <button
+                  onClick={() => handleDeleteEstablishment(e)}
+                  disabled={deletingEstabId === e.id}
+                  title="Supprimer cet etablissement"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 34,
+                    height: 34,
+                    borderRadius: 6,
+                    border: "1px solid " + TOKENS.line,
+                    background: "#fff",
+                    color: TOKENS.danger,
+                    cursor: deletingEstabId === e.id ? "default" : "pointer",
+                    opacity: deletingEstabId === e.id ? 0.5 : 1,
+                    flexShrink: 0,
+                  }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+              {saved[e.id] && (
+                <div style={{ fontSize: 11.5, color: TOKENS.ok, marginTop: 4 }}>Enregistre</div>
+              )}
+              {errors[e.id] && (
+                <div style={{ fontSize: 11.5, color: TOKENS.danger, marginTop: 4 }}>{errors[e.id]}</div>
+              )}
             </div>
-            {saved[e.id] && (
-              <div style={{ fontSize: 11.5, color: TOKENS.ok, marginTop: 4 }}>Enregistre</div>
-            )}
-            {errors[e.id] && (
-              <div style={{ fontSize: 11.5, color: TOKENS.danger, marginTop: 4 }}>{errors[e.id]}</div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
       )}
       </div>
@@ -2165,6 +2255,10 @@ export default function VigiePrototype() {
               currentUserEmail={session?.user?.email}
               onRenameOrganization={(newName) => setOrganizationName(newName)}
               onAddEstablishment={(created) => setEstablishments((prev) => [...prev, created])}
+              onDeleteEstablishment={(id) => {
+                setEstablishments((prev) => prev.filter((e) => e.id !== id));
+                setStaff((prev) => prev.filter((s) => s.site !== id));
+              }}
               onUpdate={(updated) =>
                 setEstablishments((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
               }
