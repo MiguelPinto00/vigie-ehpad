@@ -838,6 +838,7 @@ function SettingsView({ establishments, token, onUpdate }) {
   );
   const [saving, setSaving] = useState({});
   const [saved, setSaved] = useState({});
+  const [errors, setErrors] = useState({});
 
   const inputStyle = {
     flex: 1,
@@ -852,12 +853,17 @@ function SettingsView({ establishments, token, onUpdate }) {
   const save = async (id) => {
     setSaving((prev) => ({ ...prev, [id]: true }));
     setSaved((prev) => ({ ...prev, [id]: false }));
+    setErrors((prev) => ({ ...prev, [id]: null }));
     try {
       const updated = await updateEstablishmentEmail(id, drafts[id].trim(), token);
+      if (!updated) {
+        throw new Error("Aucune donnee retournee (droits d'acces manquants sur la base ?)");
+      }
       onUpdate(updated);
       setSaved((prev) => ({ ...prev, [id]: true }));
     } catch (err) {
       console.error("Erreur de sauvegarde:", err);
+      setErrors((prev) => ({ ...prev, [id]: err.message || "Erreur lors de l'enregistrement" }));
     } finally {
       setSaving((prev) => ({ ...prev, [id]: false }));
     }
@@ -907,6 +913,9 @@ function SettingsView({ establishments, token, onUpdate }) {
             </div>
             {saved[e.id] && (
               <div style={{ fontSize: 11.5, color: TOKENS.ok, marginTop: 4 }}>Enregistre</div>
+            )}
+            {errors[e.id] && (
+              <div style={{ fontSize: 11.5, color: TOKENS.danger, marginTop: 4 }}>{errors[e.id]}</div>
             )}
           </div>
         ))}
