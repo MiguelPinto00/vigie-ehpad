@@ -18,6 +18,7 @@ import {
   EyeOff,
   ShieldCheck,
   ClipboardCheck,
+  Paperclip,
 } from "lucide-react";
 
 const TOKENS = {
@@ -467,33 +468,36 @@ function NonSuiviBadge() {
   );
 }
 
-// Cellule compacte pour un vaccin donne : badge de statut + echeance + lien
-// justificatif, empiles verticalement dans une seule colonne au lieu de deux.
+// Cellule compacte pour un vaccin donne : badge de statut + echeance + icone
+// justificatif sur la meme ligne, au lieu d'empiler plusieurs lignes de texte.
 function VaccineCell({ vaccination }) {
   if (!vaccination) return <NonSuiviBadge />;
   return (
     <div>
       <Seal status={vaccination.status} />
-      <div
-        style={{
-          fontSize: 11.5,
-          marginTop: 4,
-          fontFamily: "'IBM Plex Mono', monospace",
-          color: vaccination.status === "non_conforme" ? TOKENS.danger : TOKENS.inkSoft,
-        }}
-      >
-        {vaccination.next}
-      </div>
-      {vaccination.documentUrl && (
-        <a
-          href={vaccination.documentUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ display: "block", marginTop: 3, fontSize: 11, color: TOKENS.brand, textDecoration: "underline" }}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+        <span
+          style={{
+            fontSize: 11.5,
+            fontFamily: "'IBM Plex Mono', monospace",
+            color: vaccination.status === "non_conforme" ? TOKENS.danger : TOKENS.inkSoft,
+            whiteSpace: "nowrap",
+          }}
         >
-          Voir le justificatif
-        </a>
-      )}
+          {vaccination.next}
+        </span>
+        {vaccination.documentUrl && (
+          <a
+            href={vaccination.documentUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Voir le justificatif"
+            style={{ display: "inline-flex", alignItems: "center", color: TOKENS.brand, flexShrink: 0 }}
+          >
+            <Paperclip size={12} />
+          </a>
+        )}
+      </div>
     </div>
   );
 }
@@ -836,7 +840,7 @@ function computeVaccineCompliance(vaccine, lastVaccinationDateStr) {
     return {
       status: "non_conforme",
       updatedLabel,
-      nextLabel: "Echeance depassee le " + formatDateFr(expiryDate),
+      nextLabel: "Echue le " + formatDateFr(expiryDate),
     };
   }
   if (joursRestants <= GRIPPE_ALERTE_JOURS) {
