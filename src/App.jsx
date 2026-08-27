@@ -443,6 +443,61 @@ function Seal({ status }) {
   );
 }
 
+function NonSuiviBadge() {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "3px 10px",
+        borderRadius: 4,
+        fontSize: 12,
+        fontWeight: 500,
+        color: TOKENS.inkSoft,
+        background: TOKENS.paperDim,
+        border: "1px solid " + TOKENS.line,
+        fontFamily: "'Inter', sans-serif",
+        letterSpacing: "0.01em",
+      }}
+    >
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: TOKENS.inkSoft, opacity: 0.5 }} />
+      Non suivi
+    </span>
+  );
+}
+
+// Cellule compacte pour un vaccin donne : badge de statut + echeance + lien
+// justificatif, empiles verticalement dans une seule colonne au lieu de deux.
+function VaccineCell({ vaccination }) {
+  if (!vaccination) return <NonSuiviBadge />;
+  return (
+    <div>
+      <Seal status={vaccination.status} />
+      <div
+        style={{
+          fontSize: 11.5,
+          marginTop: 4,
+          fontFamily: "'IBM Plex Mono', monospace",
+          color: vaccination.status === "non_conforme" ? TOKENS.danger : TOKENS.inkSoft,
+        }}
+      >
+        {vaccination.next}
+      </div>
+      {vaccination.documentUrl && (
+        <a
+          href={vaccination.documentUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display: "block", marginTop: 3, fontSize: 11, color: TOKENS.brand, textDecoration: "underline" }}
+        >
+          Voir le justificatif
+        </a>
+      )}
+    </div>
+  );
+}
+
 function BeamGauge({ percent }) {
   const r = 54;
   const c = 2 * Math.PI * r;
@@ -1139,7 +1194,7 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token }) {
         <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'Inter', sans-serif" }}>
           <thead>
             <tr style={{ background: TOKENS.paperDim, borderBottom: "1px solid " + TOKENS.line }}>
-              {["Nom", "Fonction", "Etablissement", "Grippe", "Echeance grippe", "Rougeole", "Echeance rougeole", "Actions"].map((h) => (
+              {["Nom", "Fonction", "Etablissement", "Statut global", "Grippe", "Rougeole", "Actions"].map((h) => (
                 <th
                   key={h}
                   style={{
@@ -1170,26 +1225,13 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token }) {
                     {establishments.find((e) => e.id === s.site)?.name}
                   </td>
                   <td style={{ padding: "11px 16px" }}>
-                    {grippe ? <Seal status={grippe.status} /> : <span style={{ color: TOKENS.inkSoft, fontSize: 12 }}>Non suivi</span>}
-                    {grippe?.documentUrl && (
-                      <a href={grippe.documentUrl} target="_blank" rel="noopener noreferrer" style={{ display: "block", marginTop: 4, fontSize: 11, color: TOKENS.brand, textDecoration: "underline" }}>
-                        Voir le justificatif
-                      </a>
-                    )}
-                  </td>
-                  <td style={{ padding: "11px 16px", fontSize: 12.5, whiteSpace: "nowrap", color: grippe?.status === "non_conforme" ? TOKENS.danger : TOKENS.inkSoft, fontFamily: "'IBM Plex Mono', monospace" }}>
-                    {grippe ? grippe.next : "-"}
+                    <Seal status={s.status} />
                   </td>
                   <td style={{ padding: "11px 16px" }}>
-                    {rougeole ? <Seal status={rougeole.status} /> : <span style={{ color: TOKENS.inkSoft, fontSize: 12 }}>Non suivi</span>}
-                    {rougeole?.documentUrl && (
-                      <a href={rougeole.documentUrl} target="_blank" rel="noopener noreferrer" style={{ display: "block", marginTop: 4, fontSize: 11, color: TOKENS.brand, textDecoration: "underline" }}>
-                        Voir le justificatif
-                      </a>
-                    )}
+                    <VaccineCell vaccination={grippe} />
                   </td>
-                  <td style={{ padding: "11px 16px", fontSize: 12.5, whiteSpace: "nowrap", color: rougeole?.status === "non_conforme" ? TOKENS.danger : TOKENS.inkSoft, fontFamily: "'IBM Plex Mono', monospace" }}>
-                    {rougeole ? rougeole.next : "-"}
+                  <td style={{ padding: "11px 16px" }}>
+                    <VaccineCell vaccination={rougeole} />
                   </td>
                   <td style={{ padding: "11px 16px" }}>
                     <div style={{ display: "flex", gap: 6 }}>
