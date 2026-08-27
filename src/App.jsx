@@ -349,15 +349,23 @@ async function uploadJustificatif(file, token) {
 
 // Convertit une ligne Supabase (colonnes en snake_case) vers le format utilise par l'interface
 function mapStaffRow(row) {
+  // Si une date de vaccination reelle est enregistree, le statut est
+  // recalcule a la volee (toujours a jour, meme sans action manuelle).
+  // Sinon, on garde les valeurs telles qu'enregistrees (fiches anciennes
+  // pas encore mises a jour avec une vraie date).
+  const computed = row.last_vaccination_date
+    ? computeVaccineCompliance(row.vaccine, row.last_vaccination_date)
+    : null;
   return {
     id: row.id,
     name: row.name,
     role: row.role,
     site: row.establishment_id,
     vaccine: row.vaccine,
-    status: row.status,
-    updated: row.updated_label,
-    next: row.next_label,
+    status: computed ? computed.status : row.status,
+    updated: computed ? computed.updatedLabel : row.updated_label,
+    next: computed ? computed.nextLabel : row.next_label,
+    lastVaccinationDate: row.last_vaccination_date || "",
     documentUrl: row.document_url,
   };
 }
@@ -691,13 +699,64 @@ function Dashboard({ staff, establishments, setView }) {
   );
 }
 
+// Duree de validite du vaccin grippe (en jours) avant qu'une nouvelle
+// injection soit recommandee. Ajustable ici si la recommandation change.
+const GRIPPE_VALIDITE_JOURS = 365;
+// Nombre de jours avant l'echeance a partir duquel le statut passe en
+// "Echeance proche" au lieu d'attendre le jour J.
+const GRIPPE_ALERTE_JOURS = 45;
+
+function formatDateFr(date) {
+  return date.toLocaleDateString("fr-FR");
+}
+
+// Calcule automatiquement le statut de conformite, la date de derniere mise
+// a jour affichee et le libelle d'echeance, a partir de la date reelle de la
+// derniere vaccination. Ce calcul est refait a chaque affichage : un salarie
+// "a jour" aujourd'hui repassera automatiquement en "Echeance proche" puis
+// "Non conforme" avec le temps, sans intervention manuelle.
+function computeVaccineCompliance(vaccine, lastVaccinationDateStr) {
+  if (!lastVaccinationDateStr) {
+    return { status: "non_conforme", updatedLabel: "-", nextLabel: "Aucun justificatif" };
+  }
+
+  const lastDate = new Date(lastVaccinationDateStr + "T00:00:00");
+  const updatedLabel = formatDateFr(lastDate);
+
+  if (vaccine === "Rougeole") {
+    // Immunite consideree comme durable : pas de rappel periodique attendu.
+    return { status: "conforme", updatedLabel, nextLabel: "Aucune echeance (immunite durable)" };
+  }
+
+  // Grippe (et par defaut pour tout autre vaccin a rappel annuel)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const expiryDate = new Date(lastDate);
+  expiryDate.setDate(expiryDate.getDate() + GRIPPE_VALIDITE_JOURS);
+  const joursRestants = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24));
+
+  if (joursRestants < 0) {
+    return {
+      status: "non_conforme",
+      updatedLabel,
+      nextLabel: "Echeance depassee le " + formatDateFr(expiryDate),
+    };
+  }
+  if (joursRestants <= GRIPPE_ALERTE_JOURS) {
+    return { status: "a_venir", updatedLabel, nextLabel: formatDateFr(expiryDate) };
+  }
+  return { status: "conforme", updatedLabel, nextLabel: formatDateFr(expiryDate) };
+}
+
 function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
   const isEditing = !!editingStaff;
   const [name, setName] = useState(editingStaff?.name || "");
   const [role, setRole] = useState(editingStaff?.role || "");
   const [site, setSite] = useState(editingStaff?.site || establishments[0]?.id || "");
   const [vaccine, setVaccine] = useState(editingStaff?.vaccine || "Grippe");
-  const [status, setStatus] = useState(editingStaff?.status || "a_venir");
+  const [lastVaccinationDate, setLastVaccinationDate] = useState(
+    editingStaff?.lastVaccinationDate || ""
+  );
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [uploadError, setUploadError] = useState(null);
@@ -731,14 +790,16 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
       if (file) {
         documentUrl = await uploadJustificatif(file, token);
       }
+      const computed = computeVaccineCompliance(vaccine, lastVaccinationDate || null);
       const payload = {
         name: name.trim(),
         role: role.trim(),
         establishment_id: site,
         vaccine,
-        status,
-        updated_label: status === "conforme" ? new Date().toLocaleDateString("fr-FR") : "-",
-        next_label: status === "non_conforme" ? "Retard" : status === "a_venir" ? "A definir" : "-",
+        status: computed.status,
+        updated_label: computed.updatedLabel,
+        next_label: computed.nextLabel,
+        last_vaccination_date: lastVaccinationDate || null,
         document_url: documentUrl,
       };
       await onSave(payload, editingStaff?.id);
@@ -804,12 +865,39 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
           <option value="Rougeole">Rougeole (LFSS 2026, decret a venir)</option>
         </select>
 
-        <label style={labelStyle}>Statut vaccinal</label>
-        <select style={inputStyle} value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="conforme">A jour</option>
-          <option value="a_venir">Echeance proche</option>
-          <option value="non_conforme">Non conforme</option>
-        </select>
+        <label style={labelStyle}>Date de la derniere vaccination / dose</label>
+        <input
+          type="date"
+          style={inputStyle}
+          value={lastVaccinationDate}
+          onChange={(e) => setLastVaccinationDate(e.target.value)}
+          max={new Date().toISOString().slice(0, 10)}
+        />
+
+        {(() => {
+          const preview = computeVaccineCompliance(vaccine, lastVaccinationDate || null);
+          const meta = STATUS_META[preview.status];
+          return (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "9px 12px",
+                borderRadius: 6,
+                background: meta.bg,
+                marginBottom: 14,
+              }}
+            >
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: meta.color, fontWeight: 600 }}>
+                {meta.label}
+              </span>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11.5, color: TOKENS.inkSoft }}>
+                {preview.nextLabel}
+              </span>
+            </div>
+          );
+        })()}
 
         <label style={labelStyle}>
           Justificatif {isEditing && editingStaff?.documentUrl ? "(remplacer)" : "(optionnel)"}
