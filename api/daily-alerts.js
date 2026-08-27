@@ -5,25 +5,56 @@ export default async function handler(req, res) {
     res.status(401).json({ error: "Non autorise" });
     return;
   }
-
   const SUPABASE_URL = "https://uhyiwqsyyikwguvlfira.supabase.co";
   const serviceKey = process.env.SUPABASE_SERVICE_KEY;
   const resendKey = process.env.RESEND_API_KEY;
   const fallbackRecipient = process.env.ALERT_RECIPIENT_EMAIL;
-
   if (!serviceKey || !resendKey) {
     res.status(500).json({ error: "Configuration serveur incomplete" });
     return;
   }
 
+  // Memes regles de calcul que dans l'application (src/App.jsx). A garder
+  // synchronisees si ces valeurs changent un jour d'un cote ou de l'autre.
+  const GRIPPE_VALIDITE_JOURS = 365;
+  const GRIPPE_ALERTE_JOURS = 45;
+
+  function computeVaccineStatus(vaccine, lastVaccinationDateStr) {
+    if (!lastVaccinationDateStr) {
+      return { status: "non_renseigne", label: "Date manquante" };
+    }
+    const lastDate = new Date(lastVaccinationDateStr + "T00:00:00");
+
+    if (vaccine === "Rougeole") {
+      // Immunite consideree comme durable : pas de rappel periodique attendu.
+      return { status: "conforme", label: "A jour" };
+    }
+
+    // Grippe (et par defaut pour tout autre vaccin a rappel annuel)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expiryDate = new Date(lastDate);
+    expiryDate.setDate(expiryDate.getDate() + GRIPPE_VALIDITE_JOURS);
+    const joursRestants = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24));
+    const expiryLabel = expiryDate.toLocaleDateString("fr-FR");
+
+    if (joursRestants < 0) {
+      return { status: "non_conforme", label: "Echue le " + expiryLabel };
+    }
+    if (joursRestants <= GRIPPE_ALERTE_JOURS) {
+      return { status: "a_venir", label: expiryLabel };
+    }
+    return { status: "conforme", label: expiryLabel };
+  }
+
   try {
     const headers = { apikey: serviceKey, Authorization: "Bearer " + serviceKey };
-
     const [estabRes, staffRes] = await Promise.all([
       fetch(SUPABASE_URL + "/rest/v1/establishments?select=*", { headers }),
-      fetch(SUPABASE_URL + "/rest/v1/staff?select=*", { headers }),
+      // On recupere chaque personne avec tous ses suivis vaccinaux imbriques
+      // (une personne peut avoir un suivi grippe ET un suivi rougeole).
+      fetch(SUPABASE_URL + "/rest/v1/staff?select=*,staff_vaccinations(*)", { headers }),
     ]);
-
     if (!estabRes.ok || !staffRes.ok) {
       const estabBody = await estabRes.text().catch(() => "");
       const staffBody = await staffRes.text().catch(() => "");
@@ -32,11 +63,29 @@ export default async function handler(req, res) {
         " | staff " + staffRes.status + ": " + staffBody.slice(0, 150) + ")"
       );
     }
-
     const establishments = await estabRes.json();
-    const staff = await staffRes.json();
-    const today = new Date().toLocaleDateString("fr-FR");
+    const staffRows = await staffRes.json();
 
+    // Aplatit chaque personne en une entree par vaccin qui merite un signalement
+    // (une meme personne peut apparaitre 2 fois : une fois pour la grippe, une
+    // fois pour la rougeole, si les deux posent probleme).
+    const flagged = [];
+    staffRows.forEach((s) => {
+      (s.staff_vaccinations || []).forEach((v) => {
+        const computed = computeVaccineStatus(v.vaccine, v.last_vaccination_date);
+        if (computed.status !== "conforme") {
+          flagged.push({
+            establishment_id: s.establishment_id,
+            name: s.name,
+            vaccine: v.vaccine,
+            status: computed.status,
+            label: computed.label,
+          });
+        }
+      });
+    });
+
+    const today = new Date().toLocaleDateString("fr-FR");
     const rowsHtml = (list, label) =>
       list.length === 0
         ? ""
@@ -47,12 +96,12 @@ export default async function handler(req, res) {
           ")</h3><ul>" +
           list
             .map(
-              (s) =>
+              (f) =>
                 "<li><strong>" +
-                s.name +
+                f.name +
                 "</strong> - " +
-                s.vaccine +
-                (s.next_label && s.next_label !== "-" ? " (" + s.next_label + ")" : "") +
+                f.vaccine +
+                (f.label ? " (" + f.label + ")" : "") +
                 "</li>"
             )
             .join("") +
@@ -60,19 +109,18 @@ export default async function handler(req, res) {
 
     let emailsSent = 0;
     const results = [];
-
     for (const estab of establishments) {
       const recipient = estab.contact_email || fallbackRecipient;
       if (!recipient) {
         results.push({ establishment: estab.name, skipped: "aucun email configure" });
         continue;
       }
+      const estabFlagged = flagged.filter((f) => f.establishment_id === estab.id);
+      const nonConformes = estabFlagged.filter((f) => f.status === "non_conforme");
+      const aVenir = estabFlagged.filter((f) => f.status === "a_venir");
+      const dateManquante = estabFlagged.filter((f) => f.status === "non_renseigne");
 
-      const estabStaff = staff.filter((s) => s.establishment_id === estab.id);
-      const nonConformes = estabStaff.filter((s) => s.status === "non_conforme");
-      const aVenir = estabStaff.filter((s) => s.status === "a_venir");
-
-      if (nonConformes.length === 0 && aVenir.length === 0) {
+      if (nonConformes.length === 0 && aVenir.length === 0 && dateManquante.length === 0) {
         results.push({ establishment: estab.name, skipped: "rien a signaler" });
         continue;
       }
@@ -93,10 +141,10 @@ export default async function handler(req, res) {
             "</strong>.</p>" +
             rowsHtml(nonConformes, "Non conformes") +
             rowsHtml(aVenir, "Echeances proches") +
+            rowsHtml(dateManquante, "Dates manquantes (a completer)") +
             "<p style='color:#888;font-size:12px;'>Cet email est envoye automatiquement chaque jour par Confia.</p>",
         }),
       });
-
       if (emailRes.ok) {
         emailsSent += 1;
         results.push({ establishment: estab.name, sent: true, to: recipient });
@@ -105,7 +153,6 @@ export default async function handler(req, res) {
         results.push({ establishment: estab.name, error: errData.message || "echec" });
       }
     }
-
     res.status(200).json({ success: true, emailsSent, results });
   } catch (err) {
     console.error("Erreur tache planifiee:", err);
