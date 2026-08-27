@@ -1,3 +1,5 @@
+import { renderEmailLayout, renderStatusSection, BRAND } from "../lib/emailTemplate.js";
+
 export default async function handler(req, res) {
   // Verification que cet appel vient bien de la tache planifiee Vercel (secret partage)
   const authHeader = req.headers["authorization"];
@@ -26,11 +28,9 @@ export default async function handler(req, res) {
     const lastDate = new Date(lastVaccinationDateStr + "T00:00:00");
 
     if (vaccine === "Rougeole") {
-      // Immunite consideree comme durable : pas de rappel periodique attendu.
       return { status: "conforme", label: "A jour" };
     }
 
-    // Grippe (et par defaut pour tout autre vaccin a rappel annuel)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const expiryDate = new Date(lastDate);
@@ -51,8 +51,6 @@ export default async function handler(req, res) {
     const headers = { apikey: serviceKey, Authorization: "Bearer " + serviceKey };
     const [estabRes, staffRes] = await Promise.all([
       fetch(SUPABASE_URL + "/rest/v1/establishments?select=*", { headers }),
-      // On recupere chaque personne avec tous ses suivis vaccinaux imbriques
-      // (une personne peut avoir un suivi grippe ET un suivi rougeole).
       fetch(SUPABASE_URL + "/rest/v1/staff?select=*,staff_vaccinations(*)", { headers }),
     ]);
     if (!estabRes.ok || !staffRes.ok) {
@@ -66,9 +64,6 @@ export default async function handler(req, res) {
     const establishments = await estabRes.json();
     const staffRows = await staffRes.json();
 
-    // Aplatit chaque personne en une entree par vaccin qui merite un signalement
-    // (une meme personne peut apparaitre 2 fois : une fois pour la grippe, une
-    // fois pour la rougeole, si les deux posent probleme).
     const flagged = [];
     staffRows.forEach((s) => {
       (s.staff_vaccinations || []).forEach((v) => {
@@ -86,26 +81,6 @@ export default async function handler(req, res) {
     });
 
     const today = new Date().toLocaleDateString("fr-FR");
-    const rowsHtml = (list, label) =>
-      list.length === 0
-        ? ""
-        : "<h3>" +
-          label +
-          " (" +
-          list.length +
-          ")</h3><ul>" +
-          list
-            .map(
-              (f) =>
-                "<li><strong>" +
-                f.name +
-                "</strong> - " +
-                f.vaccine +
-                (f.label ? " (" + f.label + ")" : "") +
-                "</li>"
-            )
-            .join("") +
-          "</ul>";
 
     let emailsSent = 0;
     const results = [];
@@ -125,6 +100,13 @@ export default async function handler(req, res) {
         continue;
       }
 
+      const bodyHtml =
+        `<p style="margin:0 0 4px; font-size:16px; font-weight:600; color:${BRAND.ink};">Resume quotidien</p>` +
+        `<p style="margin:0 0 22px; font-size:13px; color:${BRAND.inkSoft};">${estab.name} — ${today}</p>` +
+        renderStatusSection("Non conformes", nonConformes, BRAND.danger, BRAND.dangerBg) +
+        renderStatusSection("Echeances proches", aVenir, BRAND.warn, BRAND.warnBg) +
+        renderStatusSection("Dates manquantes (a completer)", dateManquante, BRAND.grey, BRAND.greyBg);
+
       const emailRes = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -135,14 +117,11 @@ export default async function handler(req, res) {
           from: "Confia <onboarding@resend.dev>",
           to: [recipient],
           subject: "Confia - Resume quotidien " + estab.name + " - " + today,
-          html:
-            "<p>Bonjour,</p><p>Voici le point de conformite vaccinale du jour pour <strong>" +
-            estab.name +
-            "</strong>.</p>" +
-            rowsHtml(nonConformes, "Non conformes") +
-            rowsHtml(aVenir, "Echeances proches") +
-            rowsHtml(dateManquante, "Dates manquantes (a completer)") +
-            "<p style='color:#888;font-size:12px;'>Cet email est envoye automatiquement chaque jour par Confia.</p>",
+          html: renderEmailLayout({
+            title: "Resume quotidien Confia",
+            preheader: nonConformes.length + " non conforme(s), " + aVenir.length + " echeance(s) proche(s)",
+            bodyHtml,
+          }),
         }),
       });
       if (emailRes.ok) {
