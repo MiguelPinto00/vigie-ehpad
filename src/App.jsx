@@ -18,7 +18,6 @@ import {
   EyeOff,
   ShieldCheck,
   ClipboardCheck,
-  Paperclip,
 } from "lucide-react";
 
 const TOKENS = {
@@ -375,26 +374,41 @@ async function uploadJustificatif(file, token) {
 // Calcule le statut/echeance de chaque suivi vaccinal d'une personne
 function computePersonVaccinations(row) {
   return (row.staff_vaccinations || []).map((v) => {
-    const computed = v.last_vaccination_date
-      ? computeVaccineCompliance(v.vaccine, v.last_vaccination_date)
-      : null;
+    // Si aucune vraie date n'est enregistree, on ne devine jamais un statut
+    // a partir d'une ancienne valeur saisie a la main : on l'affiche
+    // clairement comme "Date manquante" plutot que de risquer d'afficher
+    // "Non conforme" ou "A jour" de facon trompeuse.
+    if (!v.last_vaccination_date) {
+      return {
+        id: v.id,
+        vaccine: v.vaccine,
+        lastVaccinationDate: "",
+        documentUrl: v.document_url,
+        status: "non_renseigne",
+        updated: "-",
+        next: "Date manquante",
+      };
+    }
+    const computed = computeVaccineCompliance(v.vaccine, v.last_vaccination_date);
     return {
       id: v.id,
       vaccine: v.vaccine,
-      lastVaccinationDate: v.last_vaccination_date || "",
+      lastVaccinationDate: v.last_vaccination_date,
       documentUrl: v.document_url,
-      status: computed ? computed.status : v.status,
-      updated: computed ? computed.updatedLabel : v.updated_label,
-      next: computed ? computed.nextLabel : v.next_label,
+      status: computed.status,
+      updated: computed.updatedLabel,
+      next: computed.nextLabel,
     };
   });
 }
 
 // Statut global d'une personne = le pire statut parmi ses vaccins suivis.
+// Une date manquante compte comme un probleme a regler (on ne peut pas
+// prouver la conformite sans date), au meme titre qu'une non-conformite averee.
 // Aucun vaccin suivi du tout => consideree non conforme (rien sur le dossier).
 function computeOverallStatus(vaccinations) {
   if (vaccinations.length === 0) return "non_conforme";
-  if (vaccinations.some((v) => v.status === "non_conforme")) return "non_conforme";
+  if (vaccinations.some((v) => v.status === "non_conforme" || v.status === "non_renseigne")) return "non_conforme";
   if (vaccinations.some((v) => v.status === "a_venir")) return "a_venir";
   return "conforme";
 }
@@ -417,6 +431,7 @@ const STATUS_META = {
   conforme: { label: "A jour", color: TOKENS.ok, bg: TOKENS.okBg },
   a_venir: { label: "Echeance proche", color: TOKENS.warn, bg: TOKENS.warnBg },
   non_conforme: { label: "Non conforme", color: TOKENS.danger, bg: TOKENS.dangerBg },
+  non_renseigne: { label: "Date manquante", color: TOKENS.inkSoft, bg: TOKENS.paperDim },
 };
 
 function Seal({ status }) {
@@ -468,36 +483,33 @@ function NonSuiviBadge() {
   );
 }
 
-// Cellule compacte pour un vaccin donne : badge de statut + echeance + icone
-// justificatif sur la meme ligne, au lieu d'empiler plusieurs lignes de texte.
+// Cellule compacte pour un vaccin donne : badge de statut + echeance + lien
+// justificatif explicite, empiles verticalement.
 function VaccineCell({ vaccination }) {
   if (!vaccination) return <NonSuiviBadge />;
   return (
     <div>
       <Seal status={vaccination.status} />
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-        <span
-          style={{
-            fontSize: 11.5,
-            fontFamily: "'IBM Plex Mono', monospace",
-            color: vaccination.status === "non_conforme" ? TOKENS.danger : TOKENS.inkSoft,
-            whiteSpace: "nowrap",
-          }}
-        >
-          {vaccination.next}
-        </span>
-        {vaccination.documentUrl && (
-          <a
-            href={vaccination.documentUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Voir le justificatif"
-            style={{ display: "inline-flex", alignItems: "center", color: TOKENS.brand, flexShrink: 0 }}
-          >
-            <Paperclip size={12} />
-          </a>
-        )}
+      <div
+        style={{
+          fontSize: 11.5,
+          marginTop: 4,
+          fontFamily: "'IBM Plex Mono', monospace",
+          color: vaccination.status === "non_conforme" ? TOKENS.danger : TOKENS.inkSoft,
+        }}
+      >
+        {vaccination.next}
       </div>
+      {vaccination.documentUrl && (
+        <a
+          href={vaccination.documentUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display: "block", marginTop: 3, fontSize: 11, color: TOKENS.brand, textDecoration: "underline" }}
+        >
+          Voir le justificatif
+        </a>
+      )}
     </div>
   );
 }
@@ -1377,6 +1389,8 @@ function AlertsView({ staff, establishments, userEmail }) {
               <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, marginTop: 2 }}>
                 {!a.vaccine
                   ? "Aucun suivi vaccinal enregistre pour cette personne."
+                  : a.status === "non_renseigne"
+                  ? `Date de vaccination ${a.vaccine.toLowerCase()} non renseignee : impossible de verifier la conformite.`
                   : isOverdue
                   ? `Aucun justificatif d'immunisation ${a.vaccine.toLowerCase()} valide enregistre.`
                   : `Echeance de controle (${a.vaccine}) : ${a.next}.`}
