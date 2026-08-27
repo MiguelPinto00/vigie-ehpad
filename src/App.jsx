@@ -152,9 +152,10 @@ async function fetchEstablishments(token) {
 }
 
 async function fetchStaff(token) {
-  const res = await fetch(SUPABASE_URL + "/rest/v1/staff?select=*", {
-    headers: authHeaders(token),
-  });
+  const res = await fetch(
+    SUPABASE_URL + "/rest/v1/staff?select=*,staff_vaccinations(*)",
+    { headers: authHeaders(token) }
+  );
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error("staff " + res.status + " - " + body.slice(0, 200));
@@ -162,18 +163,18 @@ async function fetchStaff(token) {
   return res.json();
 }
 
-async function insertStaff(row, token) {
+async function insertStaffPerson(row, token) {
   const res = await fetch(SUPABASE_URL + "/rest/v1/staff", {
     method: "POST",
     headers: { ...authHeaders(token), Prefer: "return=representation" },
     body: JSON.stringify(row),
   });
-  if (!res.ok) throw new Error("Erreur d'enregistrement");
+  if (!res.ok) throw new Error("Erreur d'enregistrement du salarie");
   const data = await res.json();
   return data[0];
 }
 
-async function updateStaff(id, updates, token) {
+async function updateStaffPerson(id, updates, token) {
   const res = await fetch(SUPABASE_URL + "/rest/v1/staff?id=eq." + id, {
     method: "PATCH",
     headers: { ...authHeaders(token), Prefer: "return=representation" },
@@ -184,13 +185,36 @@ async function updateStaff(id, updates, token) {
   return data[0];
 }
 
-async function deleteStaff(id, token) {
+async function deleteStaffPerson(id, token) {
   const res = await fetch(SUPABASE_URL + "/rest/v1/staff?id=eq." + id, {
     method: "DELETE",
     headers: authHeaders(token),
   });
   if (!res.ok) throw new Error("Erreur de suppression");
   return true;
+}
+
+// Cree ou met a jour le suivi d'un vaccin precis pour un salarie donne.
+// Si vaccinationId est fourni, met a jour la fiche existante ; sinon en cree une nouvelle.
+async function upsertVaccination(payload, vaccinationId, token) {
+  if (vaccinationId) {
+    const res = await fetch(SUPABASE_URL + "/rest/v1/staff_vaccinations?id=eq." + vaccinationId, {
+      method: "PATCH",
+      headers: { ...authHeaders(token), Prefer: "return=representation" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error("Erreur de mise a jour du suivi vaccinal");
+    const data = await res.json();
+    return data[0];
+  }
+  const res = await fetch(SUPABASE_URL + "/rest/v1/staff_vaccinations", {
+    method: "POST",
+    headers: { ...authHeaders(token), Prefer: "return=representation" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error("Erreur de creation du suivi vaccinal");
+  const data = await res.json();
+  return data[0];
 }
 
 async function fetchOrganizationMembers(organizationId, token) {
@@ -347,26 +371,44 @@ async function uploadJustificatif(file, token) {
   return SUPABASE_URL + "/storage/v1" + signData.signedURL;
 }
 
-// Convertit une ligne Supabase (colonnes en snake_case) vers le format utilise par l'interface
-function mapStaffRow(row) {
-  // Si une date de vaccination reelle est enregistree, le statut est
-  // recalcule a la volee (toujours a jour, meme sans action manuelle).
-  // Sinon, on garde les valeurs telles qu'enregistrees (fiches anciennes
-  // pas encore mises a jour avec une vraie date).
-  const computed = row.last_vaccination_date
-    ? computeVaccineCompliance(row.vaccine, row.last_vaccination_date)
-    : null;
+// Calcule le statut/echeance de chaque suivi vaccinal d'une personne
+function computePersonVaccinations(row) {
+  return (row.staff_vaccinations || []).map((v) => {
+    const computed = v.last_vaccination_date
+      ? computeVaccineCompliance(v.vaccine, v.last_vaccination_date)
+      : null;
+    return {
+      id: v.id,
+      vaccine: v.vaccine,
+      lastVaccinationDate: v.last_vaccination_date || "",
+      documentUrl: v.document_url,
+      status: computed ? computed.status : v.status,
+      updated: computed ? computed.updatedLabel : v.updated_label,
+      next: computed ? computed.nextLabel : v.next_label,
+    };
+  });
+}
+
+// Statut global d'une personne = le pire statut parmi ses vaccins suivis.
+// Aucun vaccin suivi du tout => consideree non conforme (rien sur le dossier).
+function computeOverallStatus(vaccinations) {
+  if (vaccinations.length === 0) return "non_conforme";
+  if (vaccinations.some((v) => v.status === "non_conforme")) return "non_conforme";
+  if (vaccinations.some((v) => v.status === "a_venir")) return "a_venir";
+  return "conforme";
+}
+
+// Convertit une ligne Supabase (personne + ses suivis vaccinaux imbriques)
+// vers le format utilise par l'interface
+function mapPersonRow(row) {
+  const vaccinations = computePersonVaccinations(row);
   return {
     id: row.id,
     name: row.name,
     role: row.role,
     site: row.establishment_id,
-    vaccine: row.vaccine,
-    status: computed ? computed.status : row.status,
-    updated: computed ? computed.updatedLabel : row.updated_label,
-    next: computed ? computed.nextLabel : row.next_label,
-    lastVaccinationDate: row.last_vaccination_date || "",
-    documentUrl: row.document_url,
+    vaccinations,
+    status: computeOverallStatus(vaccinations),
   };
 }
 
@@ -748,16 +790,83 @@ function computeVaccineCompliance(vaccine, lastVaccinationDateStr) {
   return { status: "conforme", updatedLabel, nextLabel: formatDateFr(expiryDate) };
 }
 
+const VACCINE_TYPES = [
+  { key: "Grippe", label: "Grippe (obligatoire depuis 01/01/2026)" },
+  { key: "Rougeole", label: "Rougeole (LFSS 2026, decret a venir)" },
+];
+
+function VaccineSection({ vaccineKey, label, date, onDateChange, file, onFileChange, existingDocumentUrl }) {
+  const inputStyle = {
+    width: "100%",
+    padding: "8px 10px",
+    borderRadius: 6,
+    border: "1px solid " + TOKENS.line,
+    boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
+    fontFamily: "'Inter', sans-serif",
+    fontSize: 13,
+    outline: "none",
+    boxSizing: "border-box",
+    marginBottom: 10,
+  };
+  const preview = computeVaccineCompliance(vaccineKey, date || null);
+  const meta = STATUS_META[preview.status];
+
+  return (
+    <div style={{ border: "1px solid " + TOKENS.line, borderRadius: 8, padding: "12px 14px", marginBottom: 14 }}>
+      <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, fontWeight: 600, color: TOKENS.ink, marginBottom: 8 }}>
+        {label}
+      </div>
+      <input
+        type="date"
+        style={inputStyle}
+        value={date}
+        onChange={(e) => onDateChange(e.target.value)}
+        max={new Date().toISOString().slice(0, 10)}
+      />
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "8px 10px",
+          borderRadius: 6,
+          background: meta.bg,
+          marginBottom: 10,
+        }}
+      >
+        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11.5, color: meta.color, fontWeight: 600 }}>
+          {meta.label}
+        </span>
+        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: TOKENS.inkSoft }}>
+          {preview.nextLabel}
+        </span>
+      </div>
+      <label style={{ display: "block", fontFamily: "'Inter', sans-serif", fontSize: 11.5, color: TOKENS.inkSoft, marginBottom: 5 }}>
+        Justificatif {existingDocumentUrl ? "(remplacer)" : "(optionnel)"}
+      </label>
+      <input
+        type="file"
+        accept="application/pdf,image/*"
+        onChange={(e) => onFileChange(e.target.files?.[0] || null)}
+        style={{ ...inputStyle, padding: "6px 8px", marginBottom: 0 }}
+      />
+    </div>
+  );
+}
+
 function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
   const isEditing = !!editingStaff;
   const [name, setName] = useState(editingStaff?.name || "");
   const [role, setRole] = useState(editingStaff?.role || "");
   const [site, setSite] = useState(editingStaff?.site || establishments[0]?.id || "");
-  const [vaccine, setVaccine] = useState(editingStaff?.vaccine || "Grippe");
-  const [lastVaccinationDate, setLastVaccinationDate] = useState(
-    editingStaff?.lastVaccinationDate || ""
+
+  const findExisting = (vaccineKey) =>
+    (editingStaff?.vaccinations || []).find((v) => v.vaccine === vaccineKey);
+
+  const [dates, setDates] = useState(() =>
+    Object.fromEntries(VACCINE_TYPES.map((v) => [v.key, findExisting(v.key)?.lastVaccinationDate || ""]))
   );
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState({});
   const [saving, setSaving] = useState(false);
   const [uploadError, setUploadError] = useState(null);
 
@@ -786,23 +895,42 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
     setSaving(true);
     setUploadError(null);
     try {
-      let documentUrl = editingStaff?.documentUrl || null;
-      if (file) {
-        documentUrl = await uploadJustificatif(file, token);
+      let personId = editingStaff?.id;
+      const personPayload = { name: name.trim(), role: role.trim(), establishment_id: site };
+      if (isEditing) {
+        await updateStaffPerson(personId, personPayload, token);
+      } else {
+        const created = await insertStaffPerson(personPayload, token);
+        personId = created.id;
       }
-      const computed = computeVaccineCompliance(vaccine, lastVaccinationDate || null);
-      const payload = {
-        name: name.trim(),
-        role: role.trim(),
-        establishment_id: site,
-        vaccine,
-        status: computed.status,
-        updated_label: computed.updatedLabel,
-        next_label: computed.nextLabel,
-        last_vaccination_date: lastVaccinationDate || null,
-        document_url: documentUrl,
-      };
-      await onSave(payload, editingStaff?.id);
+
+      // Pour chaque vaccin renseigne avec une date, on cree ou met a jour son suivi.
+      // Si le champ date est laisse vide, on ne touche pas a un suivi deja existant.
+      for (const v of VACCINE_TYPES) {
+        const date = dates[v.key];
+        if (!date) continue;
+        const existing = findExisting(v.key);
+        let documentUrl = existing?.documentUrl || null;
+        if (files[v.key]) {
+          documentUrl = await uploadJustificatif(files[v.key], token);
+        }
+        const computed = computeVaccineCompliance(v.key, date);
+        await upsertVaccination(
+          {
+            staff_id: personId,
+            vaccine: v.key,
+            last_vaccination_date: date,
+            document_url: documentUrl,
+            status: computed.status,
+            updated_label: computed.updatedLabel,
+            next_label: computed.nextLabel,
+          },
+          existing?.id,
+          token
+        );
+      }
+
+      await onSave();
       onClose();
     } catch (err) {
       console.error("Erreur:", err);
@@ -822,6 +950,8 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
         alignItems: "center",
         justifyContent: "center",
         zIndex: 50,
+        overflowY: "auto",
+        padding: "24px 0",
       }}
       onClick={onClose}
     >
@@ -830,7 +960,7 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
           background: "#fff",
           borderRadius: 10,
           padding: 24,
-          width: 380,
+          width: 400,
           boxShadow: "0 12px 40px rgba(22,35,31,0.18)",
         }}
         onClick={(e) => e.stopPropagation()}
@@ -859,55 +989,22 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
           ))}
         </select>
 
-        <label style={labelStyle}>Vaccin concerne</label>
-        <select style={inputStyle} value={vaccine} onChange={(e) => setVaccine(e.target.value)}>
-          <option value="Grippe">Grippe (obligatoire depuis 01/01/2026)</option>
-          <option value="Rougeole">Rougeole (LFSS 2026, decret a venir)</option>
-        </select>
+        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, fontWeight: 600, color: TOKENS.ink, margin: "4px 0 10px" }}>
+          Suivi vaccinal (renseignez un ou plusieurs vaccins)
+        </div>
 
-        <label style={labelStyle}>Date de la derniere vaccination / dose</label>
-        <input
-          type="date"
-          style={inputStyle}
-          value={lastVaccinationDate}
-          onChange={(e) => setLastVaccinationDate(e.target.value)}
-          max={new Date().toISOString().slice(0, 10)}
-        />
-
-        {(() => {
-          const preview = computeVaccineCompliance(vaccine, lastVaccinationDate || null);
-          const meta = STATUS_META[preview.status];
-          return (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "9px 12px",
-                borderRadius: 6,
-                background: meta.bg,
-                marginBottom: 14,
-              }}
-            >
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: meta.color, fontWeight: 600 }}>
-                {meta.label}
-              </span>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11.5, color: TOKENS.inkSoft }}>
-                {preview.nextLabel}
-              </span>
-            </div>
-          );
-        })()}
-
-        <label style={labelStyle}>
-          Justificatif {isEditing && editingStaff?.documentUrl ? "(remplacer)" : "(optionnel)"}
-        </label>
-        <input
-          type="file"
-          accept="application/pdf,image/*"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
-          style={{ ...inputStyle, padding: "6px 8px" }}
-        />
+        {VACCINE_TYPES.map((v) => (
+          <VaccineSection
+            key={v.key}
+            vaccineKey={v.key}
+            label={v.label}
+            date={dates[v.key]}
+            onDateChange={(val) => setDates((prev) => ({ ...prev, [v.key]: val }))}
+            file={files[v.key]}
+            onFileChange={(f) => setFiles((prev) => ({ ...prev, [v.key]: f }))}
+            existingDocumentUrl={findExisting(v.key)?.documentUrl}
+          />
+        ))}
 
         {uploadError && (
           <div style={{ color: TOKENS.danger, fontSize: 12, marginBottom: 10 }}>{uploadError}</div>
@@ -938,7 +1035,7 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
   );
 }
 
-function StaffView({ staff, onAddStaff, onUpdateStaff, onDeleteStaff, establishments, token }) {
+function StaffView({ staff, onReload, onDeletePerson, establishments, token }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [showModal, setShowModal] = useState(false);
@@ -954,10 +1051,10 @@ function StaffView({ staff, onAddStaff, onUpdateStaff, onDeleteStaff, establishm
   }, [staff, query, filter]);
 
   const handleDelete = async (s) => {
-    if (!window.confirm("Supprimer " + s.name + " ? Cette action est irreversible.")) return;
+    if (!window.confirm("Supprimer " + s.name + " ? Cette action est irreversible et supprimera tous ses suivis vaccinaux.")) return;
     setDeletingId(s.id);
     try {
-      await onDeleteStaff(s.id);
+      await onDeletePerson(s.id);
     } finally {
       setDeletingId(null);
     }
@@ -1031,18 +1128,18 @@ function StaffView({ staff, onAddStaff, onUpdateStaff, onDeleteStaff, establishm
             setShowModal(false);
             setEditingStaff(null);
           }}
-          onSave={(payload, id) => (id ? onUpdateStaff(id, payload) : onAddStaff(payload))}
+          onSave={onReload}
           establishments={establishments}
           token={token}
           editingStaff={editingStaff}
         />
       )}
 
-      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, overflow: "hidden" }}>
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, overflow: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'Inter', sans-serif" }}>
           <thead>
             <tr style={{ background: TOKENS.paperDim, borderBottom: "1px solid " + TOKENS.line }}>
-              {["Nom", "Fonction", "Etablissement", "Vaccin", "Statut", "Derniere MaJ", "Echeance", "Document", "Actions"].map((h) => (
+              {["Nom", "Fonction", "Etablissement", "Grippe", "Echeance grippe", "Rougeole", "Echeance rougeole", "Actions"].map((h) => (
                 <th
                   key={h}
                   style={{
@@ -1053,6 +1150,7 @@ function StaffView({ staff, onAddStaff, onUpdateStaff, onDeleteStaff, establishm
                     color: TOKENS.inkSoft,
                     textTransform: "uppercase",
                     letterSpacing: "0.04em",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {h}
@@ -1061,86 +1159,86 @@ function StaffView({ staff, onAddStaff, onUpdateStaff, onDeleteStaff, establishm
             </tr>
           </thead>
           <tbody>
-            {filtered.map((s) => (
-              <tr key={s.id} style={{ borderBottom: "1px solid " + TOKENS.line }}>
-                <td style={{ padding: "11px 16px", fontSize: 13.5, color: TOKENS.ink, fontWeight: 500 }}>{s.name}</td>
-                <td style={{ padding: "11px 16px", fontSize: 13, color: TOKENS.inkSoft }}>{s.role}</td>
-                <td style={{ padding: "11px 16px", fontSize: 13, color: TOKENS.inkSoft }}>
-                  {establishments.find((e) => e.id === s.site)?.name}
-                </td>
-                <td style={{ padding: "11px 16px", fontSize: 12.5, color: TOKENS.ink, fontFamily: "'IBM Plex Mono', monospace" }}>
-                  {s.vaccine || "-"}
-                </td>
-                <td style={{ padding: "11px 16px" }}>
-                  <Seal status={s.status} />
-                </td>
-                <td style={{ padding: "11px 16px", fontSize: 12.5, color: TOKENS.inkSoft, fontFamily: "'IBM Plex Mono', monospace" }}>
-                  {s.updated}
-                </td>
-                <td style={{ padding: "11px 16px", fontSize: 12.5, color: s.status === "non_conforme" ? TOKENS.danger : TOKENS.inkSoft, fontFamily: "'IBM Plex Mono', monospace" }}>
-                  {s.next}
-                </td>
-                <td style={{ padding: "11px 16px", fontSize: 12.5 }}>
-                  {s.documentUrl ? (
-                    <a
-                      href={s.documentUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ color: TOKENS.brand, fontFamily: "'Inter', sans-serif", textDecoration: "underline" }}
-                    >
-                      Voir
-                    </a>
-                  ) : (
-                    <span style={{ color: TOKENS.inkSoft }}>-</span>
-                  )}
-                </td>
-                <td style={{ padding: "11px 16px" }}>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button
-                      onClick={() => {
-                        setEditingStaff(s);
-                        setShowModal(true);
-                      }}
-                      title="Modifier"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: 26,
-                        height: 26,
-                        borderRadius: 5,
-                        border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
-                        background: "#fff",
-                        color: TOKENS.inkSoft,
-                        cursor: "pointer",
-                      }}
-                    >
-                      <Edit2 size={13} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(s)}
-                      disabled={deletingId === s.id}
-                      title="Supprimer"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: 26,
-                        height: 26,
-                        borderRadius: 5,
-                        border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
-                        background: "#fff",
-                        color: TOKENS.danger,
-                        cursor: deletingId === s.id ? "default" : "pointer",
-                        opacity: deletingId === s.id ? 0.5 : 1,
-                      }}
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {filtered.map((s) => {
+              const grippe = s.vaccinations.find((v) => v.vaccine === "Grippe");
+              const rougeole = s.vaccinations.find((v) => v.vaccine === "Rougeole");
+              return (
+                <tr key={s.id} style={{ borderBottom: "1px solid " + TOKENS.line }}>
+                  <td style={{ padding: "11px 16px", fontSize: 13.5, color: TOKENS.ink, fontWeight: 500, whiteSpace: "nowrap" }}>{s.name}</td>
+                  <td style={{ padding: "11px 16px", fontSize: 13, color: TOKENS.inkSoft, whiteSpace: "nowrap" }}>{s.role}</td>
+                  <td style={{ padding: "11px 16px", fontSize: 13, color: TOKENS.inkSoft, whiteSpace: "nowrap" }}>
+                    {establishments.find((e) => e.id === s.site)?.name}
+                  </td>
+                  <td style={{ padding: "11px 16px" }}>
+                    {grippe ? <Seal status={grippe.status} /> : <span style={{ color: TOKENS.inkSoft, fontSize: 12 }}>Non suivi</span>}
+                    {grippe?.documentUrl && (
+                      <a href={grippe.documentUrl} target="_blank" rel="noopener noreferrer" style={{ display: "block", marginTop: 4, fontSize: 11, color: TOKENS.brand, textDecoration: "underline" }}>
+                        Voir le justificatif
+                      </a>
+                    )}
+                  </td>
+                  <td style={{ padding: "11px 16px", fontSize: 12.5, whiteSpace: "nowrap", color: grippe?.status === "non_conforme" ? TOKENS.danger : TOKENS.inkSoft, fontFamily: "'IBM Plex Mono', monospace" }}>
+                    {grippe ? grippe.next : "-"}
+                  </td>
+                  <td style={{ padding: "11px 16px" }}>
+                    {rougeole ? <Seal status={rougeole.status} /> : <span style={{ color: TOKENS.inkSoft, fontSize: 12 }}>Non suivi</span>}
+                    {rougeole?.documentUrl && (
+                      <a href={rougeole.documentUrl} target="_blank" rel="noopener noreferrer" style={{ display: "block", marginTop: 4, fontSize: 11, color: TOKENS.brand, textDecoration: "underline" }}>
+                        Voir le justificatif
+                      </a>
+                    )}
+                  </td>
+                  <td style={{ padding: "11px 16px", fontSize: 12.5, whiteSpace: "nowrap", color: rougeole?.status === "non_conforme" ? TOKENS.danger : TOKENS.inkSoft, fontFamily: "'IBM Plex Mono', monospace" }}>
+                    {rougeole ? rougeole.next : "-"}
+                  </td>
+                  <td style={{ padding: "11px 16px" }}>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button
+                        onClick={() => {
+                          setEditingStaff(s);
+                          setShowModal(true);
+                        }}
+                        title="Modifier"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: 26,
+                          height: 26,
+                          borderRadius: 5,
+                          border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
+                          background: "#fff",
+                          color: TOKENS.inkSoft,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <Edit2 size={13} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(s)}
+                        disabled={deletingId === s.id}
+                        title="Supprimer"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: 26,
+                          height: 26,
+                          borderRadius: 5,
+                          border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
+                          background: "#fff",
+                          color: TOKENS.danger,
+                          cursor: deletingId === s.id ? "default" : "pointer",
+                          opacity: deletingId === s.id ? 0.5 : 1,
+                        }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -1149,40 +1247,71 @@ function StaffView({ staff, onAddStaff, onUpdateStaff, onDeleteStaff, establishm
 }
 
 function AlertsView({ staff, establishments, userEmail }) {
-  const alerts = staff.filter((s) => s.status !== "conforme");
+  // Aplati chaque personne en une entree par vaccin non conforme, puisqu'une
+  // meme personne peut avoir une alerte grippe ET une alerte rougeole distinctes.
+  const alerts = useMemo(() => {
+    const rows = [];
+    staff.forEach((s) => {
+      s.vaccinations.forEach((v) => {
+        if (v.status !== "conforme") {
+          rows.push({
+            alertId: s.id + "-" + v.id,
+            staffId: s.id,
+            name: s.name,
+            site: s.site,
+            vaccine: v.vaccine,
+            status: v.status,
+            next: v.next,
+          });
+        }
+      });
+      if (s.vaccinations.length === 0) {
+        rows.push({
+          alertId: s.id + "-aucun-suivi",
+          staffId: s.id,
+          name: s.name,
+          site: s.site,
+          vaccine: null,
+          status: "non_conforme",
+          next: "-",
+        });
+      }
+    });
+    return rows;
+  }, [staff]);
   const [sendState, setSendState] = useState({});
 
-  const sendAlert = async (s) => {
-    setSendState((prev) => ({ ...prev, [s.id]: "sending" }));
+  const sendAlert = async (a) => {
+    setSendState((prev) => ({ ...prev, [a.alertId]: "sending" }));
     try {
       const res = await fetch("/api/send-alert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           toEmail: userEmail,
-          staffName: s.name,
-          establishmentName: establishments.find((e) => e.id === s.site)?.name || "-",
-          vaccine: s.vaccine,
-          reason: s.status === "non_conforme" ? "Aucun justificatif enregistre" : "Echeance proche (" + s.next + ")",
+          staffName: a.name,
+          establishmentName: establishments.find((e) => e.id === a.site)?.name || "-",
+          vaccine: a.vaccine,
+          reason: a.status === "non_conforme" ? "Aucun justificatif enregistre" : "Echeance proche (" + a.next + ")",
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Echec de l'envoi");
-      setSendState((prev) => ({ ...prev, [s.id]: "sent" }));
+      setSendState((prev) => ({ ...prev, [a.alertId]: "sent" }));
     } catch (err) {
       console.error("Erreur d'envoi:", err);
-      setSendState((prev) => ({ ...prev, [s.id]: "error" }));
+      setSendState((prev) => ({ ...prev, [a.alertId]: "error" }));
     }
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {alerts.map((s) => {
-        const isOverdue = s.status === "non_conforme";
-        const state = sendState[s.id];
+      {alerts.map((a) => {
+        const isOverdue = a.status === "non_conforme";
+        const state = sendState[a.alertId];
         return (
           <div
-            key={s.id}
+            key={a.alertId}
             style={{
               display: "flex",
               alignItems: "center",
@@ -1197,12 +1326,14 @@ function AlertsView({ staff, establishments, userEmail }) {
             <BellRing size={16} color={isOverdue ? TOKENS.danger : TOKENS.warn} style={{ flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
               <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13.5, fontWeight: 500, color: TOKENS.ink }}>
-                {s.name} - {establishments.find((e) => e.id === s.site)?.name}
+                {a.name} - {establishments.find((e) => e.id === a.site)?.name}
               </div>
               <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, marginTop: 2 }}>
-                {isOverdue
-                  ? `Aucun justificatif d'immunisation ${s.vaccine?.toLowerCase() || ""} enregistre.`
-                  : `Echeance de controle (${s.vaccine}) : ${s.next}.`}
+                {!a.vaccine
+                  ? "Aucun suivi vaccinal enregistre pour cette personne."
+                  : isOverdue
+                  ? `Aucun justificatif d'immunisation ${a.vaccine.toLowerCase()} valide enregistre.`
+                  : `Echeance de controle (${a.vaccine}) : ${a.next}.`}
               </div>
               {state === "sent" && (
                 <div style={{ fontSize: 11.5, color: TOKENS.ok, marginTop: 4 }}>Email envoye</div>
@@ -1212,8 +1343,8 @@ function AlertsView({ staff, establishments, userEmail }) {
               )}
             </div>
             <button
-              onClick={() => sendAlert(s)}
-              disabled={state === "sending"}
+              onClick={() => sendAlert(a)}
+              disabled={state === "sending" || !a.vaccine}
               style={{
                 padding: "6px 12px",
                 borderRadius: 6,
@@ -1224,7 +1355,7 @@ function AlertsView({ staff, establishments, userEmail }) {
                 fontSize: 12.5,
                 cursor: state === "sending" ? "default" : "pointer",
                 whiteSpace: "nowrap",
-                opacity: state === "sending" ? 0.6 : 1,
+                opacity: state === "sending" || !a.vaccine ? 0.6 : 1,
               }}
             >
               {state === "sending" ? "Envoi..." : "Relancer par email"}
@@ -2056,18 +2187,23 @@ function ReportsView({ staff, establishments, organizationName }) {
 
       doc.setFont("helvetica", "normal");
       staff.forEach((s) => {
-        if (y > 280) {
-          doc.addPage();
-          y = 20;
-        }
         const estabName = establishments.find((e) => e.id === s.site)?.name || "-";
-        const statusLabel = STATUS_META[s.status]?.label || s.status;
-        doc.text(s.name.slice(0, 26), 14, y);
-        doc.text(estabName.slice(0, 26), 65, y);
-        doc.text(s.vaccine || "-", 120, y);
-        doc.text(statusLabel, 145, y);
-        doc.text(s.next || "-", 172, y);
-        y += 6;
+        const rows = s.vaccinations.length > 0
+          ? s.vaccinations
+          : [{ vaccine: "-", status: "non_conforme", next: "Aucun suivi" }];
+        rows.forEach((v) => {
+          if (y > 280) {
+            doc.addPage();
+            y = 20;
+          }
+          const statusLabel = STATUS_META[v.status]?.label || v.status;
+          doc.text(s.name.slice(0, 26), 14, y);
+          doc.text(estabName.slice(0, 26), 65, y);
+          doc.text(v.vaccine || "-", 120, y);
+          doc.text(statusLabel, 145, y);
+          doc.text(v.next || "-", 172, y);
+          y += 6;
+        });
       });
 
       doc.setFontSize(8);
@@ -2803,7 +2939,7 @@ export default function ConfiaPrototype() {
         ]);
         if (!cancelled) {
           setEstablishments(estabRows);
-          setStaff(staffRows.map(mapStaffRow));
+          setStaff(staffRows.map(mapPersonRow));
           setOrganizationId(org.id);
           setOrganizationName(org.name);
         }
@@ -2826,37 +2962,26 @@ export default function ConfiaPrototype() {
     };
   }, [token]);
 
-  const handleAddStaff = async (newStaffRow) => {
+  // Recharge la liste complete du personnel (personnes + suivis vaccinaux
+  // imbriques) depuis Supabase. Utilise apres tout ajout/modification, plus
+  // simple et plus sur que de reconstruire l'etat localement a la main.
+  const reloadStaff = async () => {
     try {
-      const inserted = await insertStaff(newStaffRow, token);
-      setStaff((prev) => [...prev, mapStaffRow(inserted)]);
+      const staffRows = await fetchStaff(token);
+      setStaff(staffRows.map(mapPersonRow));
     } catch (err) {
-      console.error("Erreur de sauvegarde Supabase:", err);
+      console.error("Erreur de rechargement du personnel:", err);
       if (isSessionExpired(err)) {
         handleLogout();
       } else {
-        setError("Echec de l'enregistrement du salarie. Reessayez.");
+        setError("Echec du rechargement du personnel. Reessayez.");
       }
     }
   };
 
-  const handleUpdateStaff = async (id, updates) => {
+  const handleDeletePerson = async (id) => {
     try {
-      const updated = await updateStaff(id, updates, token);
-      setStaff((prev) => prev.map((s) => (s.id === id ? mapStaffRow(updated) : s)));
-    } catch (err) {
-      console.error("Erreur de mise a jour Supabase:", err);
-      if (isSessionExpired(err)) {
-        handleLogout();
-      } else {
-        setError("Echec de la mise a jour du salarie. Reessayez.");
-      }
-    }
-  };
-
-  const handleDeleteStaff = async (id) => {
-    try {
-      await deleteStaff(id, token);
+      await deleteStaffPerson(id, token);
       setStaff((prev) => prev.filter((s) => s.id !== id));
     } catch (err) {
       console.error("Erreur de suppression Supabase:", err);
@@ -3026,7 +3151,7 @@ export default function ConfiaPrototype() {
             </div>
           )}
           {view === "dashboard" && <Dashboard staff={staff} establishments={establishments} setView={setView} />}
-          {view === "staff" && <StaffView staff={staff} onAddStaff={handleAddStaff} onUpdateStaff={handleUpdateStaff} onDeleteStaff={handleDeleteStaff} establishments={establishments} token={token} />}
+          {view === "staff" && <StaffView staff={staff} onReload={reloadStaff} onDeletePerson={handleDeletePerson} establishments={establishments} token={token} />}
           {view === "alerts" && <AlertsView staff={staff} establishments={establishments} userEmail={session?.user?.email} />}
           {view === "reports" && <ReportsView staff={staff} establishments={establishments} organizationName={organizationName} />}
           {view === "settings" && (
