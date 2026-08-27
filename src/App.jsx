@@ -386,7 +386,7 @@ function computePersonVaccinations(row) {
         documentUrl: v.document_url,
         status: "non_renseigne",
         updated: "-",
-        next: "Date manquante",
+        next: "",
       };
     }
     const computed = computeVaccineCompliance(v.vaccine, v.last_vaccination_date);
@@ -490,16 +490,18 @@ function VaccineCell({ vaccination }) {
   return (
     <div>
       <Seal status={vaccination.status} />
-      <div
-        style={{
-          fontSize: 11.5,
-          marginTop: 4,
-          fontFamily: "'IBM Plex Mono', monospace",
-          color: vaccination.status === "non_conforme" ? TOKENS.danger : TOKENS.inkSoft,
-        }}
-      >
-        {vaccination.next}
-      </div>
+      {vaccination.next && (
+        <div
+          style={{
+            fontSize: 11.5,
+            marginTop: 4,
+            fontFamily: "'IBM Plex Mono', monospace",
+            color: vaccination.status === "non_conforme" ? TOKENS.danger : TOKENS.inkSoft,
+          }}
+        >
+          {vaccination.next}
+        </div>
+      )}
       {vaccination.documentUrl && (
         <a
           href={vaccination.documentUrl}
