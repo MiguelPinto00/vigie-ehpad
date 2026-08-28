@@ -24,6 +24,16 @@ export default async function handler(req, res) {
       `Pour rejoindre l'equipe, creez votre compte avec <strong>cette meme adresse email</strong> (${toEmail}).</p>` +
       renderButton("Rejoindre l'organisation", "https://vigie-ehpad.vercel.app");
 
+    const textBody =
+      "Bonjour,\n\n" +
+      (inviterEmail || "Un collegue") +
+      " vous invite a rejoindre " +
+      (organizationName || "son organisation") +
+      " sur Confia, l'outil de suivi de conformite vaccinale pour le secteur medico-social.\n\n" +
+      "Pour rejoindre l'equipe, creez votre compte avec cette meme adresse email (" +
+      toEmail +
+      ") sur https://vigie-ehpad.vercel.app\n";
+
     const emailRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -33,12 +43,16 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         from: "Confia <onboarding@resend.dev>",
         to: [toEmail],
+        // Si l'invite repond a cet email, sa reponse part directement vers
+        // la personne qui l'a invite plutot que vers une adresse morte.
+        reply_to: inviterEmail || undefined,
         subject: "Invitation a rejoindre " + (organizationName || "une organisation") + " sur Confia",
         html: renderEmailLayout({
           title: "Invitation Confia",
           preheader: (inviterEmail || "Un collegue") + " vous invite sur Confia",
           bodyHtml,
         }),
+        text: textBody,
       }),
     });
     const data = await emailRes.json();
