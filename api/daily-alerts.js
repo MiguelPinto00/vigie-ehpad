@@ -137,7 +137,7 @@ export default async function handler(req, res) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "Confia <onboarding@resend.dev>",
+          from: "Confia <notifications@confia-app.fr>",
           to: [recipient],
           subject: "Confia - Resume quotidien " + estab.name + " - " + today,
           html: renderEmailLayout({
