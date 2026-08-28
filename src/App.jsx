@@ -8,6 +8,7 @@ import {
   Search,
   Plus,
   X,
+  Menu,
   ChevronRight,
   Building2,
   Loader2,
@@ -587,50 +588,107 @@ function NavItem({ icon: Icon, label, active, onClick }) {
   );
 }
 
-function Sidebar({ view, setView, establishmentCount }) {
+// Le menu lateral. Sur ordinateur, il reste affiche en permanence sur le
+// cote, comme avant. Sur mobile (isMobile = true), il est cache par defaut
+// et s'affiche en superposition (par-dessus le contenu, pas a cote) quand
+// on ouvre le bouton menu (icone hamburger) situe dans l'en-tete.
+function Sidebar({ view, setView, establishmentCount, isMobile, open, onNavigate }) {
+  const baseStyle = {
+    width: 224,
+    flexShrink: 0,
+    background: "#FFFFFF",
+    borderRight: "1px solid " + TOKENS.line,
+    padding: "20px 14px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    minHeight: "100%",
+  };
+
+  const mobileStyle = {
+    ...baseStyle,
+    position: "fixed",
+    top: 0,
+    left: 0,
+    height: "100vh",
+    minHeight: "100vh",
+    zIndex: 110,
+    boxShadow: "2px 0 20px rgba(15, 23, 42, 0.18)",
+    transform: open ? "translateX(0)" : "translateX(-100%)",
+    transition: "transform 0.25s ease",
+  };
+
+  const handleNav = (v) => {
+    setView(v);
+    if (isMobile && onNavigate) onNavigate();
+  };
+
   return (
-    <div
-      style={{
-        width: 224,
-        flexShrink: 0,
-        background: "#FFFFFF",
-        borderRight: "1px solid " + TOKENS.line,
-        padding: "20px 14px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 4,
-        minHeight: "100%",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 10px 22px" }}>
+    <>
+      {isMobile && open && (
         <div
+          onClick={onNavigate}
           style={{
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            background: TOKENS.paperDim,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.4)",
+            zIndex: 105,
           }}
-        >
-          <LogoMark size={17} />
+        />
+      )}
+      <div style={isMobile ? mobileStyle : baseStyle}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 10px 22px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 6,
+                background: TOKENS.paperDim,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <LogoMark size={17} />
+            </div>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 17, fontWeight: 700, color: TOKENS.ink, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+              Confia
+            </span>
+          </div>
+          {isMobile && (
+            <button
+              onClick={onNavigate}
+              aria-label="Fermer le menu"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 28,
+                height: 28,
+                borderRadius: 6,
+                border: "none",
+                background: "transparent",
+                color: TOKENS.inkSoft,
+                cursor: "pointer",
+              }}
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
-        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 17, fontWeight: 700, color: TOKENS.ink, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-          Confia
-        </span>
-      </div>
-      <NavItem icon={LayoutDashboard} label="Tableau de bord" active={view === "dashboard"} onClick={() => setView("dashboard")} />
-      <NavItem icon={Users} label="Salaries" active={view === "staff"} onClick={() => setView("staff")} />
-      <NavItem icon={BellRing} label="Alertes" active={view === "alerts"} onClick={() => setView("alerts")} />
-      <NavItem icon={FileDown} label="Rapports" active={view === "reports"} onClick={() => setView("reports")} />
-      <NavItem icon={Settings} label="Parametres" active={view === "settings"} onClick={() => setView("settings")} />
-      <div style={{ marginTop: 20, padding: "12px 10px 4px", borderTop: "1px solid " + TOKENS.line }}>
-        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11.5, color: TOKENS.inkSoft }}>
-          {establishmentCount} etablissement{establishmentCount === 1 ? "" : "s"} suivi{establishmentCount === 1 ? "" : "s"}
+        <NavItem icon={LayoutDashboard} label="Tableau de bord" active={view === "dashboard"} onClick={() => handleNav("dashboard")} />
+        <NavItem icon={Users} label="Salaries" active={view === "staff"} onClick={() => handleNav("staff")} />
+        <NavItem icon={BellRing} label="Alertes" active={view === "alerts"} onClick={() => handleNav("alerts")} />
+        <NavItem icon={FileDown} label="Rapports" active={view === "reports"} onClick={() => handleNav("reports")} />
+        <NavItem icon={Settings} label="Parametres" active={view === "settings"} onClick={() => handleNav("settings")} />
+        <div style={{ marginTop: 20, padding: "12px 10px 4px", borderTop: "1px solid " + TOKENS.line }}>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11.5, color: TOKENS.inkSoft }}>
+            {establishmentCount} etablissement{establishmentCount === 1 ? "" : "s"} suivi{establishmentCount === 1 ? "" : "s"}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -1135,8 +1193,8 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token }) {
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-        <div style={{ position: "relative", flex: 1, maxWidth: 320 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+        <div style={{ position: "relative", flex: 1, maxWidth: 320, minWidth: 180 }}>
           <Search size={14} color={TOKENS.inkSoft} style={{ position: "absolute", left: 10, top: 10 }} />
           <input
             value={query}
@@ -2970,6 +3028,21 @@ export default function ConfiaPrototype() {
     return null;
   });
 
+  // Detection simple d'un ecran mobile (moins de 768px de large), remise a
+  // jour si l'utilisateur tourne son telephone ou redimensionne la fenetre.
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 768
+  );
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    function handleResize() {
+      setIsMobile(window.innerWidth < 768);
+    }
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const token = session?.access_token;
 
   const handleLogout = () => {
@@ -3140,12 +3213,53 @@ export default function ConfiaPrototype() {
           border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
         }}
       >
-        <Sidebar view={view} setView={setView} establishmentCount={establishments.length} />
-        <div style={{ flex: 1, padding: "24px 30px", overflow: "auto" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-            <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
-              {titles[view]}
-            </h1>
+        <Sidebar
+          view={view}
+          setView={setView}
+          establishmentCount={establishments.length}
+          isMobile={isMobile}
+          open={sidebarOpen}
+          onNavigate={() => setSidebarOpen(false)}
+        />
+        <div style={{ flex: 1, padding: isMobile ? "16px 16px" : "24px 30px", overflow: "auto", width: "100%", minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, gap: 10, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+              {isMobile && (
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  aria-label="Ouvrir le menu"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 34,
+                    height: 34,
+                    borderRadius: 6,
+                    border: "1px solid " + TOKENS.line,
+                    background: "#fff",
+                    color: TOKENS.ink,
+                    cursor: "pointer",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Menu size={18} />
+                </button>
+              )}
+              <h1
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: isMobile ? 18 : 22,
+                  fontWeight: 600,
+                  color: TOKENS.ink,
+                  margin: 0,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {titles[view]}
+              </h1>
+            </div>
             <div
               style={{
                 display: "flex",
@@ -3168,6 +3282,7 @@ export default function ConfiaPrototype() {
                   justifyContent: "center",
                   fontSize: 11,
                   fontWeight: 600,
+                  flexShrink: 0,
                 }}
               >
                 {(organizationName || session?.user?.email || "?")
@@ -3177,11 +3292,11 @@ export default function ConfiaPrototype() {
                   .slice(0, 2)
                   .toUpperCase()}
               </div>
-              {organizationName || "Chargement..."}
+              {!isMobile && (organizationName || "Chargement...")}
               <button
                 onClick={handleLogout}
                 style={{
-                  marginLeft: 12,
+                  marginLeft: isMobile ? 0 : 12,
                   padding: "5px 10px",
                   borderRadius: 5,
                   border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
@@ -3190,6 +3305,7 @@ export default function ConfiaPrototype() {
                   fontFamily: "'Inter', sans-serif",
                   fontSize: 11.5,
                   cursor: "pointer",
+                  whiteSpace: "nowrap",
                 }}
               >
                 Deconnexion
