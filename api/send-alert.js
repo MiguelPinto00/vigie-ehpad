@@ -25,4 +25,39 @@ export default async function handler(req, res) {
       `<strong>Motif :</strong> ${reason}` +
       `</td></tr></table>` +
       `<p style="margin:0 0 24px; font-size:14px; color:${BRAND.ink}; line-height:1.6;">` +
-      `Merci de mettre a jour le justificatif
+      `Merci de mettre a jour le justificatif correspondant dans Confia des que possible.</p>` +
+      renderButton("Ouvrir Confia", "https://vigie-ehpad.vercel.app");
+    const textBody =
+      "Bonjour,\n\n" +
+      "Rappel concernant le suivi vaccinal de " + staffName + " (" + establishmentName + ").\n\n" +
+      "Vaccin concerne : " + vaccine + "\n" +
+      "Motif : " + reason + "\n\n" +
+      "Merci de mettre a jour le justificatif correspondant dans Confia des que possible : https://vigie-ehpad.vercel.app\n";
+    const emailRes = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "Confia <notifications@confia-app.fr>",
+        to: [toEmail],
+        subject: "Relance conformite vaccinale - " + staffName,
+        html: renderEmailLayout({
+          title: "Relance conformite vaccinale",
+          preheader: "Rappel pour " + staffName + " (" + vaccine + ")",
+          bodyHtml,
+        }),
+        text: textBody,
+      }),
+    });
+    const data = await emailRes.json();
+    if (!emailRes.ok) {
+      res.status(emailRes.status).json({ error: data.message || "Echec de l'envoi" });
+      return;
+    }
+    res.status(200).json({ success: true, id: data.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Erreur serveur" });
+  }
+}
