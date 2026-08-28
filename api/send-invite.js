@@ -1,5 +1,4 @@
 import { renderEmailLayout, renderButton, BRAND } from "../lib/emailTemplate.js";
-
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Methode non autorisee" });
@@ -23,7 +22,6 @@ export default async function handler(req, res) {
       `<p style="margin:0 0 26px; font-size:14px; color:${BRAND.ink}; line-height:1.6;">` +
       `Pour rejoindre l'equipe, creez votre compte avec <strong>cette meme adresse email</strong> (${toEmail}).</p>` +
       renderButton("Rejoindre l'organisation", "https://vigie-ehpad.vercel.app");
-
     const textBody =
       "Bonjour,\n\n" +
       (inviterEmail || "Un collegue") +
@@ -33,7 +31,6 @@ export default async function handler(req, res) {
       "Pour rejoindre l'equipe, creez votre compte avec cette meme adresse email (" +
       toEmail +
       ") sur https://vigie-ehpad.vercel.app\n";
-
     const emailRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -41,7 +38,7 @@ export default async function handler(req, res) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Confia <onboarding@resend.dev>",
+        from: "Confia <notifications@confia-app.fr>",
         to: [toEmail],
         // Si l'invite repond a cet email, sa reponse part directement vers
         // la personne qui l'a invite plutot que vers une adresse morte.
