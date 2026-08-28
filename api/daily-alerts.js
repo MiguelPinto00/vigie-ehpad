@@ -1,4 +1,4 @@
-import { renderEmailLayout, renderStatusSection, BRAND } from "../lib/emailTemplate.js";
+import { renderEmailLayout, renderStatusSection, renderButton, BRAND } from "../lib/emailTemplate.js";
 
 export default async function handler(req, res) {
   // Verification que cet appel vient bien de la tache planifiee Vercel (secret partage)
@@ -45,6 +45,20 @@ export default async function handler(req, res) {
       return { status: "a_venir", label: expiryLabel };
     }
     return { status: "conforme", label: expiryLabel };
+  }
+
+  // Version texte brut d'une section (utilisee dans le fallback texte de l'email)
+  function textSection(title, items) {
+    if (!items.length) return "";
+    return (
+      "\n" +
+      title +
+      " (" +
+      items.length +
+      ")\n" +
+      items.map((f) => "- " + f.name + " - " + f.vaccine + " (" + f.label + ")").join("\n") +
+      "\n"
+    );
   }
 
   try {
@@ -100,12 +114,27 @@ export default async function handler(req, res) {
         continue;
       }
 
+      const transparencyNote =
+        "Vous recevez cet email car vous etes designe comme contact de conformite pour " +
+        estab.name +
+        ".";
+
       const bodyHtml =
         `<p style="margin:0 0 4px; font-size:16px; font-weight:600; color:${BRAND.ink};">Resume quotidien</p>` +
         `<p style="margin:0 0 22px; font-size:13px; color:${BRAND.inkSoft};">${estab.name} — ${today}</p>` +
         renderStatusSection("Non conformes", nonConformes, BRAND.danger, BRAND.dangerBg) +
         renderStatusSection("Echeances proches", aVenir, BRAND.warn, BRAND.warnBg) +
-        renderStatusSection("Dates manquantes (a completer)", dateManquante, BRAND.grey, BRAND.greyBg);
+        renderStatusSection("Dates manquantes (a completer)", dateManquante, BRAND.grey, BRAND.greyBg) +
+        `<div style="margin:22px 0 20px;">${renderButton("Ouvrir Confia", "https://vigie-ehpad.vercel.app")}</div>` +
+        `<p style="margin:0; font-size:11.5px; color:${BRAND.inkSoft}; line-height:1.6;">${transparencyNote}</p>`;
+
+      const textBody =
+        "Resume quotidien - " + estab.name + " - " + today + "\n" +
+        textSection("Non conformes", nonConformes) +
+        textSection("Echeances proches", aVenir) +
+        textSection("Dates manquantes (a completer)", dateManquante) +
+        "\nOuvrir Confia : https://vigie-ehpad.vercel.app\n\n" +
+        transparencyNote + "\n";
 
       const emailRes = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -122,6 +151,7 @@ export default async function handler(req, res) {
             preheader: nonConformes.length + " non conforme(s), " + aVenir.length + " echeance(s) proche(s)",
             bodyHtml,
           }),
+          text: textBody,
         }),
       });
       if (emailRes.ok) {
