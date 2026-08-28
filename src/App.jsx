@@ -1616,26 +1616,26 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
 
   const plans = [
     {
-      name: "Starter",
-      monthly: "29\u20ac",
-      annual: "290\u20ac",
+      name: "Solo",
+      monthly: "39\u20ac",
+      annual: "390\u20ac",
       tagline: "Pour un etablissement isole",
-      features: ["1 etablissement", "Salaries illimites", "Alertes email manuelles", "Export PDF", "Upload de justificatifs"],
+      features: ["1 etablissement", "Salaries illimites", "Alertes automatiques quotidiennes", "Export PDF", "Upload de justificatifs", "2 membres d'equipe"],
     },
     {
-      name: "Pro",
-      monthly: "89\u20ac",
-      annual: "890\u20ac",
+      name: "Croissance",
+      monthly: "99\u20ac",
+      annual: "990\u20ac",
       tagline: "Pour les petits groupes",
-      features: ["Jusqu'a 5 etablissements", "Alertes automatiques quotidiennes", "Jusqu'a 5 membres d'equipe", "Tout Starter inclus"],
+      features: ["Jusqu'a 3 etablissements", "Alertes automatiques quotidiennes", "Jusqu'a 6 membres d'equipe", "Tout Solo inclus"],
       highlighted: true,
     },
     {
-      name: "Entreprise",
-      monthly: "A partir de 199\u20ac",
-      annual: "A partir de 1990\u20ac",
+      name: "Groupe",
+      monthly: "249\u20ac",
+      annual: "2490\u20ac",
       tagline: "Pour les grands groupes",
-      features: ["Etablissements illimites", "Membres d'equipe illimites", "Support prioritaire", "Tout Pro inclus"],
+      features: ["Jusqu'a 10 etablissements", "Membres d'equipe illimites", "Support prioritaire", "Tout Croissance inclus"],
     },
   ];
   const [deletingAccount, setDeletingAccount] = useState(false);
