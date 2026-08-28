@@ -1,4 +1,4 @@
-import { renderEmailLayout, renderStatusSection, renderButton, BRAND } from "../lib/emailTemplate.js";
+import { renderEmailLayout, renderButton, renderBadge, BRAND } from "../lib/emailTemplate.js";
 
 export default async function handler(req, res) {
   // Verification que cet appel vient bien de la tache planifiee Vercel (secret partage)
@@ -23,12 +23,12 @@ export default async function handler(req, res) {
 
   function computeVaccineStatus(vaccine, lastVaccinationDateStr) {
     if (!lastVaccinationDateStr) {
-      return { status: "non_renseigne", label: "Date manquante" };
+      return { status: "non_renseigne" };
     }
     const lastDate = new Date(lastVaccinationDateStr + "T00:00:00");
 
     if (vaccine === "Rougeole") {
-      return { status: "conforme", label: "A jour" };
+      return { status: "conforme" };
     }
 
     const today = new Date();
@@ -36,29 +36,24 @@ export default async function handler(req, res) {
     const expiryDate = new Date(lastDate);
     expiryDate.setDate(expiryDate.getDate() + GRIPPE_VALIDITE_JOURS);
     const joursRestants = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24));
-    const expiryLabel = expiryDate.toLocaleDateString("fr-FR");
 
     if (joursRestants < 0) {
-      return { status: "non_conforme", label: "Echue le " + expiryLabel };
+      return { status: "non_conforme" };
     }
     if (joursRestants <= GRIPPE_ALERTE_JOURS) {
-      return { status: "a_venir", label: expiryLabel };
+      return { status: "a_venir" };
     }
-    return { status: "conforme", label: expiryLabel };
+    return { status: "conforme" };
   }
 
-  // Version texte brut d'une section (utilisee dans le fallback texte de l'email)
-  function textSection(title, items) {
-    if (!items.length) return "";
-    return (
-      "\n" +
-      title +
-      " (" +
-      items.length +
-      ")\n" +
-      items.map((f) => "- " + f.name + " - " + f.vaccine + " (" + f.label + ")").join("\n") +
-      "\n"
-    );
+  // Ligne de comptage sans aucun nom ni detail nominatif : seule l'app,
+  // derriere authentification, donne acces au detail par salarie.
+  function countRow(label, count, color, bg) {
+    if (count === 0) return "";
+    return `<tr>
+      <td style="padding:9px 0; border-bottom:1px solid ${BRAND.line}; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size:13px; color:${BRAND.ink};">${label}</td>
+      <td style="padding:9px 0; border-bottom:1px solid ${BRAND.line}; text-align:right;">${renderBadge(count + (count > 1 ? " salaries" : " salarie"), color, bg)}</td>
+    </tr>`;
   }
 
   try {
@@ -78,18 +73,15 @@ export default async function handler(req, res) {
     const establishments = await estabRes.json();
     const staffRows = await staffRes.json();
 
+    // Aplati chaque personne en une entree par vaccin problematique, mais on
+    // ne retient que le statut (pas de nom, pas de vaccin precis) puisque ces
+    // details ne doivent plus apparaitre dans l'email.
     const flagged = [];
     staffRows.forEach((s) => {
       (s.staff_vaccinations || []).forEach((v) => {
         const computed = computeVaccineStatus(v.vaccine, v.last_vaccination_date);
         if (computed.status !== "conforme") {
-          flagged.push({
-            establishment_id: s.establishment_id,
-            name: s.name,
-            vaccine: v.vaccine,
-            status: computed.status,
-            label: computed.label,
-          });
+          flagged.push({ establishment_id: s.establishment_id, status: computed.status });
         }
       });
     });
@@ -105,11 +97,11 @@ export default async function handler(req, res) {
         continue;
       }
       const estabFlagged = flagged.filter((f) => f.establishment_id === estab.id);
-      const nonConformes = estabFlagged.filter((f) => f.status === "non_conforme");
-      const aVenir = estabFlagged.filter((f) => f.status === "a_venir");
-      const dateManquante = estabFlagged.filter((f) => f.status === "non_renseigne");
+      const nonConformesCount = estabFlagged.filter((f) => f.status === "non_conforme").length;
+      const aVenirCount = estabFlagged.filter((f) => f.status === "a_venir").length;
+      const dateManquanteCount = estabFlagged.filter((f) => f.status === "non_renseigne").length;
 
-      if (nonConformes.length === 0 && aVenir.length === 0 && dateManquante.length === 0) {
+      if (nonConformesCount === 0 && aVenirCount === 0 && dateManquanteCount === 0) {
         results.push({ establishment: estab.name, skipped: "rien a signaler" });
         continue;
       }
@@ -117,23 +109,25 @@ export default async function handler(req, res) {
       const transparencyNote =
         "Vous recevez cet email car vous etes designe comme contact de conformite pour " +
         estab.name +
-        ".";
+        ". Pour proteger la confidentialite des donnees de sante de vos salaries, le detail nominatif n'apparait pas dans cet email : connectez-vous a Confia pour le consulter.";
 
       const bodyHtml =
         `<p style="margin:0 0 4px; font-size:16px; font-weight:600; color:${BRAND.ink};">Resume quotidien</p>` +
         `<p style="margin:0 0 22px; font-size:13px; color:${BRAND.inkSoft};">${estab.name} — ${today}</p>` +
-        renderStatusSection("Non conformes", nonConformes, BRAND.danger, BRAND.dangerBg) +
-        renderStatusSection("Echeances proches", aVenir, BRAND.warn, BRAND.warnBg) +
-        renderStatusSection("Dates manquantes (a completer)", dateManquante, BRAND.grey, BRAND.greyBg) +
-        `<div style="margin:22px 0 20px;">${renderButton("Ouvrir Confia", "https://vigie-ehpad.vercel.app")}</div>` +
+        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:22px;">` +
+        countRow("Non conformes", nonConformesCount, BRAND.danger, BRAND.dangerBg) +
+        countRow("Echeances proches", aVenirCount, BRAND.warn, BRAND.warnBg) +
+        countRow("Dates manquantes", dateManquanteCount, BRAND.grey, BRAND.greyBg) +
+        `</table>` +
+        `<div style="margin-bottom:20px;">${renderButton("Voir le detail dans Confia", "https://vigie-ehpad.vercel.app")}</div>` +
         `<p style="margin:0; font-size:11.5px; color:${BRAND.inkSoft}; line-height:1.6;">${transparencyNote}</p>`;
 
       const textBody =
-        "Resume quotidien - " + estab.name + " - " + today + "\n" +
-        textSection("Non conformes", nonConformes) +
-        textSection("Echeances proches", aVenir) +
-        textSection("Dates manquantes (a completer)", dateManquante) +
-        "\nOuvrir Confia : https://vigie-ehpad.vercel.app\n\n" +
+        "Resume quotidien - " + estab.name + " - " + today + "\n\n" +
+        (nonConformesCount ? "Non conformes : " + nonConformesCount + "\n" : "") +
+        (aVenirCount ? "Echeances proches : " + aVenirCount + "\n" : "") +
+        (dateManquanteCount ? "Dates manquantes : " + dateManquanteCount + "\n" : "") +
+        "\nVoir le detail dans Confia : https://vigie-ehpad.vercel.app\n\n" +
         transparencyNote + "\n";
 
       const emailRes = await fetch("https://api.resend.com/emails", {
@@ -148,7 +142,7 @@ export default async function handler(req, res) {
           subject: "Confia - Resume quotidien " + estab.name + " - " + today,
           html: renderEmailLayout({
             title: "Resume quotidien Confia",
-            preheader: nonConformes.length + " non conforme(s), " + aVenir.length + " echeance(s) proche(s)",
+            preheader: nonConformesCount + " non conforme(s), " + aVenirCount + " echeance(s) proche(s)",
             bodyHtml,
           }),
           text: textBody,
