@@ -29,6 +29,13 @@ export default async function handler(req, res) {
       `Merci de mettre a jour le justificatif correspondant dans Confia des que possible.</p>` +
       renderButton("Ouvrir Confia", "https://vigie-ehpad.vercel.app");
 
+    const textBody =
+      "Bonjour,\n\n" +
+      "Rappel concernant le suivi vaccinal de " + staffName + " (" + establishmentName + ").\n\n" +
+      "Vaccin concerne : " + vaccine + "\n" +
+      "Motif : " + reason + "\n\n" +
+      "Merci de mettre a jour le justificatif correspondant dans Confia des que possible : https://vigie-ehpad.vercel.app\n";
+
     const emailRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -44,6 +51,7 @@ export default async function handler(req, res) {
           preheader: "Rappel pour " + staffName + " (" + vaccine + ")",
           bodyHtml,
         }),
+        text: textBody,
       }),
     });
     const data = await emailRes.json();
