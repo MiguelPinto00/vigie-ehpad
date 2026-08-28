@@ -156,6 +156,40 @@ export default async function handler(req, res) {
         results.push({ establishment: estab.name, error: errData.message || "echec" });
       }
     }
+
+    // Si au moins un envoi a echoue, on previent l'administrateur : sans ca,
+    // un echec d'envoi passe totalement inaperçu en usage normal.
+    const failures = results.filter((r) => r.error);
+    if (failures.length > 0) {
+      const adminEmail = "miguel.teixeira27@gmail.com";
+      const failureListHtml = failures
+        .map((f) => `<li>${f.establishment} : ${f.error}</li>`)
+        .join("");
+      const failureListText = failures.map((f) => "- " + f.establishment + " : " + f.error).join("\n");
+      try {
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: "Bearer " + resendKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: "Confia <notifications@confia-app.fr>",
+            to: [adminEmail],
+            subject: "Confia - Echec d'envoi du resume quotidien (" + today + ")",
+            html:
+              `<p style="font-size:14px; color:${BRAND.ink};">Le resume quotidien a echoue pour ${failures.length} etablissement(s) le ${today} :</p>` +
+              `<ul style="font-size:13px; color:${BRAND.ink};">${failureListHtml}</ul>`,
+            text:
+              "Le resume quotidien a echoue pour " + failures.length + " etablissement(s) le " + today + " :\n\n" +
+              failureListText,
+          }),
+        });
+      } catch (alertErr) {
+        console.error("Echec de l'alerte admin:", alertErr);
+      }
+    }
+
     res.status(200).json({ success: true, emailsSent, results });
   } catch (err) {
     console.error("Erreur tache planifiee:", err);
