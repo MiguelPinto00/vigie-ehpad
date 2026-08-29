@@ -19,6 +19,7 @@ import {
   EyeOff,
   ShieldCheck,
   ClipboardCheck,
+  CreditCard,
 } from "lucide-react";
 
 const TOKENS = {
@@ -38,6 +39,37 @@ const TOKENS = {
 
 const FONTS_LINK =
   "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap";
+
+// Liste des offres Confia, partagee entre la page d'accueil publique
+// (avant inscription) et la page Parametres (apres inscription), pour
+// n'avoir qu'un seul endroit a modifier si les prix ou fonctionnalites changent.
+const PLANS = [
+  {
+    key: "solo",
+    name: "Solo",
+    monthly: "39\u20ac",
+    annual: "390\u20ac",
+    tagline: "Pour un etablissement isole",
+    features: ["1 etablissement", "Salaries illimites", "Alertes automatiques quotidiennes", "Export PDF", "Upload de justificatifs", "2 membres d'equipe"],
+  },
+  {
+    key: "croissance",
+    name: "Croissance",
+    monthly: "99\u20ac",
+    annual: "990\u20ac",
+    tagline: "Pour les petits groupes",
+    features: ["Jusqu'a 3 etablissements", "Alertes automatiques quotidiennes", "Jusqu'a 6 membres d'equipe", "Tout Solo inclus"],
+    highlighted: true,
+  },
+  {
+    key: "groupe",
+    name: "Groupe",
+    monthly: "249\u20ac",
+    annual: "2490\u20ac",
+    tagline: "Pour les grands groupes",
+    features: ["Jusqu'a 10 etablissements", "Membres d'equipe illimites", "Support prioritaire", "Tout Croissance inclus"],
+  },
+];
 
 function LogoMark({ size = 16 }) {
   return (
@@ -697,6 +729,7 @@ function Sidebar({ view, setView, establishmentCount, isMobile, open, onNavigate
         <NavItem icon={Users} label="Salaries" active={view === "staff"} onClick={() => handleNav("staff")} />
         <NavItem icon={BellRing} label="Alertes" active={view === "alerts"} onClick={() => handleNav("alerts")} />
         <NavItem icon={FileDown} label="Rapports" active={view === "reports"} onClick={() => handleNav("reports")} />
+        <NavItem icon={CreditCard} label="Abonnement" active={view === "abonnement"} onClick={() => handleNav("abonnement")} />
         <NavItem icon={Settings} label="Parametres" active={view === "settings"} onClick={() => handleNav("settings")} />
         <div style={{ marginTop: 20, padding: "12px 10px 4px", borderTop: "1px solid " + TOKENS.line }}>
           <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11.5, color: TOKENS.inkSoft }}>
@@ -731,7 +764,7 @@ function StatCard({ label, value, accent }) {
   );
 }
 
-function Dashboard({ staff, establishments, setView }) {
+function Dashboard({ staff, establishments, setView, subscriptionStatus }) {
   const total = staff.length;
   const conforme = staff.filter((s) => s.status === "conforme").length;
   const aVenir = staff.filter((s) => s.status === "a_venir").length;
@@ -740,6 +773,44 @@ function Dashboard({ staff, establishments, setView }) {
 
   return (
     <div>
+      {subscriptionStatus !== "active" && (
+        <div
+          style={{
+            background: TOKENS.warnBg,
+            border: "1px solid " + TOKENS.warn + "44",
+            borderRadius: 8,
+            padding: "14px 18px",
+            marginBottom: 20,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13.5, color: TOKENS.ink }}>
+            <strong>Aucun abonnement actif.</strong> Choisissez une offre pour continuer a utiliser Confia sans interruption.
+          </div>
+          <button
+            onClick={() => setView("abonnement")}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 6,
+              border: "none",
+              background: TOKENS.warn,
+              color: "#fff",
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}
+          >
+            Voir les offres
+          </button>
+        </div>
+      )}
       <div
         style={{
           background: "#fff",
@@ -1512,6 +1583,200 @@ function AlertsView({ staff, establishments, userEmail }) {
   );
 }
 
+function AbonnementView({ token, organizationId, establishments, staffCount, currentUserEmail, subscriptionStatus, subscriptionPlan, subscriptionPeriod, currentPeriodEnd }) {
+  const [billingPeriod, setBillingPeriod] = useState("monthly");
+  const [checkoutLoadingKey, setCheckoutLoadingKey] = useState(null);
+  const [checkoutError, setCheckoutError] = useState(null);
+  const [membersCount, setMembersCount] = useState(null);
+
+  useEffect(() => {
+    if (!organizationId) return;
+    fetchOrganizationMembers(organizationId, token)
+      .then((m) => setMembersCount(m.length))
+      .catch((err) => console.error("Erreur de chargement des membres:", err));
+  }, [organizationId, token]);
+
+  const plans = PLANS;
+
+  const handleSubscribe = async (planKey, period) => {
+    setCheckoutLoadingKey(planKey + period);
+    setCheckoutError(null);
+    try {
+      const url = await createCheckoutSession(planKey, period, organizationId, currentUserEmail);
+      window.location.href = url;
+    } catch (err) {
+      console.error("Erreur de paiement:", err);
+      setCheckoutError(err.message || "Erreur lors de la creation du paiement");
+      setCheckoutLoadingKey(null);
+    }
+  };
+
+  const periodLabelFr = subscriptionPeriod === "annual" ? "annuel" : subscriptionPeriod === "monthly" ? "mensuel" : null;
+  const planLabelFr = plans.find((p) => p.key === subscriptionPlan)?.name || subscriptionPlan;
+  const isActiveSubscription = subscriptionStatus === "active";
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 640 }}>
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
+            Abonnement
+          </h3>
+          <span
+            style={{
+              padding: "3px 10px",
+              borderRadius: 4,
+              fontSize: 11.5,
+              fontWeight: 500,
+              color: isActiveSubscription ? TOKENS.ok : TOKENS.danger,
+              background: isActiveSubscription ? TOKENS.okBg : TOKENS.dangerBg,
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
+            {isActiveSubscription ? "Actif" : "Aucun abonnement"}
+          </span>
+        </div>
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 16px" }}>
+          {isActiveSubscription
+            ? "Plan " + (planLabelFr || "-") + (periodLabelFr ? " (" + periodLabelFr + ")" : "") +
+              (currentPeriodEnd ? " — renouvellement le " + new Date(currentPeriodEnd).toLocaleDateString("fr-FR") : "") + "."
+            : "Choisissez une offre ci-dessous pour activer votre abonnement."}
+        </p>
+        <div style={{ display: "flex", gap: 12 }}>
+          <div style={{ flex: 1, padding: "12px 14px", background: TOKENS.paperDim, borderRadius: 6, textAlign: "center" }}>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
+              {establishments.length}
+            </div>
+            <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginTop: 2 }}>Etablissements</div>
+          </div>
+          <div style={{ flex: 1, padding: "12px 14px", background: TOKENS.paperDim, borderRadius: 6, textAlign: "center" }}>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
+              {staffCount}
+            </div>
+            <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginTop: 2 }}>Salaries suivis</div>
+          </div>
+          <div style={{ flex: 1, padding: "12px 14px", background: TOKENS.paperDim, borderRadius: 6, textAlign: "center" }}>
+            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
+              {membersCount ?? "-"}
+            </div>
+            <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginTop: 2 }}>Membres d'equipe</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, flexWrap: "wrap", gap: 10 }}>
+          <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
+            Nos offres
+          </h3>
+          <div style={{ display: "flex", background: TOKENS.paperDim, borderRadius: 6, padding: 3 }}>
+            {["monthly", "annual"].map((period) => (
+              <button
+                key={period}
+                onClick={() => setBillingPeriod(period)}
+                style={{
+                  padding: "5px 12px",
+                  borderRadius: 5,
+                  border: "none",
+                  background: billingPeriod === period ? TOKENS.brand : "transparent",
+                  color: billingPeriod === period ? "#fff" : TOKENS.inkSoft,
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
+              >
+                {period === "monthly" ? "Mensuel" : "Annuel (2 mois offerts)"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 18px" }}>
+          Choisissez l'offre adaptee a votre organisation. Paiement securise par carte bancaire, sans engagement.
+        </p>
+        {checkoutError && (
+          <div style={{ fontSize: 12, color: TOKENS.danger, marginBottom: 14 }}>{checkoutError}</div>
+        )}
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+          {plans.map((plan) => {
+            const isCurrentPlan =
+              isActiveSubscription && subscriptionPlan === plan.key && subscriptionPeriod === billingPeriod;
+            const loadingThisButton = checkoutLoadingKey === plan.key + billingPeriod;
+            return (
+              <div
+                key={plan.key}
+                style={{
+                  flex: "1 1 200px",
+                  border: "1px solid " + (plan.highlighted ? TOKENS.brand : TOKENS.line),
+                  borderRadius: 8,
+                  padding: "16px 16px",
+                  position: "relative",
+                  background: plan.highlighted ? TOKENS.okBg : "#fff",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                {plan.highlighted && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: -9,
+                      left: 14,
+                      background: TOKENS.brand,
+                      color: "#fff",
+                      fontSize: 10,
+                      fontWeight: 500,
+                      padding: "2px 8px",
+                      borderRadius: 4,
+                      fontFamily: "'Inter', sans-serif",
+                    }}
+                  >
+                    Populaire
+                  </span>
+                )}
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 600, color: TOKENS.ink, marginTop: 4 }}>
+                  {plan.name}
+                </div>
+                <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginBottom: 10 }}>{plan.tagline}</div>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
+                  {billingPeriod === "monthly" ? plan.monthly : plan.annual}
+                  <span style={{ fontSize: 12, fontWeight: 400, color: TOKENS.inkSoft }}>
+                    {billingPeriod === "monthly" ? "/mois" : "/an"}
+                  </span>
+                </div>
+                <ul style={{ margin: "12px 0 16px", padding: "0 0 0 16px", fontSize: 12, color: TOKENS.inkSoft, lineHeight: 1.8, flex: 1 }}>
+                  {plan.features.map((f) => (
+                    <li key={f}>{f}</li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => handleSubscribe(plan.key, billingPeriod)}
+                  disabled={isCurrentPlan || loadingThisButton}
+                  style={{
+                    width: "100%",
+                    padding: "9px",
+                    borderRadius: 6,
+                    border: "none",
+                    background: isCurrentPlan ? TOKENS.paperDim : TOKENS.brand,
+                    color: isCurrentPlan ? TOKENS.inkSoft : "#fff",
+                    fontFamily: "'Inter', sans-serif",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    cursor: isCurrentPlan || loadingThisButton ? "default" : "pointer",
+                    opacity: loadingThisButton ? 0.7 : 1,
+                  }}
+                >
+                  {isCurrentPlan ? "Abonnement actif" : loadingThisButton ? "Redirection..." : "S'abonner"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment, onDeleteEstablishment, organizationName, onRenameOrganization, currentUserEmail, onDeleteAccount, staffCount, subscriptionStatus, subscriptionPlan, subscriptionPeriod, currentPeriodEnd }) {
   const [orgNameDraft, setOrgNameDraft] = useState(organizationName || "");
   const [renamingOrg, setRenamingOrg] = useState(false);
@@ -1637,55 +1902,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
-  const [billingPeriod, setBillingPeriod] = useState("monthly");
 
-  const plans = [
-    {
-      key: "solo",
-      name: "Solo",
-      monthly: "39\u20ac",
-      annual: "390\u20ac",
-      tagline: "Pour un etablissement isole",
-      features: ["1 etablissement", "Salaries illimites", "Alertes automatiques quotidiennes", "Export PDF", "Upload de justificatifs", "2 membres d'equipe"],
-    },
-    {
-      key: "croissance",
-      name: "Croissance",
-      monthly: "99\u20ac",
-      annual: "990\u20ac",
-      tagline: "Pour les petits groupes",
-      features: ["Jusqu'a 3 etablissements", "Alertes automatiques quotidiennes", "Jusqu'a 6 membres d'equipe", "Tout Solo inclus"],
-      highlighted: true,
-    },
-    {
-      key: "groupe",
-      name: "Groupe",
-      monthly: "249\u20ac",
-      annual: "2490\u20ac",
-      tagline: "Pour les grands groupes",
-      features: ["Jusqu'a 10 etablissements", "Membres d'equipe illimites", "Support prioritaire", "Tout Croissance inclus"],
-    },
-  ];
-
-  const [checkoutLoadingKey, setCheckoutLoadingKey] = useState(null);
-  const [checkoutError, setCheckoutError] = useState(null);
-
-  const handleSubscribe = async (planKey, period) => {
-    setCheckoutLoadingKey(planKey + period);
-    setCheckoutError(null);
-    try {
-      const url = await createCheckoutSession(planKey, period, organizationId, currentUserEmail);
-      window.location.href = url;
-    } catch (err) {
-      console.error("Erreur de paiement:", err);
-      setCheckoutError(err.message || "Erreur lors de la creation du paiement");
-      setCheckoutLoadingKey(null);
-    }
-  };
-
-  const periodLabelFr = subscriptionPeriod === "annual" ? "annuel" : subscriptionPeriod === "monthly" ? "mensuel" : null;
-  const planLabelFr = plans.find((p) => p.key === subscriptionPlan)?.name || subscriptionPlan;
-  const isActiveSubscription = subscriptionStatus === "active";
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteAccountError, setDeleteAccountError] = useState(null);
 
@@ -1856,163 +2073,6 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
         </div>
         {orgRenamed && <div style={{ fontSize: 11.5, color: TOKENS.ok, marginTop: 8 }}>Enregistre</div>}
         {orgRenameError && <div style={{ fontSize: 11.5, color: TOKENS.danger, marginTop: 8 }}>{orgRenameError}</div>}
-      </div>
-
-      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-          <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
-            Abonnement
-          </h3>
-          <span
-            style={{
-              padding: "3px 10px",
-              borderRadius: 4,
-              fontSize: 11.5,
-              fontWeight: 500,
-              color: isActiveSubscription ? TOKENS.ok : TOKENS.danger,
-              background: isActiveSubscription ? TOKENS.okBg : TOKENS.dangerBg,
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            {isActiveSubscription ? "Actif" : "Aucun abonnement"}
-          </span>
-        </div>
-        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 16px" }}>
-          {isActiveSubscription
-            ? "Plan " + (planLabelFr || "-") + (periodLabelFr ? " (" + periodLabelFr + ")" : "") +
-              (currentPeriodEnd ? " — renouvellement le " + new Date(currentPeriodEnd).toLocaleDateString("fr-FR") : "") + "."
-            : "Choisissez une offre ci-dessous pour activer votre abonnement."}
-        </p>
-        <div style={{ display: "flex", gap: 12 }}>
-          <div style={{ flex: 1, padding: "12px 14px", background: TOKENS.paperDim, borderRadius: 6, textAlign: "center" }}>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
-              {establishments.length}
-            </div>
-            <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginTop: 2 }}>Etablissements</div>
-          </div>
-          <div style={{ flex: 1, padding: "12px 14px", background: TOKENS.paperDim, borderRadius: 6, textAlign: "center" }}>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
-              {staffCount}
-            </div>
-            <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginTop: 2 }}>Salaries suivis</div>
-          </div>
-          <div style={{ flex: 1, padding: "12px 14px", background: TOKENS.paperDim, borderRadius: 6, textAlign: "center" }}>
-            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
-              {members.length}
-            </div>
-            <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginTop: 2 }}>Membres d'equipe</div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, flexWrap: "wrap", gap: 10 }}>
-          <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
-            Nos offres
-          </h3>
-          <div style={{ display: "flex", background: TOKENS.paperDim, borderRadius: 6, padding: 3 }}>
-            {["monthly", "annual"].map((period) => (
-              <button
-                key={period}
-                onClick={() => setBillingPeriod(period)}
-                style={{
-                  padding: "5px 12px",
-                  borderRadius: 5,
-                  border: "none",
-                  background: billingPeriod === period ? TOKENS.brand : "transparent",
-                  color: billingPeriod === period ? "#fff" : TOKENS.inkSoft,
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: 12,
-                  fontWeight: 500,
-                  cursor: "pointer",
-                }}
-              >
-                {period === "monthly" ? "Mensuel" : "Annuel (2 mois offerts)"}
-              </button>
-            ))}
-          </div>
-        </div>
-        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 18px" }}>
-          Choisissez l'offre adaptee a votre organisation. Paiement securise par carte bancaire, sans engagement.
-        </p>
-        {checkoutError && (
-          <div style={{ fontSize: 12, color: TOKENS.danger, marginBottom: 14 }}>{checkoutError}</div>
-        )}
-        <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-          {plans.map((plan) => {
-            const isCurrentPlan =
-              isActiveSubscription && subscriptionPlan === plan.key && subscriptionPeriod === billingPeriod;
-            const loadingThisButton = checkoutLoadingKey === plan.key + billingPeriod;
-            return (
-              <div
-                key={plan.key}
-                style={{
-                  flex: "1 1 200px",
-                  border: "1px solid " + (plan.highlighted ? TOKENS.brand : TOKENS.line),
-                  borderRadius: 8,
-                  padding: "16px 16px",
-                  position: "relative",
-                  background: plan.highlighted ? TOKENS.okBg : "#fff",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                {plan.highlighted && (
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: -9,
-                      left: 14,
-                      background: TOKENS.brand,
-                      color: "#fff",
-                      fontSize: 10,
-                      fontWeight: 500,
-                      padding: "2px 8px",
-                      borderRadius: 4,
-                      fontFamily: "'Inter', sans-serif",
-                    }}
-                  >
-                    Populaire
-                  </span>
-                )}
-                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 600, color: TOKENS.ink, marginTop: 4 }}>
-                  {plan.name}
-                </div>
-                <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginBottom: 10 }}>{plan.tagline}</div>
-                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
-                  {billingPeriod === "monthly" ? plan.monthly : plan.annual}
-                  <span style={{ fontSize: 12, fontWeight: 400, color: TOKENS.inkSoft }}>
-                    {billingPeriod === "monthly" ? "/mois" : "/an"}
-                  </span>
-                </div>
-                <ul style={{ margin: "12px 0 16px", padding: "0 0 0 16px", fontSize: 12, color: TOKENS.inkSoft, lineHeight: 1.8, flex: 1 }}>
-                  {plan.features.map((f) => (
-                    <li key={f}>{f}</li>
-                  ))}
-                </ul>
-                <button
-                  onClick={() => handleSubscribe(plan.key, billingPeriod)}
-                  disabled={isCurrentPlan || loadingThisButton}
-                  style={{
-                    width: "100%",
-                    padding: "9px",
-                    borderRadius: 6,
-                    border: "none",
-                    background: isCurrentPlan ? TOKENS.paperDim : TOKENS.brand,
-                    color: isCurrentPlan ? TOKENS.inkSoft : "#fff",
-                    fontFamily: "'Inter', sans-serif",
-                    fontSize: 13,
-                    fontWeight: 500,
-                    cursor: isCurrentPlan || loadingThisButton ? "default" : "pointer",
-                    opacity: loadingThisButton ? 0.7 : 1,
-                  }}
-                >
-                  {isCurrentPlan ? "Abonnement actif" : loadingThisButton ? "Redirection..." : "S'abonner"}
-                </button>
-              </div>
-            );
-          })}
-        </div>
       </div>
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
@@ -2481,6 +2541,71 @@ function ReportsView({ staff, establishments, organizationName }) {
         }}
       >
         {generating ? "Generation..." : "Generer le PDF"}
+      </button>
+    </div>
+  );
+}
+
+function LandingPricingCard({ plan, billingPeriod, onGetStarted }) {
+  return (
+    <div
+      style={{
+        flex: "1 1 220px",
+        border: "1px solid " + (plan.highlighted ? TOKENS.brand : TOKENS.line),
+        borderRadius: 10,
+        padding: "22px 20px",
+        position: "relative",
+        background: plan.highlighted ? TOKENS.okBg : "#fff",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {plan.highlighted && (
+        <span
+          style={{
+            position: "absolute",
+            top: -10,
+            left: 18,
+            background: TOKENS.brand,
+            color: "#fff",
+            fontSize: 11,
+            fontWeight: 500,
+            padding: "2px 10px",
+            borderRadius: 4,
+          }}
+        >
+          Populaire
+        </span>
+      )}
+      <div style={{ fontSize: 17, fontWeight: 600, color: TOKENS.ink, marginTop: 4 }}>{plan.name}</div>
+      <div style={{ fontSize: 12.5, color: TOKENS.inkSoft, marginBottom: 12 }}>{plan.tagline}</div>
+      <div style={{ fontSize: 26, fontWeight: 600, color: TOKENS.ink }}>
+        {billingPeriod === "monthly" ? plan.monthly : plan.annual}
+        <span style={{ fontSize: 13, fontWeight: 400, color: TOKENS.inkSoft }}>
+          {billingPeriod === "monthly" ? "/mois" : "/an"}
+        </span>
+      </div>
+      <ul style={{ margin: "14px 0 18px", padding: "0 0 0 18px", fontSize: 12.5, color: TOKENS.inkSoft, lineHeight: 1.85, flex: 1 }}>
+        {plan.features.map((f) => (
+          <li key={f}>{f}</li>
+        ))}
+      </ul>
+      <button
+        onClick={onGetStarted}
+        style={{
+          width: "100%",
+          padding: "10px",
+          borderRadius: 6,
+          border: "none",
+          background: TOKENS.brand,
+          color: "#fff",
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 13.5,
+          fontWeight: 500,
+          cursor: "pointer",
+        }}
+      >
+        Commencer
       </button>
     </div>
   );
@@ -3323,6 +3448,7 @@ export default function ConfiaPrototype() {
     staff: "Salaries",
     alerts: "Alertes",
     reports: "Rapports",
+    abonnement: "Abonnement",
     settings: "Parametres",
   };
 
@@ -3477,10 +3603,23 @@ export default function ConfiaPrototype() {
               {error}
             </div>
           )}
-          {view === "dashboard" && <Dashboard staff={staff} establishments={establishments} setView={setView} />}
+          {view === "dashboard" && <Dashboard staff={staff} establishments={establishments} setView={setView} subscriptionStatus={subscriptionStatus} />}
           {view === "staff" && <StaffView staff={staff} onReload={reloadStaff} onDeletePerson={handleDeletePerson} establishments={establishments} token={token} />}
           {view === "alerts" && <AlertsView staff={staff} establishments={establishments} userEmail={session?.user?.email} />}
           {view === "reports" && <ReportsView staff={staff} establishments={establishments} organizationName={organizationName} />}
+          {view === "abonnement" && (
+            <AbonnementView
+              token={token}
+              organizationId={organizationId}
+              establishments={establishments}
+              staffCount={staff.length}
+              currentUserEmail={session?.user?.email}
+              subscriptionStatus={subscriptionStatus}
+              subscriptionPlan={subscriptionPlan}
+              subscriptionPeriod={subscriptionPeriod}
+              currentPeriodEnd={currentPeriodEnd}
+            />
+          )}
           {view === "settings" && (
             <SettingsView
               establishments={establishments}
