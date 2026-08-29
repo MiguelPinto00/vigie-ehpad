@@ -2620,7 +2620,7 @@ function LandingPage({ onGetStarted, onLogin }) {
             Creer mon compte gratuitement <ChevronRight size={16} />
           </button>
           <span style={{ fontSize: 12, color: TOKENS.inkSoft }}>
-            Aucune carte bancaire requise — acces complet pendant la phase beta.
+            Sans engagement — annulation possible a tout moment.
           </span>
         </div>
       </div>
