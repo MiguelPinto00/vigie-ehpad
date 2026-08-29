@@ -2663,6 +2663,58 @@ function LandingPage({ onGetStarted, onLogin }) {
         </div>
       </div>
 
+      {/* Section securite des donnees */}
+      <div style={{ maxWidth: 780, margin: "0 auto", padding: "44px 20px" }}>
+        <h2 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 24px", textAlign: "center" }}>
+          Securite et confidentialite des donnees
+        </h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <div>
+            <h3 style={{ fontSize: 14.5, fontWeight: 600, color: TOKENS.ink, margin: "0 0 6px" }}>
+              Hebergement et infrastructure
+            </h3>
+            <p style={{ fontSize: 13.5, color: TOKENS.inkSoft, lineHeight: 1.7, margin: 0 }}>
+              Vos donnees sont hebergees sur des infrastructures cloud securisees (chiffrement au repos
+              et en transit, sauvegardes automatiques quotidiennes). Nous sommes actuellement engages
+              dans une demarche de migration vers un hebergement certifie HDS (Hebergement de Donnees
+              de Sante), conformement aux exigences de l'article L.1111-8 du Code de la sante publique.
+            </p>
+          </div>
+          <div>
+            <h3 style={{ fontSize: 14.5, fontWeight: 600, color: TOKENS.ink, margin: "0 0 6px" }}>
+              Acces et confidentialite
+            </h3>
+            <p style={{ fontSize: 13.5, color: TOKENS.inkSoft, lineHeight: 1.7, margin: 0 }}>
+              Chaque etablissement n'a acces qu'a ses propres donnees. Les resumes envoyes par email
+              sont anonymises (aucun nom de salarie n'y figure). L'acces a la plateforme est protege
+              par authentification individuelle.
+            </p>
+          </div>
+          <div>
+            <h3 style={{ fontSize: 14.5, fontWeight: 600, color: TOKENS.ink, margin: "0 0 6px" }}>
+              Conformite RGPD
+            </h3>
+            <p style={{ fontSize: 13.5, color: TOKENS.inkSoft, lineHeight: 1.7, margin: 0 }}>
+              Confia respecte les principes du RGPD : minimisation des donnees collectees, droit
+              d'acces et de suppression sur demande, duree de conservation limitee aux besoins de
+              conformite reglementaire.
+            </p>
+          </div>
+          <div>
+            <h3 style={{ fontSize: 14.5, fontWeight: 600, color: TOKENS.ink, margin: "0 0 6px" }}>
+              Une question sur la securite de vos donnees ?
+            </h3>
+            <p style={{ fontSize: 13.5, color: TOKENS.inkSoft, lineHeight: 1.7, margin: 0 }}>
+              Contactez-nous a{" "}
+              <a href="mailto:contact@confia-app.fr" style={{ color: TOKENS.brand }}>
+                contact@confia-app.fr
+              </a>{" "}
+              — nous repondons personnellement a toute question avant signature.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Bandeau final */}
       <div style={{ background: TOKENS.ink }}>
         <div
