@@ -40,8 +40,16 @@ export default async function handler(req, res) {
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
       customer_email: customerEmail || undefined,
+      // Permet de retrouver l'organisation concernee quand le webhook
+      // recoit la confirmation de paiement initiale.
       client_reference_id: organizationId,
       metadata: { organizationId, plan, period },
+      // Propage ces memes metadonnees sur l'abonnement Stripe lui-meme, pour
+      // que les evenements futurs (renouvellement, annulation) permettent
+      // aussi de retrouver l'organisation concernee.
+      subscription_data: {
+        metadata: { organizationId, plan, period },
+      },
       success_url: "https://vigie-ehpad.vercel.app/?checkout=success",
       cancel_url: "https://vigie-ehpad.vercel.app/?checkout=canceled",
     });
