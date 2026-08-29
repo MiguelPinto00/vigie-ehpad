@@ -796,7 +796,8 @@ function Dashboard({ staff, establishments, setView }) {
             Detail par etablissement
           </h3>
         </div>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 560 }}>
           <thead>
             <tr style={{ background: TOKENS.paperDim, borderTop: "1px solid " + TOKENS.line, borderBottom: "1px solid " + TOKENS.line }}>
               {["Etablissement", "Salaries", "A jour", "Echeance proche", "Non conformes", "Conformite"].map((h, i) => (
@@ -883,6 +884,7 @@ function Dashboard({ staff, establishments, setView }) {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
@@ -1298,6 +1300,10 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token }) {
                     textTransform: "uppercase",
                     letterSpacing: "0.04em",
                     whiteSpace: "nowrap",
+                    position: h === "Nom" ? "sticky" : undefined,
+                    left: h === "Nom" ? 0 : undefined,
+                    background: h === "Nom" ? TOKENS.paperDim : undefined,
+                    zIndex: h === "Nom" ? 1 : undefined,
                   }}
                 >
                   {h}
@@ -1311,7 +1317,7 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token }) {
               const rougeole = s.vaccinations.find((v) => v.vaccine === "Rougeole");
               return (
                 <tr key={s.id} style={{ borderBottom: "1px solid " + TOKENS.line }}>
-                  <td style={{ padding: "11px 16px", fontSize: 13.5, color: TOKENS.ink, fontWeight: 500, whiteSpace: "nowrap" }}>{s.name}</td>
+                  <td style={{ padding: "11px 16px", fontSize: 13.5, color: TOKENS.ink, fontWeight: 500, whiteSpace: "nowrap", position: "sticky", left: 0, background: "#fff", zIndex: 1 }}>{s.name}</td>
                   <td style={{ padding: "11px 16px", fontSize: 13, color: TOKENS.inkSoft, whiteSpace: "nowrap" }}>{s.role}</td>
                   <td style={{ padding: "11px 16px", fontSize: 13, color: TOKENS.inkSoft, whiteSpace: "nowrap" }}>
                     {establishments.find((e) => e.id === s.site)?.name}
@@ -1702,6 +1708,9 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
 
   const inputStyle = {
     flex: 1,
+    minWidth: 0,
+    width: "100%",
+    boxSizing: "border-box",
     padding: "8px 10px",
     borderRadius: 6,
     border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
@@ -2144,18 +2153,18 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
           Chaque etablissement que vous ajoutez ici est visible uniquement par votre organisation.
         </p>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <input
             placeholder="Nom de l'etablissement"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            style={inputStyle}
+            style={{ ...inputStyle, flex: "2 1 180px" }}
           />
           <input
             placeholder="Ville (optionnel)"
             value={newCity}
             onChange={(e) => setNewCity(e.target.value)}
-            style={{ ...inputStyle, flex: 0.6 }}
+            style={{ ...inputStyle, flex: "1 1 120px" }}
           />
           <button
             onClick={createEstablishment}
@@ -2172,6 +2181,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
               cursor: creating ? "default" : "pointer",
               opacity: creating || !newName.trim() ? 0.6 : 1,
               whiteSpace: "nowrap",
+              flexShrink: 0,
             }}
           >
             {creating ? "..." : "Ajouter"}
@@ -2201,8 +2211,8 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
             setDrafts((prev) => ({ ...prev, [e.id]: { ...prev[e.id], [field]: value } }));
           return (
             <div key={e.id} style={{ padding: "14px", background: TOKENS.paperDim, borderRadius: 8 }}>
-              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                <div style={{ flex: "2 1 180px", minWidth: 0 }}>
                   <label style={{ display: "block", fontSize: 11.5, color: TOKENS.inkSoft, marginBottom: 4 }}>Nom</label>
                   <input
                     value={d.name}
@@ -2210,7 +2220,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
                     style={inputStyle}
                   />
                 </div>
-                <div style={{ flex: 0.6 }}>
+                <div style={{ flex: "1 1 120px", minWidth: 0 }}>
                   <label style={{ display: "block", fontSize: 11.5, color: TOKENS.inkSoft, marginBottom: 4 }}>Ville</label>
                   <input
                     value={d.city}
@@ -2222,13 +2232,13 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
               <label style={{ display: "block", fontSize: 11.5, color: TOKENS.inkSoft, marginBottom: 4 }}>
                 Email de contact (pour le resume quotidien)
               </label>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                 <input
                   type="email"
                   placeholder="email@etablissement.fr"
                   value={d.contact_email}
                   onChange={(ev) => setField("contact_email", ev.target.value)}
-                  style={inputStyle}
+                  style={{ ...inputStyle, flex: "3 1 180px" }}
                 />
                 <button
                   onClick={() => save(e.id)}
@@ -2245,6 +2255,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
                     cursor: saving[e.id] ? "default" : "pointer",
                     opacity: saving[e.id] ? 0.6 : 1,
                     whiteSpace: "nowrap",
+                    flexShrink: 0,
                   }}
                 >
                   {saving[e.id] ? "..." : "Enregistrer"}
@@ -2294,13 +2305,16 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
         <label style={{ display: "block", fontSize: 12, color: TOKENS.ink, marginBottom: 6 }}>
           Tapez votre email (<strong>{currentUserEmail}</strong>) pour confirmer :
         </label>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <input
             value={deleteConfirmText}
             onChange={(e) => setDeleteConfirmText(e.target.value)}
             placeholder={currentUserEmail}
             style={{
-              flex: 1,
+              flex: "1 1 200px",
+              minWidth: 0,
+              width: "100%",
+              boxSizing: "border-box",
               padding: "8px 10px",
               borderRadius: 6,
               border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
@@ -2324,6 +2338,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
               cursor: deletingAccount || deleteConfirmText.trim() !== currentUserEmail ? "default" : "pointer",
               opacity: deletingAccount || deleteConfirmText.trim() !== currentUserEmail ? 0.5 : 1,
               whiteSpace: "nowrap",
+              flexShrink: 0,
             }}
           >
             {deletingAccount ? "Suppression..." : "Supprimer mon compte"}
