@@ -319,7 +319,8 @@ async function deleteEstablishment(establishmentId, token) {
 
 async function fetchMyOrganization(token) {
   const res = await fetch(
-    SUPABASE_URL + "/rest/v1/organization_members?select=organization_id,organizations(id,name)&limit=1",
+    SUPABASE_URL +
+      "/rest/v1/organization_members?select=organization_id,organizations(id,name,subscription_status,subscription_plan,subscription_period,current_period_end)&limit=1",
     { headers: authHeaders(token) }
   );
   if (!res.ok) {
@@ -331,7 +332,22 @@ async function fetchMyOrganization(token) {
   return {
     id: row?.organization_id || null,
     name: row?.organizations?.name || null,
+    subscriptionStatus: row?.organizations?.subscription_status || "inactive",
+    subscriptionPlan: row?.organizations?.subscription_plan || null,
+    subscriptionPeriod: row?.organizations?.subscription_period || null,
+    currentPeriodEnd: row?.organizations?.current_period_end || null,
   };
+}
+
+async function createCheckoutSession(plan, period, organizationId, customerEmail) {
+  const res = await fetch("/api/create-checkout-session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ plan, period, organizationId, customerEmail }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Erreur lors de la creation du paiement");
+  return data.url;
 }
 
 async function insertEstablishment(name, city, organizationId, token) {
@@ -1487,7 +1503,7 @@ function AlertsView({ staff, establishments, userEmail }) {
   );
 }
 
-function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment, onDeleteEstablishment, organizationName, onRenameOrganization, currentUserEmail, onDeleteAccount, staffCount }) {
+function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment, onDeleteEstablishment, organizationName, onRenameOrganization, currentUserEmail, onDeleteAccount, staffCount, subscriptionStatus, subscriptionPlan, subscriptionPeriod, currentPeriodEnd }) {
   const [orgNameDraft, setOrgNameDraft] = useState(organizationName || "");
   const [renamingOrg, setRenamingOrg] = useState(false);
   const [orgRenamed, setOrgRenamed] = useState(false);
@@ -1616,6 +1632,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
 
   const plans = [
     {
+      key: "solo",
       name: "Solo",
       monthly: "39\u20ac",
       annual: "390\u20ac",
@@ -1623,6 +1640,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
       features: ["1 etablissement", "Salaries illimites", "Alertes automatiques quotidiennes", "Export PDF", "Upload de justificatifs", "2 membres d'equipe"],
     },
     {
+      key: "croissance",
       name: "Croissance",
       monthly: "99\u20ac",
       annual: "990\u20ac",
@@ -1631,6 +1649,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
       highlighted: true,
     },
     {
+      key: "groupe",
       name: "Groupe",
       monthly: "249\u20ac",
       annual: "2490\u20ac",
@@ -1638,6 +1657,26 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
       features: ["Jusqu'a 10 etablissements", "Membres d'equipe illimites", "Support prioritaire", "Tout Croissance inclus"],
     },
   ];
+
+  const [checkoutLoadingKey, setCheckoutLoadingKey] = useState(null);
+  const [checkoutError, setCheckoutError] = useState(null);
+
+  const handleSubscribe = async (planKey, period) => {
+    setCheckoutLoadingKey(planKey + period);
+    setCheckoutError(null);
+    try {
+      const url = await createCheckoutSession(planKey, period, organizationId, currentUserEmail);
+      window.location.href = url;
+    } catch (err) {
+      console.error("Erreur de paiement:", err);
+      setCheckoutError(err.message || "Erreur lors de la creation du paiement");
+      setCheckoutLoadingKey(null);
+    }
+  };
+
+  const periodLabelFr = subscriptionPeriod === "annual" ? "annuel" : subscriptionPeriod === "monthly" ? "mensuel" : null;
+  const planLabelFr = plans.find((p) => p.key === subscriptionPlan)?.name || subscriptionPlan;
+  const isActiveSubscription = subscriptionStatus === "active";
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteAccountError, setDeleteAccountError] = useState(null);
 
@@ -1818,16 +1857,19 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
               borderRadius: 4,
               fontSize: 11.5,
               fontWeight: 500,
-              color: TOKENS.brand,
-              background: TOKENS.okBg,
+              color: isActiveSubscription ? TOKENS.ok : TOKENS.danger,
+              background: isActiveSubscription ? TOKENS.okBg : TOKENS.dangerBg,
               fontFamily: "'Inter', sans-serif",
             }}
           >
-            Beta gratuite
+            {isActiveSubscription ? "Actif" : "Aucun abonnement"}
           </span>
         </div>
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 16px" }}>
-          Confia est actuellement en phase beta gratuite. Les offres payantes seront communiquees a l'avance avant tout changement.
+          {isActiveSubscription
+            ? "Plan " + (planLabelFr || "-") + (periodLabelFr ? " (" + periodLabelFr + ")" : "") +
+              (currentPeriodEnd ? " — renouvellement le " + new Date(currentPeriodEnd).toLocaleDateString("fr-FR") : "") + "."
+            : "Choisissez une offre ci-dessous pour activer votre abonnement."}
         </p>
         <div style={{ display: "flex", gap: 12 }}>
           <div style={{ flex: 1, padding: "12px 14px", background: TOKENS.paperDim, borderRadius: 6, textAlign: "center" }}>
@@ -1854,7 +1896,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, flexWrap: "wrap", gap: 10 }}>
           <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
-            Nos futures offres
+            Nos offres
           </h3>
           <div style={{ display: "flex", background: TOKENS.paperDim, borderRadius: 6, padding: 3 }}>
             {["monthly", "annual"].map((period) => (
@@ -1879,56 +1921,85 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
           </div>
         </div>
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 18px" }}>
-          Toutes les fonctionnalites sont accessibles gratuitement pendant la periode beta. Voici les offres a venir.
+          Choisissez l'offre adaptee a votre organisation. Paiement securise par carte bancaire, sans engagement.
         </p>
+        {checkoutError && (
+          <div style={{ fontSize: 12, color: TOKENS.danger, marginBottom: 14 }}>{checkoutError}</div>
+        )}
         <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              style={{
-                flex: "1 1 200px",
-                border: "1px solid " + (plan.highlighted ? TOKENS.brand : TOKENS.line),
-                borderRadius: 8,
-                padding: "16px 16px",
-                position: "relative",
-                background: plan.highlighted ? TOKENS.okBg : "#fff",
-              }}
-            >
-              {plan.highlighted && (
-                <span
+          {plans.map((plan) => {
+            const isCurrentPlan =
+              isActiveSubscription && subscriptionPlan === plan.key && subscriptionPeriod === billingPeriod;
+            const loadingThisButton = checkoutLoadingKey === plan.key + billingPeriod;
+            return (
+              <div
+                key={plan.key}
+                style={{
+                  flex: "1 1 200px",
+                  border: "1px solid " + (plan.highlighted ? TOKENS.brand : TOKENS.line),
+                  borderRadius: 8,
+                  padding: "16px 16px",
+                  position: "relative",
+                  background: plan.highlighted ? TOKENS.okBg : "#fff",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                {plan.highlighted && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: -9,
+                      left: 14,
+                      background: TOKENS.brand,
+                      color: "#fff",
+                      fontSize: 10,
+                      fontWeight: 500,
+                      padding: "2px 8px",
+                      borderRadius: 4,
+                      fontFamily: "'Inter', sans-serif",
+                    }}
+                  >
+                    Populaire
+                  </span>
+                )}
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 600, color: TOKENS.ink, marginTop: 4 }}>
+                  {plan.name}
+                </div>
+                <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginBottom: 10 }}>{plan.tagline}</div>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
+                  {billingPeriod === "monthly" ? plan.monthly : plan.annual}
+                  <span style={{ fontSize: 12, fontWeight: 400, color: TOKENS.inkSoft }}>
+                    {billingPeriod === "monthly" ? "/mois" : "/an"}
+                  </span>
+                </div>
+                <ul style={{ margin: "12px 0 16px", padding: "0 0 0 16px", fontSize: 12, color: TOKENS.inkSoft, lineHeight: 1.8, flex: 1 }}>
+                  {plan.features.map((f) => (
+                    <li key={f}>{f}</li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => handleSubscribe(plan.key, billingPeriod)}
+                  disabled={isCurrentPlan || loadingThisButton}
                   style={{
-                    position: "absolute",
-                    top: -9,
-                    left: 14,
-                    background: TOKENS.brand,
-                    color: "#fff",
-                    fontSize: 10,
-                    fontWeight: 500,
-                    padding: "2px 8px",
-                    borderRadius: 4,
+                    width: "100%",
+                    padding: "9px",
+                    borderRadius: 6,
+                    border: "none",
+                    background: isCurrentPlan ? TOKENS.paperDim : TOKENS.brand,
+                    color: isCurrentPlan ? TOKENS.inkSoft : "#fff",
                     fontFamily: "'Inter', sans-serif",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    cursor: isCurrentPlan || loadingThisButton ? "default" : "pointer",
+                    opacity: loadingThisButton ? 0.7 : 1,
                   }}
                 >
-                  Populaire
-                </span>
-              )}
-              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 600, color: TOKENS.ink, marginTop: 4 }}>
-                {plan.name}
+                  {isCurrentPlan ? "Abonnement actif" : loadingThisButton ? "Redirection..." : "S'abonner"}
+                </button>
               </div>
-              <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginBottom: 10 }}>{plan.tagline}</div>
-              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
-                {billingPeriod === "monthly" ? plan.monthly : plan.annual}
-                <span style={{ fontSize: 12, fontWeight: 400, color: TOKENS.inkSoft }}>
-                  {billingPeriod === "monthly" ? "/mois" : "/an"}
-                </span>
-              </div>
-              <ul style={{ margin: "12px 0 0", padding: "0 0 0 16px", fontSize: 12, color: TOKENS.inkSoft, lineHeight: 1.8 }}>
-                {plan.features.map((f) => (
-                  <li key={f}>{f}</li>
-                ))}
-              </ul>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -3017,6 +3088,10 @@ export default function ConfiaPrototype() {
   const [establishments, setEstablishments] = useState([]);
   const [organizationId, setOrganizationId] = useState(null);
   const [organizationName, setOrganizationName] = useState(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState("inactive");
+  const [subscriptionPlan, setSubscriptionPlan] = useState(null);
+  const [subscriptionPeriod, setSubscriptionPeriod] = useState(null);
+  const [currentPeriodEnd, setCurrentPeriodEnd] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [recoveryToken] = useState(() => {
@@ -3077,6 +3152,10 @@ export default function ConfiaPrototype() {
           setStaff(staffRows.map(mapPersonRow));
           setOrganizationId(org.id);
           setOrganizationName(org.name);
+          setSubscriptionStatus(org.subscriptionStatus);
+          setSubscriptionPlan(org.subscriptionPlan);
+          setSubscriptionPeriod(org.subscriptionPeriod);
+          setCurrentPeriodEnd(org.currentPeriodEnd);
         }
       } catch (err) {
         console.error("Erreur de chargement Supabase:", err);
@@ -3340,6 +3419,10 @@ export default function ConfiaPrototype() {
               organizationName={organizationName}
               currentUserEmail={session?.user?.email}
               staffCount={staff.length}
+              subscriptionStatus={subscriptionStatus}
+              subscriptionPlan={subscriptionPlan}
+              subscriptionPeriod={subscriptionPeriod}
+              currentPeriodEnd={currentPeriodEnd}
               onRenameOrganization={(newName) => setOrganizationName(newName)}
               onAddEstablishment={(created) => setEstablishments((prev) => [...prev, created])}
               onDeleteEstablishment={(id) => {
