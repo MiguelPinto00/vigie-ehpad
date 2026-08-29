@@ -352,7 +352,7 @@ async function deleteEstablishment(establishmentId, token) {
 async function fetchMyOrganization(token) {
   const res = await fetch(
     SUPABASE_URL +
-      "/rest/v1/organization_members?select=organization_id,organizations(id,name,subscription_status,subscription_plan,subscription_period,current_period_end)&limit=1",
+      "/rest/v1/organization_members?select=organization_id,organizations(id,name,subscription_status,subscription_plan,subscription_period,current_period_end,stripe_customer_id)&limit=1",
     { headers: authHeaders(token) }
   );
   if (!res.ok) {
@@ -368,7 +368,19 @@ async function fetchMyOrganization(token) {
     subscriptionPlan: row?.organizations?.subscription_plan || null,
     subscriptionPeriod: row?.organizations?.subscription_period || null,
     currentPeriodEnd: row?.organizations?.current_period_end || null,
+    stripeCustomerId: row?.organizations?.stripe_customer_id || null,
   };
+}
+
+async function createPortalSession(customerId) {
+  const res = await fetch("/api/create-portal-session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ customerId }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Erreur lors de l'ouverture du portail d'abonnement");
+  return data.url;
 }
 
 async function createCheckoutSession(plan, period, organizationId, customerEmail) {
@@ -1583,11 +1595,26 @@ function AlertsView({ staff, establishments, userEmail }) {
   );
 }
 
-function AbonnementView({ token, organizationId, establishments, staffCount, currentUserEmail, subscriptionStatus, subscriptionPlan, subscriptionPeriod, currentPeriodEnd }) {
+function AbonnementView({ token, organizationId, establishments, staffCount, currentUserEmail, subscriptionStatus, subscriptionPlan, subscriptionPeriod, currentPeriodEnd, stripeCustomerId }) {
   const [billingPeriod, setBillingPeriod] = useState("monthly");
   const [checkoutLoadingKey, setCheckoutLoadingKey] = useState(null);
   const [checkoutError, setCheckoutError] = useState(null);
   const [membersCount, setMembersCount] = useState(null);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [portalError, setPortalError] = useState(null);
+
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
+    setPortalError(null);
+    try {
+      const url = await createPortalSession(stripeCustomerId);
+      window.location.href = url;
+    } catch (err) {
+      console.error("Erreur d'ouverture du portail:", err);
+      setPortalError(err.message || "Erreur lors de l'ouverture du portail d'abonnement");
+      setPortalLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!organizationId) return;
@@ -1662,6 +1689,31 @@ function AbonnementView({ token, organizationId, establishments, staffCount, cur
             <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginTop: 2 }}>Membres d'equipe</div>
           </div>
         </div>
+        {stripeCustomerId && (
+          <div style={{ marginTop: 16 }}>
+            <button
+              onClick={handleManageSubscription}
+              disabled={portalLoading}
+              style={{
+                padding: "9px 16px",
+                borderRadius: 6,
+                border: "1px solid " + TOKENS.line,
+                background: "#fff",
+                color: TOKENS.ink,
+                fontFamily: "'Inter', sans-serif",
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: portalLoading ? "default" : "pointer",
+                opacity: portalLoading ? 0.6 : 1,
+              }}
+            >
+              {portalLoading ? "Ouverture..." : "Gerer mon abonnement (resilier, facture, moyen de paiement)"}
+            </button>
+            {portalError && (
+              <div style={{ fontSize: 11.5, color: TOKENS.danger, marginTop: 8 }}>{portalError}</div>
+            )}
+          </div>
+        )}
       </div>
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
@@ -3287,6 +3339,7 @@ export default function ConfiaPrototype() {
   const [subscriptionPlan, setSubscriptionPlan] = useState(null);
   const [subscriptionPeriod, setSubscriptionPeriod] = useState(null);
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState(null);
+  const [stripeCustomerId, setStripeCustomerId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [recoveryToken] = useState(() => {
@@ -3351,6 +3404,7 @@ export default function ConfiaPrototype() {
           setSubscriptionPlan(org.subscriptionPlan);
           setSubscriptionPeriod(org.subscriptionPeriod);
           setCurrentPeriodEnd(org.currentPeriodEnd);
+          setStripeCustomerId(org.stripeCustomerId);
         }
       } catch (err) {
         console.error("Erreur de chargement Supabase:", err);
@@ -3618,6 +3672,7 @@ export default function ConfiaPrototype() {
               subscriptionPlan={subscriptionPlan}
               subscriptionPeriod={subscriptionPeriod}
               currentPeriodEnd={currentPeriodEnd}
+              stripeCustomerId={stripeCustomerId}
             />
           )}
           {view === "settings" && (
