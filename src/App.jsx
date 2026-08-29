@@ -1695,19 +1695,31 @@ function AbonnementView({ token, organizationId, establishments, staffCount, cur
               onClick={handleManageSubscription}
               disabled={portalLoading}
               style={{
-                padding: "9px 16px",
-                borderRadius: 6,
-                border: "1px solid " + TOKENS.line,
-                background: "#fff",
-                color: TOKENS.ink,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "12px 18px",
+                borderRadius: 7,
+                border: "none",
+                background: TOKENS.brand,
+                color: "#fff",
                 fontFamily: "'Inter', sans-serif",
-                fontSize: 13,
-                fontWeight: 500,
                 cursor: portalLoading ? "default" : "pointer",
-                opacity: portalLoading ? 0.6 : 1,
+                opacity: portalLoading ? 0.7 : 1,
+                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.12)",
               }}
             >
-              {portalLoading ? "Ouverture..." : "Gerer mon abonnement (resilier, facture, moyen de paiement)"}
+              <CreditCard size={17} style={{ flexShrink: 0 }} />
+              <span style={{ textAlign: "left" }}>
+                <span style={{ display: "block", fontSize: 13.5, fontWeight: 600, lineHeight: 1.3 }}>
+                  {portalLoading ? "Ouverture..." : "Gerer mon abonnement"}
+                </span>
+                {!portalLoading && (
+                  <span style={{ display: "block", fontSize: 11, fontWeight: 400, opacity: 0.85, marginTop: 1, lineHeight: 1.3 }}>
+                    Resiliation, facture, moyen de paiement
+                  </span>
+                )}
+              </span>
             </button>
             {portalError && (
               <div style={{ fontSize: 11.5, color: TOKENS.danger, marginTop: 8 }}>{portalError}</div>
