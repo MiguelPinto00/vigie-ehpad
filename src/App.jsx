@@ -783,18 +783,21 @@ function Dashboard({ staff, establishments, setView }) {
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 14, marginBottom: 20 }}>
-        <StatCard label="Salaries suivis" value={total} />
-        <StatCard label="A jour" value={conforme} accent={TOKENS.ok} />
-        <StatCard label="Echeance proche" value={aVenir} accent={TOKENS.warn} />
-        <StatCard label="Non conformes" value={nonConforme} accent={TOKENS.danger} />
+      <div style={{ display: "flex", gap: 14, marginBottom: 20, flexWrap: "wrap" }}>
+        <div style={{ flex: "1 1 130px" }}><StatCard label="Salaries suivis" value={total} /></div>
+        <div style={{ flex: "1 1 130px" }}><StatCard label="A jour" value={conforme} accent={TOKENS.ok} /></div>
+        <div style={{ flex: "1 1 130px" }}><StatCard label="Echeance proche" value={aVenir} accent={TOKENS.warn} /></div>
+        <div style={{ flex: "1 1 130px" }}><StatCard label="Non conformes" value={nonConforme} accent={TOKENS.danger} /></div>
       </div>
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, overflow: "hidden" }}>
-        <div style={{ padding: "16px 20px 12px" }}>
+        <div style={{ padding: "16px 20px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
           <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
             Detail par etablissement
           </h3>
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: TOKENS.inkSoft, fontStyle: "italic" }}>
+            Faites glisser vers la gauche pour voir toutes les colonnes →
+          </span>
         </div>
         <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 560 }}>
