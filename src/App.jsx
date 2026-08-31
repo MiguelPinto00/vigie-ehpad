@@ -2507,6 +2507,66 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
 
 function ReportsView({ staff, establishments, organizationName }) {
   const [generating, setGenerating] = useState(false);
+  const [generatingCsv, setGeneratingCsv] = useState(false);
+
+  // Echappe une valeur pour l'inserer proprement dans une cellule CSV
+  // (encadre de guillemets et double les guillemets internes des qu'un
+  // caractere special est present, pour rester compatible Excel/LibreOffice).
+  const csvEscape = (value) => {
+    const str = String(value ?? "");
+    if (/[",;\n]/.test(str)) {
+      return '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+  };
+
+  const generateCSV = () => {
+    setGeneratingCsv(true);
+    try {
+      const today = new Date().toLocaleDateString("fr-FR");
+      const headers = ["Nom", "Fonction", "Etablissement", "Vaccin", "Statut", "Derniere mise a jour", "Echeance"];
+      const rows = [headers];
+
+      staff.forEach((s) => {
+        const estabName = establishments.find((e) => e.id === s.site)?.name || "-";
+        const vaccinRows = s.vaccinations.length > 0
+          ? s.vaccinations
+          : [{ vaccine: "-", status: "non_conforme", updated: "-", next: "Aucun suivi" }];
+        vaccinRows.forEach((v) => {
+          const statusLabel = STATUS_META[v.status]?.label || v.status;
+          rows.push([
+            s.name,
+            s.role || "-",
+            estabName,
+            v.vaccine || "-",
+            statusLabel,
+            v.updated || "-",
+            v.next || "-",
+          ]);
+        });
+      });
+
+      // Le point-virgule est le separateur standard pour qu'Excel en version
+      // francaise ouvre le fichier directement dans des colonnes distinctes.
+      const csvContent = rows.map((row) => row.map(csvEscape).join(";")).join("\r\n");
+      // Le prefixe BOM assure que les caracteres accentues (e, a...) s'affichent
+      // correctement dans Excel plutot que d'apparaitre comme des symboles errones.
+      const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "rapport-conformite-vaccinale-" + today.replace(/\//g, "-") + ".csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Erreur de generation CSV:", err);
+      alert("Erreur lors de la generation du CSV. Reessayez.");
+    } finally {
+      setGeneratingCsv(false);
+    }
+  };
 
   const generatePDF = () => {
     setGenerating(true);
@@ -2614,24 +2674,44 @@ function ReportsView({ staff, establishments, organizationName }) {
       <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: TOKENS.inkSoft, lineHeight: 1.6, margin: "0 0 18px" }}>
         Generez un export horodate, pret a presenter lors d'un controle ou d'un renouvellement d'agrement.
       </p>
-      <button
-        onClick={generatePDF}
-        disabled={generating || staff.length === 0}
-        style={{
-          padding: "9px 18px",
-          borderRadius: 6,
-          border: "none",
-          background: TOKENS.brand,
-          color: "#fff",
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 13.5,
-          fontWeight: 500,
-          cursor: generating ? "default" : "pointer",
-          opacity: generating || staff.length === 0 ? 0.6 : 1,
-        }}
-      >
-        {generating ? "Generation..." : "Generer le PDF"}
-      </button>
+      <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+        <button
+          onClick={generatePDF}
+          disabled={generating || staff.length === 0}
+          style={{
+            padding: "9px 18px",
+            borderRadius: 6,
+            border: "none",
+            background: TOKENS.brand,
+            color: "#fff",
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 13.5,
+            fontWeight: 500,
+            cursor: generating ? "default" : "pointer",
+            opacity: generating || staff.length === 0 ? 0.6 : 1,
+          }}
+        >
+          {generating ? "Generation..." : "Generer le PDF"}
+        </button>
+        <button
+          onClick={generateCSV}
+          disabled={generatingCsv || staff.length === 0}
+          style={{
+            padding: "9px 18px",
+            borderRadius: 6,
+            border: "1px solid " + TOKENS.line,
+            background: "#fff",
+            color: TOKENS.ink,
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 13.5,
+            fontWeight: 500,
+            cursor: generatingCsv ? "default" : "pointer",
+            opacity: generatingCsv || staff.length === 0 ? 0.6 : 1,
+          }}
+        >
+          {generatingCsv ? "Generation..." : "Exporter en CSV"}
+        </button>
+      </div>
     </div>
   );
 }
