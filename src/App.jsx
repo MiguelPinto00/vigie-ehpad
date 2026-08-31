@@ -830,12 +830,132 @@ function StatCard({ label, value, accent }) {
   );
 }
 
-function Dashboard({ staff, establishments, setView, subscriptionStatus }) {
+// Ecran affiche a la place du tableau de bord habituel tant qu'aucun
+// etablissement n'a ete cree. Un tableau de bord vide (jauge a 0%, aucune
+// donnee) ressemble a une erreur pour un nouveau client ; ce message guide
+// explicitement les 3 premieres etapes a suivre.
+function OnboardingWelcome({ setView, organizationName }) {
+  const steps = [
+    {
+      icon: Building2,
+      title: "Ajoutez votre premier etablissement",
+      description: "Chaque EHPAD ou site que vous gerez doit d'abord etre cree dans Parametres.",
+      action: "Aller dans Parametres",
+      view: "settings",
+    },
+    {
+      icon: Users,
+      title: "Ajoutez vos salaries",
+      description: "Une fois un etablissement cree, ajoutez-y vos salaries un par un ou en important un fichier CSV.",
+      action: "Aller dans Salaries",
+      view: "staff",
+    },
+    {
+      icon: CreditCard,
+      title: "Choisissez votre abonnement",
+      description: "Selectionnez l'offre adaptee a votre organisation pour activer le suivi complet.",
+      action: "Voir les offres",
+      view: "abonnement",
+    },
+  ];
+
+  return (
+    <div
+      style={{
+        background: "#fff",
+        border: "1px solid " + TOKENS.line,
+        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
+        borderRadius: 8,
+        padding: "32px 28px",
+        maxWidth: 640,
+        margin: "0 auto",
+      }}
+    >
+      <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 20, fontWeight: 600, color: TOKENS.ink, margin: "0 0 6px" }}>
+        Bienvenue sur Confia{organizationName ? ", " + organizationName : ""} !
+      </h2>
+      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13.5, color: TOKENS.inkSoft, margin: "0 0 26px", lineHeight: 1.6 }}>
+        Votre compte est cree. Il ne reste que quelques etapes avant de pouvoir suivre la conformite
+        vaccinale de vos equipes.
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        {steps.map((step, idx) => (
+          <div
+            key={step.view}
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 16,
+              padding: "16px 18px",
+              background: TOKENS.paperDim,
+              borderRadius: 8,
+            }}
+          >
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                background: TOKENS.brand,
+                color: "#fff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontFamily: "'Inter', sans-serif",
+                fontSize: 14,
+                fontWeight: 600,
+                flexShrink: 0,
+              }}
+            >
+              {idx + 1}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <step.icon size={15} color={TOKENS.brand} />
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14.5, fontWeight: 600, color: TOKENS.ink }}>
+                  {step.title}
+                </span>
+              </div>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 10px", lineHeight: 1.55 }}>
+                {step.description}
+              </p>
+              <button
+                onClick={() => setView(step.view)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "7px 12px",
+                  borderRadius: 6,
+                  border: "1px solid " + TOKENS.brand,
+                  background: "#fff",
+                  color: TOKENS.brand,
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
+              >
+                {step.action} <ChevronRight size={12} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Dashboard({ staff, establishments, setView, subscriptionStatus, organizationName }) {
   const total = staff.length;
   const conforme = staff.filter((s) => s.status === "conforme").length;
   const aVenir = staff.filter((s) => s.status === "a_venir").length;
   const nonConforme = staff.filter((s) => s.status === "non_conforme").length;
   const percent = total ? Math.round((conforme / total) * 100) : 0;
+
+  if (establishments.length === 0) {
+    return <OnboardingWelcome setView={setView} organizationName={organizationName} />;
+  }
 
   return (
     <div>
@@ -4505,7 +4625,7 @@ export default function ConfiaPrototype() {
               {error}
             </div>
           )}
-          {view === "dashboard" && <Dashboard staff={staff} establishments={establishments} setView={setView} subscriptionStatus={subscriptionStatus} />}
+          {view === "dashboard" && <Dashboard staff={staff} establishments={establishments} setView={setView} subscriptionStatus={subscriptionStatus} organizationName={organizationName} />}
           {view === "staff" && <StaffView staff={staff} onReload={reloadStaff} onDeletePerson={handleDeletePerson} establishments={establishments} token={token} alertThresholdDays={alertThresholdDays} />}
           {view === "alerts" && <AlertsView staff={staff} establishments={establishments} userEmail={session?.user?.email} />}
           {view === "reports" && <ReportsView staff={staff} establishments={establishments} organizationName={organizationName} />}
