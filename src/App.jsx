@@ -4098,14 +4098,21 @@ function LoginScreen({ onLogin, initialMode, onBackToLanding }) {
           required
         />
         {mode !== "forgot" && (
-          <PasswordInput
-            placeholder="Mot de passe"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={inputStyle}
-            required
-            minLength={6}
-          />
+          <>
+            <PasswordInput
+              placeholder="Mot de passe"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={inputStyle}
+              required
+              minLength={6}
+            />
+            {mode === "signup" && (
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11.5, color: TOKENS.inkSoft, marginTop: -6, marginBottom: 12 }}>
+                Au moins 6 caracteres.
+              </div>
+            )}
+          </>
         )}
 
         {error && (
