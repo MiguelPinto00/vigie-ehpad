@@ -1881,7 +1881,7 @@ function HistoryModal({ person, onClose }) {
   );
 }
 
-function StaffView({ staff, onReload, onDeletePerson, establishments, token, alertThresholdDays }) {
+function StaffView({ staff, onReload, onDeletePerson, establishments, token, alertThresholdDays, setView }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [siteFilter, setSiteFilter] = useState("all");
@@ -1909,6 +1909,68 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token, ale
       setDeletingId(null);
     }
   };
+
+  // Un salarie doit obligatoirement etre rattache a un etablissement : sans
+  // cela, impossible d'ajouter ou d'importer qui que ce soit. On bloque
+  // clairement les deux actions plutot que de laisser un formulaire avec un
+  // menu deroulant vide, qui pourrait creer un salarie orphelin.
+  if (establishments.length === 0) {
+    return (
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid " + TOKENS.line,
+          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
+          borderRadius: 8,
+          padding: "32px",
+          textAlign: "center",
+          maxWidth: 480,
+          margin: "40px auto",
+        }}
+      >
+        <div
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 8,
+            background: TOKENS.paperDim,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "0 auto 14px",
+          }}
+        >
+          <Building2 size={20} color={TOKENS.brand} />
+        </div>
+        <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 17, fontWeight: 600, color: TOKENS.ink, margin: "0 0 8px" }}>
+          Creez d'abord un etablissement
+        </h3>
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: TOKENS.inkSoft, lineHeight: 1.6, margin: "0 0 18px" }}>
+          Chaque salarie doit etre rattache a un etablissement. Ajoutez votre premier etablissement dans
+          Parametres avant de pouvoir ajouter ou importer des salaries.
+        </p>
+        <button
+          onClick={() => setView && setView("settings")}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "9px 18px",
+            borderRadius: 6,
+            border: "none",
+            background: TOKENS.brand,
+            color: "#fff",
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 13.5,
+            fontWeight: 500,
+            cursor: "pointer",
+          }}
+        >
+          Aller dans Parametres <ChevronRight size={14} />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -4626,7 +4688,7 @@ export default function ConfiaPrototype() {
             </div>
           )}
           {view === "dashboard" && <Dashboard staff={staff} establishments={establishments} setView={setView} subscriptionStatus={subscriptionStatus} organizationName={organizationName} />}
-          {view === "staff" && <StaffView staff={staff} onReload={reloadStaff} onDeletePerson={handleDeletePerson} establishments={establishments} token={token} alertThresholdDays={alertThresholdDays} />}
+          {view === "staff" && <StaffView staff={staff} onReload={reloadStaff} onDeletePerson={handleDeletePerson} establishments={establishments} token={token} alertThresholdDays={alertThresholdDays} setView={setView} />}
           {view === "alerts" && <AlertsView staff={staff} establishments={establishments} userEmail={session?.user?.email} />}
           {view === "reports" && <ReportsView staff={staff} establishments={establishments} organizationName={organizationName} />}
           {view === "abonnement" && (
