@@ -361,6 +361,17 @@ async function renameOrganization(organizationId, newName, token) {
   return data[0];
 }
 
+async function updateAlertThreshold(organizationId, days, token) {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/organizations?id=eq." + organizationId, {
+    method: "PATCH",
+    headers: { ...authHeaders(token), Prefer: "return=representation" },
+    body: JSON.stringify({ alert_threshold_days: days }),
+  });
+  if (!res.ok) throw new Error("Erreur de mise a jour du seuil d'alerte");
+  const data = await res.json();
+  return data[0];
+}
+
 async function updateEstablishmentDetails(establishmentId, updates, token) {
   const res = await fetch(SUPABASE_URL + "/rest/v1/establishments?id=eq." + establishmentId, {
     method: "PATCH",
@@ -384,7 +395,7 @@ async function deleteEstablishment(establishmentId, token) {
 async function fetchMyOrganization(token) {
   const res = await fetch(
     SUPABASE_URL +
-      "/rest/v1/organization_members?select=organization_id,organizations(id,name,subscription_status,subscription_plan,subscription_period,current_period_end,stripe_customer_id)&limit=1",
+      "/rest/v1/organization_members?select=organization_id,organizations(id,name,subscription_status,subscription_plan,subscription_period,current_period_end,stripe_customer_id,alert_threshold_days)&limit=1",
     { headers: authHeaders(token) }
   );
   if (!res.ok) {
@@ -401,6 +412,7 @@ async function fetchMyOrganization(token) {
     subscriptionPeriod: row?.organizations?.subscription_period || null,
     currentPeriodEnd: row?.organizations?.current_period_end || null,
     stripeCustomerId: row?.organizations?.stripe_customer_id || null,
+    alertThresholdDays: row?.organizations?.alert_threshold_days ?? 45,
   };
 }
 
@@ -465,7 +477,7 @@ async function uploadJustificatif(file, token) {
 }
 
 // Calcule le statut/echeance de chaque suivi vaccinal d'une personne
-function computePersonVaccinations(row) {
+function computePersonVaccinations(row, alertThresholdDays) {
   return (row.staff_vaccinations || []).map((v) => {
     // Si aucune vraie date n'est enregistree, on ne devine jamais un statut
     // a partir d'une ancienne valeur saisie a la main : on l'affiche
@@ -482,7 +494,7 @@ function computePersonVaccinations(row) {
         next: "",
       };
     }
-    const computed = computeVaccineCompliance(v.vaccine, v.last_vaccination_date);
+    const computed = computeVaccineCompliance(v.vaccine, v.last_vaccination_date, alertThresholdDays);
     return {
       id: v.id,
       vaccine: v.vaccine,
@@ -508,8 +520,8 @@ function computeOverallStatus(vaccinations) {
 
 // Convertit une ligne Supabase (personne + ses suivis vaccinaux imbriques)
 // vers le format utilise par l'interface
-function mapPersonRow(row) {
-  const vaccinations = computePersonVaccinations(row);
+function mapPersonRow(row, alertThresholdDays) {
+  const vaccinations = computePersonVaccinations(row, alertThresholdDays);
   const history = (row.staff_history || [])
     .slice()
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -1021,9 +1033,11 @@ function Dashboard({ staff, establishments, setView, subscriptionStatus }) {
 // Duree de validite du vaccin grippe (en jours) avant qu'une nouvelle
 // injection soit recommandee. Ajustable ici si la recommandation change.
 const GRIPPE_VALIDITE_JOURS = 365;
-// Nombre de jours avant l'echeance a partir duquel le statut passe en
-// "Echeance proche" au lieu d'attendre le jour J.
-const GRIPPE_ALERTE_JOURS = 45;
+// Valeur par defaut du nombre de jours avant l'echeance a partir duquel le
+// statut passe en "Echeance proche". Chaque organisation peut desormais
+// personnaliser ce seuil depuis Parametres ; cette constante ne sert que de
+// valeur de repli si aucun reglage n'a encore ete enregistre.
+const GRIPPE_ALERTE_JOURS_DEFAUT = 45;
 
 function formatDateFr(date) {
   return date.toLocaleDateString("fr-FR");
@@ -1034,7 +1048,7 @@ function formatDateFr(date) {
 // derniere vaccination. Ce calcul est refait a chaque affichage : un salarie
 // "a jour" aujourd'hui repassera automatiquement en "Echeance proche" puis
 // "Non conforme" avec le temps, sans intervention manuelle.
-function computeVaccineCompliance(vaccine, lastVaccinationDateStr) {
+function computeVaccineCompliance(vaccine, lastVaccinationDateStr, alertThresholdDays = GRIPPE_ALERTE_JOURS_DEFAUT) {
   if (!lastVaccinationDateStr) {
     return { status: "non_conforme", updatedLabel: "-", nextLabel: "Aucun justificatif" };
   }
@@ -1061,7 +1075,7 @@ function computeVaccineCompliance(vaccine, lastVaccinationDateStr) {
       nextLabel: "Echue le " + formatDateFr(expiryDate),
     };
   }
-  if (joursRestants <= GRIPPE_ALERTE_JOURS) {
+  if (joursRestants <= alertThresholdDays) {
     return { status: "a_venir", updatedLabel, nextLabel: formatDateFr(expiryDate) };
   }
   return { status: "conforme", updatedLabel, nextLabel: formatDateFr(expiryDate) };
@@ -1072,7 +1086,7 @@ const VACCINE_TYPES = [
   { key: "Rougeole", label: "Rougeole (LFSS 2026, decret a venir)" },
 ];
 
-function VaccineSection({ vaccineKey, label, date, onDateChange, file, onFileChange, existingDocumentUrl }) {
+function VaccineSection({ vaccineKey, label, date, onDateChange, file, onFileChange, existingDocumentUrl, alertThresholdDays }) {
   const inputStyle = {
     width: "100%",
     padding: "8px 10px",
@@ -1085,7 +1099,7 @@ function VaccineSection({ vaccineKey, label, date, onDateChange, file, onFileCha
     boxSizing: "border-box",
     marginBottom: 10,
   };
-  const preview = computeVaccineCompliance(vaccineKey, date || null);
+  const preview = computeVaccineCompliance(vaccineKey, date || null, alertThresholdDays);
   const meta = STATUS_META[preview.status];
 
   return (
@@ -1131,7 +1145,7 @@ function VaccineSection({ vaccineKey, label, date, onDateChange, file, onFileCha
   );
 }
 
-function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
+function StaffModal({ onClose, onSave, establishments, token, editingStaff, alertThresholdDays }) {
   const isEditing = !!editingStaff;
   const [name, setName] = useState(editingStaff?.name || "");
   const [role, setRole] = useState(editingStaff?.role || "");
@@ -1198,7 +1212,7 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
         if (files[v.key]) {
           documentUrl = await uploadJustificatif(files[v.key], token);
         }
-        const computed = computeVaccineCompliance(v.key, date);
+        const computed = computeVaccineCompliance(v.key, date, alertThresholdDays);
         await upsertVaccination(
           {
             staff_id: personId,
@@ -1297,6 +1311,7 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
             file={files[v.key]}
             onFileChange={(f) => setFiles((prev) => ({ ...prev, [v.key]: f }))}
             existingDocumentUrl={findExisting(v.key)?.documentUrl}
+            alertThresholdDays={alertThresholdDays}
           />
         ))}
 
@@ -1380,7 +1395,7 @@ function parseImportCSV(text) {
   });
 }
 
-function ImportStaffModal({ onClose, onSave, establishments, token }) {
+function ImportStaffModal({ onClose, onSave, establishments, token, alertThresholdDays }) {
   const [file, setFile] = useState(null);
   const [importing, setImporting] = useState(false);
   const [results, setResults] = useState(null);
@@ -1454,7 +1469,7 @@ function ImportStaffModal({ onClose, onSave, establishments, token }) {
             ["Rougeole", rougeoleDate],
           ]) {
             if (!dateValue || !dateValue.trim()) continue;
-            const computed = computeVaccineCompliance(vaccine, dateValue.trim());
+            const computed = computeVaccineCompliance(vaccine, dateValue.trim(), alertThresholdDays);
             await upsertVaccination(
               {
                 staff_id: created.id,
@@ -1746,7 +1761,7 @@ function HistoryModal({ person, onClose }) {
   );
 }
 
-function StaffView({ staff, onReload, onDeletePerson, establishments, token }) {
+function StaffView({ staff, onReload, onDeletePerson, establishments, token, alertThresholdDays }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [siteFilter, setSiteFilter] = useState("all");
@@ -1891,6 +1906,7 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token }) {
           establishments={establishments}
           token={token}
           editingStaff={editingStaff}
+          alertThresholdDays={alertThresholdDays}
         />
       )}
 
@@ -1900,6 +1916,7 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token }) {
           onSave={onReload}
           establishments={establishments}
           token={token}
+          alertThresholdDays={alertThresholdDays}
         />
       )}
 
@@ -2396,11 +2413,41 @@ function AbonnementView({ token, organizationId, establishments, staffCount, cur
   );
 }
 
-function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment, onDeleteEstablishment, organizationName, onRenameOrganization, currentUserEmail, onDeleteAccount, staffCount, subscriptionStatus, subscriptionPlan, subscriptionPeriod, currentPeriodEnd }) {
+function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment, onDeleteEstablishment, organizationName, onRenameOrganization, currentUserEmail, onDeleteAccount, staffCount, subscriptionStatus, subscriptionPlan, subscriptionPeriod, currentPeriodEnd, alertThresholdDays, onUpdateAlertThreshold }) {
   const [orgNameDraft, setOrgNameDraft] = useState(organizationName || "");
   const [renamingOrg, setRenamingOrg] = useState(false);
   const [orgRenamed, setOrgRenamed] = useState(false);
   const [orgRenameError, setOrgRenameError] = useState(null);
+
+  const [alertThresholdDraft, setAlertThresholdDraft] = useState(alertThresholdDays ?? 45);
+  const [savingThreshold, setSavingThreshold] = useState(false);
+  const [thresholdSaved, setThresholdSaved] = useState(false);
+  const [thresholdError, setThresholdError] = useState(null);
+
+  useEffect(() => {
+    setAlertThresholdDraft(alertThresholdDays ?? 45);
+  }, [alertThresholdDays]);
+
+  const saveAlertThreshold = async () => {
+    const days = parseInt(alertThresholdDraft, 10);
+    if (!Number.isFinite(days) || days < 1 || days > 365) {
+      setThresholdError("Merci de saisir un nombre de jours entre 1 et 365.");
+      return;
+    }
+    setSavingThreshold(true);
+    setThresholdSaved(false);
+    setThresholdError(null);
+    try {
+      await updateAlertThreshold(organizationId, days, token);
+      await onUpdateAlertThreshold(days);
+      setThresholdSaved(true);
+    } catch (err) {
+      console.error("Erreur de mise a jour du seuil:", err);
+      setThresholdError(err.message || "Erreur lors de l'enregistrement");
+    } finally {
+      setSavingThreshold(false);
+    }
+  };
 
   const [members, setMembers] = useState([]);
   const [pendingInvites, setPendingInvites] = useState([]);
@@ -2692,6 +2739,58 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
         </div>
         {orgRenamed && <div style={{ fontSize: 11.5, color: TOKENS.ok, marginTop: 8 }}>Enregistre</div>}
         {orgRenameError && <div style={{ fontSize: 11.5, color: TOKENS.danger, marginTop: 8 }}>{orgRenameError}</div>}
+      </div>
+
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
+        <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
+          Seuil d'alerte "Echeance proche"
+        </h3>
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
+          Nombre de jours avant l'echeance du vaccin grippe a partir duquel un salarie passe au statut
+          "Echeance proche" plutot que "A jour". Valeur par defaut : 45 jours.
+        </p>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input
+            type="number"
+            min={1}
+            max={365}
+            value={alertThresholdDraft}
+            onChange={(e) => setAlertThresholdDraft(e.target.value)}
+            style={{
+              width: 90,
+              padding: "8px 10px",
+              borderRadius: 6,
+              border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 13,
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+          />
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: TOKENS.inkSoft }}>jours</span>
+          <button
+            onClick={saveAlertThreshold}
+            disabled={savingThreshold}
+            style={{
+              marginLeft: 8,
+              padding: "8px 16px",
+              borderRadius: 6,
+              border: "none",
+              background: TOKENS.brand,
+              color: "#fff",
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 12.5,
+              fontWeight: 500,
+              cursor: savingThreshold ? "default" : "pointer",
+              opacity: savingThreshold ? 0.6 : 1,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {savingThreshold ? "..." : "Enregistrer"}
+          </button>
+        </div>
+        {thresholdSaved && <div style={{ fontSize: 11.5, color: TOKENS.ok, marginTop: 8 }}>Enregistre. Les statuts ont ete recalcules.</div>}
+        {thresholdError && <div style={{ fontSize: 11.5, color: TOKENS.danger, marginTop: 8 }}>{thresholdError}</div>}
       </div>
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
@@ -3987,6 +4086,7 @@ export default function ConfiaPrototype() {
   const [subscriptionPeriod, setSubscriptionPeriod] = useState(null);
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState(null);
   const [stripeCustomerId, setStripeCustomerId] = useState(null);
+  const [alertThresholdDays, setAlertThresholdDays] = useState(45);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [recoveryToken] = useState(() => {
@@ -4044,7 +4144,7 @@ export default function ConfiaPrototype() {
         ]);
         if (!cancelled) {
           setEstablishments(estabRows);
-          setStaff(staffRows.map(mapPersonRow));
+          setStaff(staffRows.map((r) => mapPersonRow(r, org.alertThresholdDays)));
           setOrganizationId(org.id);
           setOrganizationName(org.name);
           setSubscriptionStatus(org.subscriptionStatus);
@@ -4052,6 +4152,7 @@ export default function ConfiaPrototype() {
           setSubscriptionPeriod(org.subscriptionPeriod);
           setCurrentPeriodEnd(org.currentPeriodEnd);
           setStripeCustomerId(org.stripeCustomerId);
+          setAlertThresholdDays(org.alertThresholdDays);
         }
       } catch (err) {
         console.error("Erreur de chargement Supabase:", err);
@@ -4078,7 +4179,7 @@ export default function ConfiaPrototype() {
   const reloadStaff = async () => {
     try {
       const staffRows = await fetchStaff(token);
-      setStaff(staffRows.map(mapPersonRow));
+      setStaff(staffRows.map((r) => mapPersonRow(r, alertThresholdDays)));
     } catch (err) {
       console.error("Erreur de rechargement du personnel:", err);
       if (isSessionExpired(err)) {
@@ -4106,6 +4207,20 @@ export default function ConfiaPrototype() {
   const handleLogin = (newSession) => {
     saveSession(newSession);
     setSession(newSession);
+  };
+
+  // Apres un changement du seuil d'alerte dans Parametres, on recharge le
+  // personnel et on recalcule tous les statuts avec la nouvelle valeur (le
+  // state alertThresholdDays n'est pas encore a jour au moment de l'appel,
+  // donc on utilise directement la valeur recue plutot que le state).
+  const handleUpdateAlertThreshold = async (newDays) => {
+    setAlertThresholdDays(newDays);
+    try {
+      const staffRows = await fetchStaff(token);
+      setStaff(staffRows.map((r) => mapPersonRow(r, newDays)));
+    } catch (err) {
+      console.error("Erreur de rechargement apres changement de seuil:", err);
+    }
   };
 
   if (recoveryToken) {
@@ -4305,7 +4420,7 @@ export default function ConfiaPrototype() {
             </div>
           )}
           {view === "dashboard" && <Dashboard staff={staff} establishments={establishments} setView={setView} subscriptionStatus={subscriptionStatus} />}
-          {view === "staff" && <StaffView staff={staff} onReload={reloadStaff} onDeletePerson={handleDeletePerson} establishments={establishments} token={token} />}
+          {view === "staff" && <StaffView staff={staff} onReload={reloadStaff} onDeletePerson={handleDeletePerson} establishments={establishments} token={token} alertThresholdDays={alertThresholdDays} />}
           {view === "alerts" && <AlertsView staff={staff} establishments={establishments} userEmail={session?.user?.email} />}
           {view === "reports" && <ReportsView staff={staff} establishments={establishments} organizationName={organizationName} />}
           {view === "abonnement" && (
@@ -4334,6 +4449,8 @@ export default function ConfiaPrototype() {
               subscriptionPlan={subscriptionPlan}
               subscriptionPeriod={subscriptionPeriod}
               currentPeriodEnd={currentPeriodEnd}
+              alertThresholdDays={alertThresholdDays}
+              onUpdateAlertThreshold={handleUpdateAlertThreshold}
               onRenameOrganization={(newName) => setOrganizationName(newName)}
               onAddEstablishment={(created) => setEstablishments((prev) => [...prev, created])}
               onDeleteEstablishment={(id) => {
