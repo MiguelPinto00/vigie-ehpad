@@ -397,6 +397,26 @@ async function renameOrganization(organizationId, newName, token) {
   return data[0];
 }
 
+// Met a jour le nom affiche du membre courant au sein d'une organisation.
+// Filtre a la fois par organization_id et user_id pour ne jamais pouvoir
+// modifier le nom affiche d'un autre membre.
+async function updateMemberDisplayName(organizationId, userId, displayName, token) {
+  const res = await fetch(
+    SUPABASE_URL + "/rest/v1/organization_members?organization_id=eq." + organizationId + "&user_id=eq." + userId,
+    {
+      method: "PATCH",
+      headers: { ...authHeaders(token), Prefer: "return=representation" },
+      body: JSON.stringify({ display_name: displayName }),
+    }
+  );
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error("Erreur de mise a jour du nom affiche : " + res.status + " - " + body.slice(0, 150));
+  }
+  const data = await res.json();
+  return data[0];
+}
+
 async function updateAlertThreshold(organizationId, days, token) {
   const res = await fetch(SUPABASE_URL + "/rest/v1/organizations?id=eq." + organizationId, {
     method: "PATCH",
@@ -2631,7 +2651,7 @@ function AbonnementView({ token, organizationId, establishments, staffCount, cur
   );
 }
 
-function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment, onDeleteEstablishment, organizationName, onRenameOrganization, currentUserEmail, onDeleteAccount, staffCount, subscriptionStatus, subscriptionPlan, subscriptionPeriod, currentPeriodEnd, alertThresholdDays, onUpdateAlertThreshold }) {
+function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment, onDeleteEstablishment, organizationName, onRenameOrganization, currentUserEmail, currentUserId, onDeleteAccount, staffCount, subscriptionStatus, subscriptionPlan, subscriptionPeriod, currentPeriodEnd, alertThresholdDays, onUpdateAlertThreshold }) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
@@ -2744,6 +2764,11 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
   const [resendResult, setResendResult] = useState({});
   const [removeMemberError, setRemoveMemberError] = useState(null);
 
+  const [displayNameDraft, setDisplayNameDraft] = useState("");
+  const [savingDisplayName, setSavingDisplayName] = useState(false);
+  const [displayNameSaved, setDisplayNameSaved] = useState(false);
+  const [displayNameError, setDisplayNameError] = useState(null);
+
   useEffect(() => {
     if (organizationName) setOrgNameDraft(organizationName);
   }, [organizationName]);
@@ -2754,9 +2779,29 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
       .then(([m, i]) => {
         setMembers(m);
         setPendingInvites(i);
+        const ownRow = m.find((row) => row.email === currentUserEmail);
+        setDisplayNameDraft(ownRow?.display_name || "");
       })
       .catch((err) => console.error("Erreur de chargement equipe:", err));
   }, [organizationId, token]);
+
+  const saveDisplayName = async () => {
+    setSavingDisplayName(true);
+    setDisplayNameSaved(false);
+    setDisplayNameError(null);
+    try {
+      await updateMemberDisplayName(organizationId, currentUserId, displayNameDraft.trim() || null, token);
+      setMembers((prev) =>
+        prev.map((m) => (m.email === currentUserEmail ? { ...m, display_name: displayNameDraft.trim() || null } : m))
+      );
+      setDisplayNameSaved(true);
+    } catch (err) {
+      console.error("Erreur de mise a jour du nom affiche:", err);
+      setDisplayNameError(err.message || "Erreur lors de l'enregistrement");
+    } finally {
+      setSavingDisplayName(false);
+    }
+  };
 
   const currentUserRole = members.find((m) => m.email === currentUserEmail)?.role;
   const isOwner = currentUserRole === "owner";
@@ -3019,6 +3064,55 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
           Email de connexion : <strong>{currentUserEmail}</strong>
         </p>
+
+        <label style={{ display: "block", fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500, color: TOKENS.inkSoft, marginBottom: 5 }}>
+          Nom affiche (facultatif)
+        </label>
+        <div style={{ display: "flex", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
+          <input
+            type="text"
+            placeholder="Ex. Marie Dupont"
+            value={displayNameDraft}
+            onChange={(e) => setDisplayNameDraft(e.target.value)}
+            style={{
+              flex: "1 1 200px",
+              padding: "8px 10px",
+              borderRadius: 6,
+              border: "1px solid " + TOKENS.line,
+              boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 13,
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+          />
+          <button
+            onClick={saveDisplayName}
+            disabled={savingDisplayName}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 6,
+              border: "none",
+              background: TOKENS.brand,
+              color: "#fff",
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 12.5,
+              fontWeight: 500,
+              cursor: savingDisplayName ? "default" : "pointer",
+              opacity: savingDisplayName ? 0.6 : 1,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {savingDisplayName ? "..." : "Enregistrer"}
+          </button>
+        </div>
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: TOKENS.inkSoft, margin: "0 0 14px", lineHeight: 1.5 }}>
+          S'affiche a la place de votre email dans la liste des membres de l'equipe. Laissez vide pour continuer a afficher votre email.
+        </p>
+        {displayNameSaved && <div style={{ fontSize: 11.5, color: TOKENS.ok, marginBottom: 14 }}>Enregistre.</div>}
+        {displayNameError && <div style={{ fontSize: 11.5, color: TOKENS.danger, marginBottom: 14 }}>{displayNameError}</div>}
+
+        <div style={{ borderTop: "1px solid " + TOKENS.line, margin: "4px 0 16px" }} />
 
         <label style={{ display: "block", fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500, color: TOKENS.inkSoft, marginBottom: 5 }}>
           Nouvelle adresse email
@@ -3300,7 +3394,13 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
                   fontSize: 13,
                 }}
               >
-                <span>{m.email}{m.email === currentUserEmail ? " (vous)" : ""}</span>
+                <span>
+                  {m.display_name ? m.display_name : m.email}
+                  {m.email === currentUserEmail ? " (vous)" : ""}
+                  {m.display_name && (
+                    <span style={{ color: TOKENS.inkSoft, fontSize: 11, marginLeft: 6 }}>({m.email})</span>
+                  )}
+                </span>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ fontSize: 11, color: TOKENS.inkSoft, textTransform: "uppercase" }}>{m.role}</span>
                   {canRemove && (
@@ -5000,6 +5100,7 @@ export default function ConfiaPrototype() {
               organizationId={organizationId}
               organizationName={organizationName}
               currentUserEmail={session?.user?.email}
+              currentUserId={session?.user?.id}
               staffCount={staff.length}
               subscriptionStatus={subscriptionStatus}
               subscriptionPlan={subscriptionPlan}
