@@ -4225,6 +4225,8 @@ function LandingFeatureCard({ icon: Icon, title, description }) {
 }
 
 function LandingPage({ onGetStarted, onLogin }) {
+  const [billingPeriod, setBillingPeriod] = useState("monthly");
+
   return (
     <div style={{ fontFamily: "'Inter', sans-serif", color: TOKENS.ink }}>
       {/* Barre de navigation */}
@@ -4350,6 +4352,49 @@ function LandingPage({ onGetStarted, onLogin }) {
             title="Multi-etablissements"
             description="Gerez plusieurs EHPAD et invitez votre equipe au sein d'une seule organisation."
           />
+        </div>
+      </div>
+
+      {/* Tarifs */}
+      <div style={{ maxWidth: 1040, margin: "0 auto", padding: "20px 20px 60px" }}>
+        <div style={{ textAlign: "center", marginBottom: 30 }}>
+          <h2 style={{ fontSize: 26, fontWeight: 700, margin: "0 0 10px" }}>Nos tarifs</h2>
+          <p style={{ fontSize: 14, color: TOKENS.inkSoft, margin: "0 0 18px" }}>
+            Choisissez l'offre adaptee a votre organisation. Sans engagement, resiliable a tout moment.
+          </p>
+          <div
+            style={{
+              display: "inline-flex",
+              background: TOKENS.paperDim,
+              borderRadius: 6,
+              padding: 3,
+            }}
+          >
+            {["monthly", "annual"].map((period) => (
+              <button
+                key={period}
+                onClick={() => setBillingPeriod(period)}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: 5,
+                  border: "none",
+                  background: billingPeriod === period ? TOKENS.brand : "transparent",
+                  color: billingPeriod === period ? "#fff" : TOKENS.inkSoft,
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: 12.5,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
+              >
+                {period === "monthly" ? "Mensuel" : "Annuel (2 mois offerts)"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+          {PLANS.map((plan) => (
+            <LandingPricingCard key={plan.key} plan={plan} billingPeriod={billingPeriod} onGetStarted={onGetStarted} />
+          ))}
         </div>
       </div>
 
