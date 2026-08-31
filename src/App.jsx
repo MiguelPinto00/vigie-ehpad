@@ -1069,66 +1069,77 @@ function Dashboard({ staff, establishments, setView, subscriptionStatus, organiz
   const isInTrial = subscriptionStatus !== "active" && trialDaysLeft !== null && trialDaysLeft !== undefined;
   const isTrialEndingSoon = isInTrial && trialDaysLeft <= 3;
 
+  // Extrait en variable pour etre affiche aussi bien sur l'ecran de
+  // bienvenue (aucun etablissement encore cree) que sur le tableau de bord
+  // complet : un nouveau compte doit voir son compte a rebours des le
+  // premier ecran, pas seulement une fois l'onboarding termine.
+  const subscriptionBanner = subscriptionStatus !== "active" && (
+    <div
+      style={{
+        background: isTrialEndingSoon ? TOKENS.warnBg : TOKENS.okBg,
+        border: "1px solid " + (isTrialEndingSoon ? TOKENS.warn : TOKENS.ok) + "44",
+        borderRadius: 8,
+        padding: "14px 18px",
+        marginBottom: 20,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+        flexWrap: "wrap",
+      }}
+    >
+      <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13.5, color: TOKENS.ink }}>
+        {isInTrial ? (
+          <>
+            <strong>
+              {trialDaysLeft === 0
+                ? "Dernier jour d'essai gratuit."
+                : trialDaysLeft === 1
+                ? "Il vous reste 1 jour d'essai gratuit."
+                : "Il vous reste " + trialDaysLeft + " jours d'essai gratuit."}
+            </strong>{" "}
+            Choisissez une offre pour continuer sans interruption a la fin de votre essai.
+          </>
+        ) : (
+          <>
+            <strong>Aucun abonnement actif.</strong> Choisissez une offre pour continuer a utiliser Confia sans
+            interruption.
+          </>
+        )}
+      </div>
+      <button
+        onClick={() => setView("abonnement")}
+        style={{
+          padding: "8px 16px",
+          borderRadius: 6,
+          border: "none",
+          background: isTrialEndingSoon ? TOKENS.warn : TOKENS.ok,
+          color: "#fff",
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 13,
+          fontWeight: 500,
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+          flexShrink: 0,
+        }}
+      >
+        Voir les offres
+      </button>
+    </div>
+  );
+
   if (establishments.length === 0) {
-    return <OnboardingWelcome setView={setView} organizationName={organizationName} />;
+    return (
+      <div>
+        {subscriptionBanner}
+        <OnboardingWelcome setView={setView} organizationName={organizationName} />
+      </div>
+    );
   }
 
   return (
     <div>
-      {subscriptionStatus !== "active" && (
-        <div
-          style={{
-            background: isTrialEndingSoon ? TOKENS.warnBg : TOKENS.okBg,
-            border: "1px solid " + (isTrialEndingSoon ? TOKENS.warn : TOKENS.ok) + "44",
-            borderRadius: 8,
-            padding: "14px 18px",
-            marginBottom: 20,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
-          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13.5, color: TOKENS.ink }}>
-            {isInTrial ? (
-              <>
-                <strong>
-                  {trialDaysLeft === 0
-                    ? "Dernier jour d'essai gratuit."
-                    : trialDaysLeft === 1
-                    ? "Il vous reste 1 jour d'essai gratuit."
-                    : "Il vous reste " + trialDaysLeft + " jours d'essai gratuit."}
-                </strong>{" "}
-                Choisissez une offre pour continuer sans interruption a la fin de votre essai.
-              </>
-            ) : (
-              <>
-                <strong>Aucun abonnement actif.</strong> Choisissez une offre pour continuer a utiliser Confia sans
-                interruption.
-              </>
-            )}
-          </div>
-          <button
-            onClick={() => setView("abonnement")}
-            style={{
-              padding: "8px 16px",
-              borderRadius: 6,
-              border: "none",
-              background: isTrialEndingSoon ? TOKENS.warn : TOKENS.ok,
-              color: "#fff",
-              fontFamily: "'Inter', sans-serif",
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-            }}
-          >
-            Voir les offres
-          </button>
-        </div>
-      )}
+      {subscriptionBanner}
       <div
         style={{
           background: "#fff",
