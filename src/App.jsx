@@ -4321,7 +4321,7 @@ function LandingPage({ onGetStarted, onLogin }) {
               cursor: "pointer",
             }}
           >
-            Creer mon compte gratuitement <ChevronRight size={16} />
+            Creer mon compte <ChevronRight size={16} />
           </button>
           <span style={{ fontSize: 12, color: TOKENS.inkSoft }}>
             Sans engagement — annulation possible a tout moment.
@@ -4511,7 +4511,7 @@ function LandingPage({ onGetStarted, onLogin }) {
               cursor: "pointer",
             }}
           >
-            Creer mon compte gratuitement <ChevronRight size={16} />
+            Creer mon compte <ChevronRight size={16} />
           </button>
         </div>
       </div>
