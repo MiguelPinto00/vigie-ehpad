@@ -4226,6 +4226,7 @@ function LandingFeatureCard({ icon: Icon, title, description }) {
 
 function LandingPage({ onGetStarted, onLogin }) {
   const [billingPeriod, setBillingPeriod] = useState("monthly");
+  const [legalModal, setLegalModal] = useState(null); // null | "mentions" | "confidentialite"
 
   return (
     <div style={{ fontFamily: "'Inter', sans-serif", color: TOKENS.ink }}>
@@ -4521,7 +4522,87 @@ function LandingPage({ onGetStarted, onLogin }) {
         <span style={{ fontSize: 12, color: TOKENS.inkSoft }}>
           Confia — Suivi de conformite vaccinale pour le secteur medico-social
         </span>
+        <div style={{ display: "flex", justifyContent: "center", gap: 18, marginTop: 10, flexWrap: "wrap" }}>
+          <button
+            onClick={() => setLegalModal("mentions")}
+            style={{ background: "none", border: "none", padding: 0, color: TOKENS.inkSoft, fontSize: 11.5, textDecoration: "underline", cursor: "pointer" }}
+          >
+            Mentions legales
+          </button>
+          <button
+            onClick={() => setLegalModal("confidentialite")}
+            style={{ background: "none", border: "none", padding: 0, color: TOKENS.inkSoft, fontSize: 11.5, textDecoration: "underline", cursor: "pointer" }}
+          >
+            Politique de confidentialite
+          </button>
+        </div>
       </div>
+
+      {legalModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15,23,42,0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+            padding: "24px 16px",
+          }}
+          onClick={() => setLegalModal(null)}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 10,
+              padding: "28px 30px",
+              maxWidth: 560,
+              maxHeight: "80vh",
+              overflowY: "auto",
+              boxShadow: "0 12px 40px rgba(15,23,42,0.2)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 600, margin: 0 }}>
+                {legalModal === "mentions" ? "Mentions legales" : "Politique de confidentialite"}
+              </h2>
+              <button onClick={() => setLegalModal(null)} style={{ background: "none", border: "none", cursor: "pointer", color: TOKENS.inkSoft }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            {legalModal === "mentions" ? (
+              <div style={{ fontSize: 13, color: TOKENS.inkSoft, lineHeight: 1.7 }}>
+                <p style={{ background: TOKENS.warnBg, color: TOKENS.warn, padding: "10px 12px", borderRadius: 6, fontSize: 12.5, marginTop: 0 }}>
+                  Ces mentions legales sont en cours de finalisation, dans l'attente de l'attribution du
+                  numero SIRET de l'entreprise. Elles seront completees des reception.
+                </p>
+                <p><strong>Editeur du site</strong><br />Confia — [Forme juridique et SIRET a completer]<br />[Adresse du siege social a completer]</p>
+                <p><strong>Directeur de la publication</strong><br />[Nom a completer]</p>
+                <p><strong>Hebergement</strong><br />Le site est heberge par Vercel Inc. L'application et les donnees sont hebergees sur une infrastructure cloud securisee, en cours de migration vers un hebergement certifie HDS (Hebergement de Donnees de Sante).</p>
+                <p><strong>Contact</strong><br />Pour toute question, ecrivez a{" "}
+                  <a href="mailto:contact@confia-app.fr" style={{ color: TOKENS.brand }}>contact@confia-app.fr</a>.
+                </p>
+              </div>
+            ) : (
+              <div style={{ fontSize: 13, color: TOKENS.inkSoft, lineHeight: 1.7 }}>
+                <p style={{ marginTop: 0 }}>
+                  Confia respecte les principes du Reglement General sur la Protection des Donnees (RGPD).
+                </p>
+                <p><strong>Donnees collectees</strong><br />Nom, fonction et statut vaccinal des salaries suivis par votre organisation, ainsi que les justificatifs que vous choisissez d'y associer. Ces donnees ne sont collectees que pour assurer le suivi de conformite reglementaire de votre etablissement.</p>
+                <p><strong>Finalite</strong><br />Le suivi de l'obligation vaccinale du personnel medico-social, l'envoi d'alertes automatiques, et la generation de rapports de conformite.</p>
+                <p><strong>Confidentialite</strong><br />Chaque organisation n'a acces qu'a ses propres donnees. Les resumes envoyes par email sont anonymises (aucun nom de salarie n'y figure).</p>
+                <p><strong>Conservation</strong><br />Les donnees sont conservees pour la duree necessaire au suivi de conformite reglementaire, et supprimees sur demande.</p>
+                <p><strong>Vos droits</strong><br />Conformement au RGPD, vous disposez d'un droit d'acces, de rectification et de suppression de vos donnees. Pour l'exercer, ecrivez a{" "}
+                  <a href="mailto:contact@confia-app.fr" style={{ color: TOKENS.brand }}>contact@confia-app.fr</a>.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
