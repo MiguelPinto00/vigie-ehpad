@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   ClipboardCheck,
   CreditCard,
+  Upload,
 } from "lucide-react";
 
 const TOKENS = {
@@ -1270,11 +1271,328 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
   );
 }
 
+// Modele de colonnes attendu pour le fichier d'import : chaque ligne est un
+// salarie, avec ses deux dates de vaccin optionnelles. Garde ici pour
+// n'avoir qu'un seul endroit a modifier si l'ordre des colonnes change un jour.
+const IMPORT_CSV_HEADERS = [
+  "Nom",
+  "Fonction",
+  "Etablissement",
+  "Date vaccination Grippe (AAAA-MM-JJ)",
+  "Date vaccination Rougeole (AAAA-MM-JJ)",
+];
+
+function csvCellEscape(value) {
+  const str = String(value ?? "");
+  if (/[",;\n]/.test(str)) {
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
+// Parseur CSV volontairement simple : detecte automatiquement le separateur
+// (point-virgule ou virgule) a partir de l'en-tete, et gere les guillemets
+// pour les valeurs contenant elles-memes le separateur.
+function parseImportCSV(text) {
+  const firstLine = text.split(/\r?\n/, 1)[0] || "";
+  const delimiter = firstLine.includes(";") ? ";" : ",";
+  const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  return lines.map((line) => {
+    const cells = [];
+    let current = "";
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (ch === delimiter && !inQuotes) {
+        cells.push(current);
+        current = "";
+      } else {
+        current += ch;
+      }
+    }
+    cells.push(current);
+    return cells.map((c) => c.trim());
+  });
+}
+
+function ImportStaffModal({ onClose, onSave, establishments, token }) {
+  const [file, setFile] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [results, setResults] = useState(null);
+
+  const downloadTemplate = () => {
+    const example = [
+      "Marie Dupont",
+      "Aide-soignante",
+      establishments[0]?.name || "Nom exact de l'etablissement",
+      "2025-10-01",
+      "",
+    ];
+    const rows = [IMPORT_CSV_HEADERS, example];
+    const csvContent = rows.map((row) => row.map(csvCellEscape).join(";")).join("\r\n");
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "modele-import-salaries.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = async () => {
+    if (!file) return;
+    setImporting(true);
+    setResults(null);
+    try {
+      const text = await file.text();
+      const rows = parseImportCSV(text);
+      if (rows.length === 0) throw new Error("Le fichier est vide.");
+
+      // La premiere ligne est consideree comme l'en-tete et n'est jamais importee.
+      const dataRows = rows.slice(1);
+      let successCount = 0;
+      const errors = [];
+
+      for (let i = 0; i < dataRows.length; i++) {
+        const row = dataRows[i];
+        const lineNumber = i + 2;
+        const [name, role, estabName, grippeDate, rougeoleDate] = row;
+
+        if (!name || !name.trim()) {
+          errors.push({ line: lineNumber, reason: "Nom manquant, ligne ignoree." });
+          continue;
+        }
+        const establishment = establishments.find(
+          (e) => e.name.trim().toLowerCase() === (estabName || "").trim().toLowerCase()
+        );
+        if (!establishment) {
+          errors.push({
+            line: lineNumber,
+            reason: "Etablissement \"" + (estabName || "-") + "\" introuvable (verifiez l'orthographe exacte).",
+          });
+          continue;
+        }
+
+        try {
+          const created = await insertStaffPerson(
+            { name: name.trim(), role: (role || "").trim() || "-", establishment_id: establishment.id },
+            token
+          );
+          for (const [vaccine, dateValue] of [
+            ["Grippe", grippeDate],
+            ["Rougeole", rougeoleDate],
+          ]) {
+            if (!dateValue || !dateValue.trim()) continue;
+            const computed = computeVaccineCompliance(vaccine, dateValue.trim());
+            await upsertVaccination(
+              {
+                staff_id: created.id,
+                vaccine,
+                last_vaccination_date: dateValue.trim(),
+                document_url: null,
+                status: computed.status,
+                updated_label: computed.updatedLabel,
+                next_label: computed.nextLabel,
+              },
+              null,
+              token
+            );
+          }
+          successCount++;
+        } catch (err) {
+          errors.push({ line: lineNumber, reason: err.message || "Erreur d'enregistrement." });
+        }
+      }
+
+      setResults({ success: successCount, errors });
+      if (successCount > 0) await onSave();
+    } catch (err) {
+      console.error("Erreur d'import CSV:", err);
+      setResults({ success: 0, errors: [{ line: "-", reason: err.message || "Erreur lors de la lecture du fichier." }] });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(22,35,31,0.35)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 50,
+        overflowY: "auto",
+        padding: "24px 0",
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 10,
+          padding: 24,
+          width: 440,
+          maxWidth: "92vw",
+          boxShadow: "0 12px 40px rgba(22,35,31,0.18)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 17, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
+            Importer des salaries
+          </h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: TOKENS.inkSoft }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, lineHeight: 1.6, margin: "0 0 14px" }}>
+          Importez plusieurs salaries d'un coup depuis un fichier CSV. Le nom de l'etablissement dans le fichier
+          doit correspondre exactement a celui deja cree dans Confia.
+        </p>
+
+        <button
+          type="button"
+          onClick={downloadTemplate}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            background: "none",
+            border: "1px solid " + TOKENS.line,
+            borderRadius: 6,
+            padding: "7px 12px",
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 12,
+            color: TOKENS.brand,
+            cursor: "pointer",
+            marginBottom: 16,
+          }}
+        >
+          <FileDown size={13} /> Telecharger le modele CSV
+        </button>
+
+        <label
+          style={{
+            display: "block",
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 12,
+            fontWeight: 500,
+            color: TOKENS.inkSoft,
+            marginBottom: 6,
+          }}
+        >
+          Fichier CSV rempli
+        </label>
+        <input
+          type="file"
+          accept=".csv,text/csv"
+          onChange={(e) => {
+            setFile(e.target.files?.[0] || null);
+            setResults(null);
+          }}
+          style={{
+            width: "100%",
+            padding: "8px 10px",
+            borderRadius: 6,
+            border: "1px solid " + TOKENS.line,
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 13,
+            boxSizing: "border-box",
+            marginBottom: 16,
+          }}
+        />
+
+        {results && (
+          <div
+            style={{
+              background: results.errors.length > 0 ? TOKENS.warnBg : TOKENS.okBg,
+              borderRadius: 6,
+              padding: "10px 12px",
+              marginBottom: 16,
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 12,
+              maxHeight: 160,
+              overflowY: "auto",
+            }}
+          >
+            <div style={{ fontWeight: 600, color: TOKENS.ink, marginBottom: results.errors.length > 0 ? 6 : 0 }}>
+              {results.success} salarie{results.success > 1 ? "s" : ""} importe{results.success > 1 ? "s" : ""} avec succes.
+            </div>
+            {results.errors.length > 0 && (
+              <div>
+                <div style={{ fontWeight: 600, color: TOKENS.warn, marginBottom: 4 }}>
+                  {results.errors.length} ligne{results.errors.length > 1 ? "s" : ""} en erreur :
+                </div>
+                <ul style={{ margin: 0, paddingLeft: 16, color: TOKENS.inkSoft }}>
+                  {results.errors.map((e, idx) => (
+                    <li key={idx}>Ligne {e.line} : {e.reason}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={handleImport}
+            disabled={!file || importing}
+            style={{
+              flex: 1,
+              padding: "10px",
+              borderRadius: 6,
+              border: "none",
+              background: TOKENS.brand,
+              color: "#fff",
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 13.5,
+              fontWeight: 500,
+              cursor: !file || importing ? "default" : "pointer",
+              opacity: !file || importing ? 0.6 : 1,
+            }}
+          >
+            {importing ? "Import en cours..." : "Importer"}
+          </button>
+          <button
+            onClick={onClose}
+            style={{
+              padding: "10px 16px",
+              borderRadius: 6,
+              border: "1px solid " + TOKENS.line,
+              background: "#fff",
+              color: TOKENS.inkSoft,
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 13,
+              cursor: "pointer",
+            }}
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StaffView({ staff, onReload, onDeletePerson, establishments, token }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [siteFilter, setSiteFilter] = useState("all");
   const [showModal, setShowModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
@@ -1362,9 +1680,29 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token }) {
           </select>
         )}
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => setShowImportModal(true)}
           style={{
             marginLeft: "auto",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "8px 14px",
+            borderRadius: 6,
+            border: "1px solid " + TOKENS.line,
+            background: "#fff",
+            color: TOKENS.ink,
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 13,
+            fontWeight: 500,
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <Upload size={14} /> Importer
+        </button>
+        <button
+          onClick={() => setShowModal(true)}
+          style={{
             display: "inline-flex",
             alignItems: "center",
             gap: 6,
@@ -1393,6 +1731,15 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token }) {
           establishments={establishments}
           token={token}
           editingStaff={editingStaff}
+        />
+      )}
+
+      {showImportModal && (
+        <ImportStaffModal
+          onClose={() => setShowImportModal(false)}
+          onSave={onReload}
+          establishments={establishments}
+          token={token}
         />
       )}
 
