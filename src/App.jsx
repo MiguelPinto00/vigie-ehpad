@@ -192,6 +192,25 @@ async function updatePasswordWithToken(accessToken, newPassword) {
   return data;
 }
 
+// Demande le changement d'adresse email du compte connecte. Supabase envoie
+// un email de confirmation a la nouvelle adresse (et parfois aussi a
+// l'ancienne, selon la configuration du projet) avant que le changement soit
+// definitivement applique : rien ne change immediatement cote affichage.
+async function updateEmailWithToken(accessToken, newEmail) {
+  const res = await fetch(SUPABASE_URL + "/auth/v1/user", {
+    method: "PUT",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + accessToken,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email: newEmail }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.msg || data.error_description || "Erreur lors du changement d'email");
+  return data;
+}
+
 async function fetchEstablishments(token) {
   const res = await fetch(SUPABASE_URL + "/rest/v1/establishments?select=*", {
     headers: authHeaders(token),
@@ -2648,6 +2667,36 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
     }
   };
 
+  const [newEmail, setNewEmail] = useState("");
+  const [changingEmail, setChangingEmail] = useState(false);
+  const [emailChangeRequested, setEmailChangeRequested] = useState(false);
+  const [emailChangeError, setEmailChangeError] = useState(null);
+
+  const handleChangeEmail = async () => {
+    setEmailChangeRequested(false);
+    setEmailChangeError(null);
+    const trimmed = newEmail.trim();
+    if (!trimmed || !trimmed.includes("@")) {
+      setEmailChangeError("Merci de saisir une adresse email valide.");
+      return;
+    }
+    if (trimmed.toLowerCase() === (currentUserEmail || "").toLowerCase()) {
+      setEmailChangeError("C'est deja votre adresse email actuelle.");
+      return;
+    }
+    setChangingEmail(true);
+    try {
+      await updateEmailWithToken(token, trimmed);
+      setEmailChangeRequested(true);
+      setNewEmail("");
+    } catch (err) {
+      console.error("Erreur de changement d'email:", err);
+      setEmailChangeError(err.message || "Erreur lors du changement d'email");
+    } finally {
+      setChangingEmail(false);
+    }
+  };
+
   const [orgNameDraft, setOrgNameDraft] = useState(organizationName || "");
   const [renamingOrg, setRenamingOrg] = useState(false);
   const [orgRenamed, setOrgRenamed] = useState(false);
@@ -2970,6 +3019,58 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
           Email de connexion : <strong>{currentUserEmail}</strong>
         </p>
+
+        <label style={{ display: "block", fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500, color: TOKENS.inkSoft, marginBottom: 5 }}>
+          Nouvelle adresse email
+        </label>
+        <div style={{ display: "flex", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
+          <input
+            type="email"
+            placeholder="nouvelle.adresse@exemple.fr"
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.target.value)}
+            style={{
+              flex: "1 1 200px",
+              padding: "8px 10px",
+              borderRadius: 6,
+              border: "1px solid " + TOKENS.line,
+              boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 13,
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+          />
+          <button
+            onClick={handleChangeEmail}
+            disabled={changingEmail || !newEmail.trim()}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 6,
+              border: "none",
+              background: TOKENS.brand,
+              color: "#fff",
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 12.5,
+              fontWeight: 500,
+              cursor: changingEmail ? "default" : "pointer",
+              opacity: changingEmail || !newEmail.trim() ? 0.6 : 1,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {changingEmail ? "..." : "Changer l'email"}
+          </button>
+        </div>
+        {emailChangeRequested && (
+          <div style={{ fontSize: 11.5, color: TOKENS.ok, marginBottom: 14, lineHeight: 1.5 }}>
+            Un email de confirmation a ete envoye a la nouvelle adresse. Le changement ne sera effectif
+            qu'apres avoir clique sur le lien recu.
+          </div>
+        )}
+        {emailChangeError && <div style={{ fontSize: 11.5, color: TOKENS.danger, marginBottom: 14 }}>{emailChangeError}</div>}
+
+        <div style={{ borderTop: "1px solid " + TOKENS.line, margin: "4px 0 16px" }} />
+
         <label style={{ display: "block", fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500, color: TOKENS.inkSoft, marginBottom: 5 }}>
           Nouveau mot de passe
         </label>
