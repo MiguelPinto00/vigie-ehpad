@@ -1273,6 +1273,7 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
 function StaffView({ staff, onReload, onDeletePerson, establishments, token }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
+  const [siteFilter, setSiteFilter] = useState("all");
   const [showModal, setShowModal] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
@@ -1281,9 +1282,10 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token }) {
     return staff.filter((s) => {
       const matchQuery = s.name.toLowerCase().includes(query.toLowerCase());
       const matchFilter = filter === "all" || s.status === filter;
-      return matchQuery && matchFilter;
+      const matchSite = siteFilter === "all" || s.site === siteFilter;
+      return matchQuery && matchFilter && matchSite;
     });
-  }, [staff, query, filter]);
+  }, [staff, query, filter, siteFilter]);
 
   const handleDelete = async (s) => {
     if (!window.confirm("Supprimer " + s.name + " ? Cette action est irreversible et supprimera tous ses suivis vaccinaux.")) return;
@@ -1335,6 +1337,30 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token }) {
             {f === "all" ? "Tous" : STATUS_META[f].label}
           </button>
         ))}
+        {establishments.length > 1 && (
+          <select
+            value={siteFilter}
+            onChange={(e) => setSiteFilter(e.target.value)}
+            style={{
+              padding: "7px 10px",
+              borderRadius: 6,
+              border: "1px solid " + TOKENS.line,
+              background: "#fff",
+              color: siteFilter === "all" ? TOKENS.inkSoft : TOKENS.ink,
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 12.5,
+              cursor: "pointer",
+              outline: "none",
+            }}
+          >
+            <option value="all">Tous les etablissements</option>
+            {establishments.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.name}
+              </option>
+            ))}
+          </select>
+        )}
         <button
           onClick={() => setShowModal(true)}
           style={{
