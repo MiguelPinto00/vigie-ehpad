@@ -126,6 +126,32 @@ function authHeaders(accessToken) {
   };
 }
 
+// Effectue une mise a jour (PATCH) et s'assure qu'elle a reellement modifie
+// une ligne. Sans ce controle, une regle de securite (RLS) manquante en
+// base de donnees peut bloquer silencieusement une sauvegarde : la requete
+// repond "200 OK" mais avec un tableau vide, ce qui donnait auparavant
+// l'illusion trompeuse d'un succes alors que rien n'avait ete enregistre.
+// Centraliser ce controle ici garantit qu'aucune future fonctionnalite ne
+// pourra reproduire ce bug par oubli.
+async function patchAndExpectRow(url, body, token, actionLabel) {
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: { ...authHeaders(token), Prefer: "return=representation" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => "");
+    throw new Error("Erreur lors de " + actionLabel + " : " + res.status + " - " + errBody.slice(0, 150));
+  }
+  const data = await res.json();
+  if (!data || data.length === 0) {
+    throw new Error(
+      "La modification n'a pas ete enregistree (droits d'acces insuffisants pour : " + actionLabel + "). Contactez le support."
+    );
+  }
+  return data[0];
+}
+
 async function signUp(email, password, orgName) {
   const res = await fetch(SUPABASE_URL + "/auth/v1/signup", {
     method: "POST",
@@ -247,14 +273,7 @@ async function insertStaffPerson(row, token) {
 }
 
 async function updateStaffPerson(id, updates, token) {
-  const res = await fetch(SUPABASE_URL + "/rest/v1/staff?id=eq." + id, {
-    method: "PATCH",
-    headers: { ...authHeaders(token), Prefer: "return=representation" },
-    body: JSON.stringify(updates),
-  });
-  if (!res.ok) throw new Error("Erreur de mise a jour du salarie");
-  const data = await res.json();
-  return data[0];
+  return patchAndExpectRow(SUPABASE_URL + "/rest/v1/staff?id=eq." + id, updates, token, "la mise a jour du salarie");
 }
 
 async function deleteStaffPerson(id, token) {
@@ -388,34 +407,24 @@ async function removeOrganizationMember(userId, organizationId, token) {
 }
 
 async function renameOrganization(organizationId, newName, token) {
-  const res = await fetch(SUPABASE_URL + "/rest/v1/organizations?id=eq." + organizationId, {
-    method: "PATCH",
-    headers: { ...authHeaders(token), Prefer: "return=representation" },
-    body: JSON.stringify({ name: newName }),
-  });
-  if (!res.ok) throw new Error("Erreur de renommage");
-  const data = await res.json();
-  return data[0];
+  return patchAndExpectRow(
+    SUPABASE_URL + "/rest/v1/organizations?id=eq." + organizationId,
+    { name: newName },
+    token,
+    "le renommage de l'organisation"
+  );
 }
 
 // Met a jour le nom affiche du membre courant au sein d'une organisation.
 // Filtre a la fois par organization_id et user_id pour ne jamais pouvoir
 // modifier le nom affiche d'un autre membre.
 async function updateMemberDisplayName(organizationId, userId, displayName, token) {
-  const res = await fetch(
+  return patchAndExpectRow(
     SUPABASE_URL + "/rest/v1/organization_members?organization_id=eq." + organizationId + "&user_id=eq." + userId,
-    {
-      method: "PATCH",
-      headers: { ...authHeaders(token), Prefer: "return=representation" },
-      body: JSON.stringify({ display_name: displayName }),
-    }
+    { display_name: displayName },
+    token,
+    "la mise a jour du nom affiche"
   );
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error("Erreur de mise a jour du nom affiche : " + res.status + " - " + body.slice(0, 150));
-  }
-  const data = await res.json();
-  return data[0];
 }
 
 // Recupere le role, le nom affiche et la photo de profil du membre courant
@@ -461,42 +470,30 @@ async function uploadAvatarImage(file, userId, token) {
 }
 
 async function updateMemberAvatarUrl(organizationId, userId, avatarUrl, token) {
-  const res = await fetch(
+  return patchAndExpectRow(
     SUPABASE_URL + "/rest/v1/organization_members?organization_id=eq." + organizationId + "&user_id=eq." + userId,
-    {
-      method: "PATCH",
-      headers: { ...authHeaders(token), Prefer: "return=representation" },
-      body: JSON.stringify({ avatar_url: avatarUrl }),
-    }
+    { avatar_url: avatarUrl },
+    token,
+    "la mise a jour de la photo de profil"
   );
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error("Erreur de mise a jour de la photo de profil : " + res.status + " - " + body.slice(0, 150));
-  }
-  const data = await res.json();
-  return data[0];
 }
 
 async function updateAlertThreshold(organizationId, days, token) {
-  const res = await fetch(SUPABASE_URL + "/rest/v1/organizations?id=eq." + organizationId, {
-    method: "PATCH",
-    headers: { ...authHeaders(token), Prefer: "return=representation" },
-    body: JSON.stringify({ alert_threshold_days: days }),
-  });
-  if (!res.ok) throw new Error("Erreur de mise a jour du seuil d'alerte");
-  const data = await res.json();
-  return data[0];
+  return patchAndExpectRow(
+    SUPABASE_URL + "/rest/v1/organizations?id=eq." + organizationId,
+    { alert_threshold_days: days },
+    token,
+    "la mise a jour du seuil d'alerte"
+  );
 }
 
 async function updateEstablishmentDetails(establishmentId, updates, token) {
-  const res = await fetch(SUPABASE_URL + "/rest/v1/establishments?id=eq." + establishmentId, {
-    method: "PATCH",
-    headers: { ...authHeaders(token), Prefer: "return=representation" },
-    body: JSON.stringify(updates),
-  });
-  if (!res.ok) throw new Error("Erreur de mise a jour");
-  const data = await res.json();
-  return data[0];
+  return patchAndExpectRow(
+    SUPABASE_URL + "/rest/v1/establishments?id=eq." + establishmentId,
+    updates,
+    token,
+    "la mise a jour de l'etablissement"
+  );
 }
 
 async function deleteEstablishment(establishmentId, token) {
