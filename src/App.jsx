@@ -4359,7 +4359,7 @@ function LandingPage({ onGetStarted, onLogin }) {
       {/* Tarifs */}
       <div style={{ maxWidth: 1040, margin: "0 auto", padding: "20px 20px 60px" }}>
         <div style={{ textAlign: "center", marginBottom: 30 }}>
-          <h2 style={{ fontSize: 26, fontWeight: 700, margin: "0 0 10px" }}>Nos tarifs</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 10px" }}>Nos tarifs</h2>
           <p style={{ fontSize: 14, color: TOKENS.inkSoft, margin: "0 0 18px" }}>
             Choisissez l'offre adaptee a votre organisation. Sans engagement, resiliable a tout moment.
           </p>
