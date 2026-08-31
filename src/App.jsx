@@ -22,6 +22,7 @@ import {
   CreditCard,
   Upload,
   History,
+  Camera,
 } from "lucide-react";
 
 const TOKENS = {
@@ -412,6 +413,65 @@ async function updateMemberDisplayName(organizationId, userId, displayName, toke
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error("Erreur de mise a jour du nom affiche : " + res.status + " - " + body.slice(0, 150));
+  }
+  const data = await res.json();
+  return data[0];
+}
+
+// Recupere le role, le nom affiche et la photo de profil du membre courant
+// au sein de son organisation. Utilise pour afficher les bonnes infos
+// personnelles dans l'en-tete de l'application, independamment du nom de
+// l'organisation elle-meme.
+async function fetchOwnMembership(organizationId, userId, token) {
+  const res = await fetch(
+    SUPABASE_URL +
+      "/rest/v1/organization_members?organization_id=eq." + organizationId + "&user_id=eq." + userId +
+      "&select=display_name,avatar_url,role&limit=1",
+    { headers: authHeaders(token) }
+  );
+  if (!res.ok) throw new Error("Erreur de lecture du profil");
+  const data = await res.json();
+  return data[0] || null;
+}
+
+// Envoie une photo de profil dans le bucket public "avatars", sous un
+// chemin propre a l'utilisateur (userId/avatar.<extension>). Le meme chemin
+// est toujours reutilise (x-upsert) pour qu'une nouvelle photo remplace
+// l'ancienne au lieu d'accumuler des fichiers orphelins. Un parametre
+// "t=" est ajoute a l'URL pour forcer le navigateur a recharger l'image
+// plutot que d'afficher une ancienne version mise en cache.
+async function uploadAvatarImage(file, userId, token) {
+  const ext = (file.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
+  const path = userId + "/avatar." + ext;
+  const uploadRes = await fetch(SUPABASE_URL + "/storage/v1/object/avatars/" + path, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + token,
+      "Content-Type": file.type || "application/octet-stream",
+      "x-upsert": "true",
+    },
+    body: file,
+  });
+  if (!uploadRes.ok) {
+    const body = await uploadRes.text().catch(() => "");
+    throw new Error("Echec de l'upload de la photo : " + uploadRes.status + " - " + body.slice(0, 150));
+  }
+  return SUPABASE_URL + "/storage/v1/object/public/avatars/" + path + "?t=" + Date.now();
+}
+
+async function updateMemberAvatarUrl(organizationId, userId, avatarUrl, token) {
+  const res = await fetch(
+    SUPABASE_URL + "/rest/v1/organization_members?organization_id=eq." + organizationId + "&user_id=eq." + userId,
+    {
+      method: "PATCH",
+      headers: { ...authHeaders(token), Prefer: "return=representation" },
+      body: JSON.stringify({ avatar_url: avatarUrl }),
+    }
+  );
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error("Erreur de mise a jour de la photo de profil : " + res.status + " - " + body.slice(0, 150));
   }
   const data = await res.json();
   return data[0];
@@ -2651,7 +2711,7 @@ function AbonnementView({ token, organizationId, establishments, staffCount, cur
   );
 }
 
-function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment, onDeleteEstablishment, organizationName, onRenameOrganization, currentUserEmail, currentUserId, onDeleteAccount, staffCount, subscriptionStatus, subscriptionPlan, subscriptionPeriod, currentPeriodEnd, alertThresholdDays, onUpdateAlertThreshold }) {
+function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment, onDeleteEstablishment, organizationName, onRenameOrganization, currentUserEmail, currentUserId, avatarUrl, onUpdateProfile, onDeleteAccount, staffCount, subscriptionStatus, subscriptionPlan, subscriptionPeriod, currentPeriodEnd, alertThresholdDays, onUpdateAlertThreshold }) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
@@ -2790,16 +2850,48 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
     setDisplayNameSaved(false);
     setDisplayNameError(null);
     try {
-      await updateMemberDisplayName(organizationId, currentUserId, displayNameDraft.trim() || null, token);
+      const trimmed = displayNameDraft.trim() || null;
+      await updateMemberDisplayName(organizationId, currentUserId, trimmed, token);
       setMembers((prev) =>
-        prev.map((m) => (m.email === currentUserEmail ? { ...m, display_name: displayNameDraft.trim() || null } : m))
+        prev.map((m) => (m.email === currentUserEmail ? { ...m, display_name: trimmed } : m))
       );
+      if (onUpdateProfile) onUpdateProfile({ displayName: trimmed });
       setDisplayNameSaved(true);
     } catch (err) {
       console.error("Erreur de mise a jour du nom affiche:", err);
       setDisplayNameError(err.message || "Erreur lors de l'enregistrement");
     } finally {
       setSavingDisplayName(false);
+    }
+  };
+
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState(null);
+
+  const handleAvatarUpload = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setAvatarError("Merci de choisir un fichier image (JPG, PNG...).");
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      setAvatarError("L'image doit faire moins de 3 Mo.");
+      return;
+    }
+    setUploadingAvatar(true);
+    setAvatarError(null);
+    try {
+      const url = await uploadAvatarImage(file, currentUserId, token);
+      await updateMemberAvatarUrl(organizationId, currentUserId, url, token);
+      setMembers((prev) =>
+        prev.map((m) => (m.email === currentUserEmail ? { ...m, avatar_url: url } : m))
+      );
+      if (onUpdateProfile) onUpdateProfile({ avatarUrl: url });
+    } catch (err) {
+      console.error("Erreur d'upload de la photo de profil:", err);
+      setAvatarError(err.message || "Erreur lors de l'envoi de la photo");
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -3061,9 +3153,72 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
         <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
           Mon profil
         </h3>
-        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 16px" }}>
           Email de connexion : <strong>{currentUserEmail}</strong>
         </p>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: "50%",
+              flexShrink: 0,
+              overflow: "hidden",
+              background: TOKENS.brand,
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 18,
+              fontWeight: 600,
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Photo de profil" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              (displayNameDraft || currentUserEmail || "?")
+                .split(/\s+/)
+                .map((w) => w[0])
+                .join("")
+                .slice(0, 2)
+                .toUpperCase()
+            )}
+          </div>
+          <div>
+            <label
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "7px 12px",
+                borderRadius: 6,
+                border: "1px solid " + TOKENS.line,
+                background: "#fff",
+                color: TOKENS.ink,
+                fontFamily: "'Inter', sans-serif",
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: uploadingAvatar ? "default" : "pointer",
+                opacity: uploadingAvatar ? 0.6 : 1,
+              }}
+            >
+              <Camera size={13} /> {uploadingAvatar ? "Envoi..." : "Changer la photo"}
+              <input
+                type="file"
+                accept="image/*"
+                disabled={uploadingAvatar}
+                onChange={(e) => handleAvatarUpload(e.target.files?.[0] || null)}
+                style={{ display: "none" }}
+              />
+            </label>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 10.5, color: TOKENS.inkSoft, margin: "6px 0 0" }}>
+              JPG ou PNG, 3 Mo maximum.
+            </p>
+          </div>
+        </div>
+        {avatarError && <div style={{ fontSize: 11.5, color: TOKENS.danger, marginBottom: 14 }}>{avatarError}</div>}
 
         <label style={{ display: "block", fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500, color: TOKENS.inkSoft, marginBottom: 5 }}>
           Nom affiche (facultatif)
@@ -3394,11 +3549,36 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
                   fontSize: 13,
                 }}
               >
-                <span>
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {m.avatar_url ? (
+                    <img
+                      src={m.avatar_url}
+                      alt=""
+                      style={{ width: 20, height: 20, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+                    />
+                  ) : (
+                    <span
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        background: TOKENS.brand,
+                        color: "#fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 9,
+                        fontWeight: 600,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {(m.display_name || m.email).slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
                   {m.display_name ? m.display_name : m.email}
                   {m.email === currentUserEmail ? " (vous)" : ""}
                   {m.display_name && (
-                    <span style={{ color: TOKENS.inkSoft, fontSize: 11, marginLeft: 6 }}>({m.email})</span>
+                    <span style={{ color: TOKENS.inkSoft, fontSize: 11 }}>({m.email})</span>
                   )}
                 </span>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -4743,6 +4923,8 @@ export default function ConfiaPrototype() {
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState(null);
   const [stripeCustomerId, setStripeCustomerId] = useState(null);
   const [alertThresholdDays, setAlertThresholdDays] = useState(45);
+  const [myDisplayName, setMyDisplayName] = useState(null);
+  const [myAvatarUrl, setMyAvatarUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [recoveryToken] = useState(() => {
@@ -4809,6 +4991,21 @@ export default function ConfiaPrototype() {
           setCurrentPeriodEnd(org.currentPeriodEnd);
           setStripeCustomerId(org.stripeCustomerId);
           setAlertThresholdDays(org.alertThresholdDays);
+
+          // Chargee separement car elle depend de l'id d'organisation qui
+          // vient d'etre recupere : ne bloque pas le reste de l'affichage
+          // si elle echoue (l'en-tete retombe simplement sur les initiales
+          // de l'email).
+          if (org.id && session?.user?.id) {
+            fetchOwnMembership(org.id, session.user.id, token)
+              .then((membership) => {
+                if (!cancelled && membership) {
+                  setMyDisplayName(membership.display_name || null);
+                  setMyAvatarUrl(membership.avatar_url || null);
+                }
+              })
+              .catch((err) => console.error("Erreur de chargement du profil personnel:", err));
+          }
         }
       } catch (err) {
         console.error("Erreur de chargement Supabase:", err);
@@ -4877,6 +5074,14 @@ export default function ConfiaPrototype() {
     } catch (err) {
       console.error("Erreur de rechargement apres changement de seuil:", err);
     }
+  };
+
+  // Met a jour l'affichage immediat (en-tete, etc.) apres un changement de
+  // nom affiche ou de photo de profil dans Parametres, sans devoir recharger
+  // toute la page.
+  const handleUpdateProfile = (patch) => {
+    if (patch.displayName !== undefined) setMyDisplayName(patch.displayName);
+    if (patch.avatarUrl !== undefined) setMyAvatarUrl(patch.avatarUrl);
   };
 
   if (recoveryToken) {
@@ -5017,28 +5222,42 @@ export default function ConfiaPrototype() {
                 color: TOKENS.inkSoft,
               }}
             >
-              <div
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: "50%",
-                  background: TOKENS.brand,
-                  color: "#fff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  flexShrink: 0,
-                }}
-              >
-                {(organizationName || session?.user?.email || "?")
-                  .split(/\s+/)
-                  .map((w) => w[0])
-                  .join("")
-                  .slice(0, 2)
-                  .toUpperCase()}
-              </div>
+              {myAvatarUrl ? (
+                <img
+                  src={myAvatarUrl}
+                  alt="Photo de profil"
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    flexShrink: 0,
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: "50%",
+                    background: TOKENS.brand,
+                    color: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    flexShrink: 0,
+                  }}
+                >
+                  {(myDisplayName || session?.user?.email || "?")
+                    .split(/\s+/)
+                    .map((w) => w[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase()}
+                </div>
+              )}
               {!isMobile && (organizationName || "Chargement...")}
               <button
                 onClick={handleLogout}
@@ -5101,6 +5320,8 @@ export default function ConfiaPrototype() {
               organizationName={organizationName}
               currentUserEmail={session?.user?.email}
               currentUserId={session?.user?.id}
+              avatarUrl={myAvatarUrl}
+              onUpdateProfile={handleUpdateProfile}
               staffCount={staff.length}
               subscriptionStatus={subscriptionStatus}
               subscriptionPlan={subscriptionPlan}
