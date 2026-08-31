@@ -2083,7 +2083,7 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token, ale
             padding: "8px 14px",
             borderRadius: 6,
             border: "none",
-            background: TOKENS.ink,
+            background: TOKENS.brand,
             color: "#fff",
             fontFamily: "'Inter', sans-serif",
             fontSize: 13,
