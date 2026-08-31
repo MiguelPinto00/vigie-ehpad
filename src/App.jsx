@@ -508,7 +508,7 @@ async function deleteEstablishment(establishmentId, token) {
 async function fetchMyOrganization(token) {
   const res = await fetch(
     SUPABASE_URL +
-      "/rest/v1/organization_members?select=organization_id,organizations(id,name,subscription_status,subscription_plan,subscription_period,current_period_end,stripe_customer_id,alert_threshold_days)&limit=1",
+      "/rest/v1/organization_members?select=organization_id,organizations(id,name,subscription_status,subscription_plan,subscription_period,current_period_end,stripe_customer_id,alert_threshold_days,trial_ends_at)&limit=1",
     { headers: authHeaders(token) }
   );
   if (!res.ok) {
@@ -526,6 +526,7 @@ async function fetchMyOrganization(token) {
     currentPeriodEnd: row?.organizations?.current_period_end || null,
     stripeCustomerId: row?.organizations?.stripe_customer_id || null,
     alertThresholdDays: row?.organizations?.alert_threshold_days ?? 45,
+    trialEndsAt: row?.organizations?.trial_ends_at || null,
   };
 }
 
@@ -1059,12 +1060,14 @@ function OnboardingWelcome({ setView, organizationName }) {
   );
 }
 
-function Dashboard({ staff, establishments, setView, subscriptionStatus, organizationName }) {
+function Dashboard({ staff, establishments, setView, subscriptionStatus, organizationName, trialDaysLeft }) {
   const total = staff.length;
   const conforme = staff.filter((s) => s.status === "conforme").length;
   const aVenir = staff.filter((s) => s.status === "a_venir").length;
   const nonConforme = staff.filter((s) => s.status === "non_conforme").length;
   const percent = total ? Math.round((conforme / total) * 100) : 0;
+  const isInTrial = subscriptionStatus !== "active" && trialDaysLeft !== null && trialDaysLeft !== undefined;
+  const isTrialEndingSoon = isInTrial && trialDaysLeft <= 3;
 
   if (establishments.length === 0) {
     return <OnboardingWelcome setView={setView} organizationName={organizationName} />;
@@ -1075,8 +1078,8 @@ function Dashboard({ staff, establishments, setView, subscriptionStatus, organiz
       {subscriptionStatus !== "active" && (
         <div
           style={{
-            background: TOKENS.warnBg,
-            border: "1px solid " + TOKENS.warn + "44",
+            background: isTrialEndingSoon ? TOKENS.warnBg : TOKENS.okBg,
+            border: "1px solid " + (isTrialEndingSoon ? TOKENS.warn : TOKENS.ok) + "44",
             borderRadius: 8,
             padding: "14px 18px",
             marginBottom: 20,
@@ -1088,7 +1091,23 @@ function Dashboard({ staff, establishments, setView, subscriptionStatus, organiz
           }}
         >
           <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13.5, color: TOKENS.ink }}>
-            <strong>Aucun abonnement actif.</strong> Choisissez une offre pour continuer a utiliser Confia sans interruption.
+            {isInTrial ? (
+              <>
+                <strong>
+                  {trialDaysLeft === 0
+                    ? "Dernier jour d'essai gratuit."
+                    : trialDaysLeft === 1
+                    ? "Il vous reste 1 jour d'essai gratuit."
+                    : "Il vous reste " + trialDaysLeft + " jours d'essai gratuit."}
+                </strong>{" "}
+                Choisissez une offre pour continuer sans interruption a la fin de votre essai.
+              </>
+            ) : (
+              <>
+                <strong>Aucun abonnement actif.</strong> Choisissez une offre pour continuer a utiliser Confia sans
+                interruption.
+              </>
+            )}
           </div>
           <button
             onClick={() => setView("abonnement")}
@@ -1096,7 +1115,7 @@ function Dashboard({ staff, establishments, setView, subscriptionStatus, organiz
               padding: "8px 16px",
               borderRadius: 6,
               border: "none",
-              background: TOKENS.warn,
+              background: isTrialEndingSoon ? TOKENS.warn : TOKENS.ok,
               color: "#fff",
               fontFamily: "'Inter', sans-serif",
               fontSize: 13,
@@ -5060,6 +5079,7 @@ export default function ConfiaPrototype() {
   const [alertThresholdDays, setAlertThresholdDays] = useState(45);
   const [myDisplayName, setMyDisplayName] = useState(null);
   const [myAvatarUrl, setMyAvatarUrl] = useState(null);
+  const [trialEndsAt, setTrialEndsAt] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [recoveryToken] = useState(() => {
@@ -5126,6 +5146,7 @@ export default function ConfiaPrototype() {
           setCurrentPeriodEnd(org.currentPeriodEnd);
           setStripeCustomerId(org.stripeCustomerId);
           setAlertThresholdDays(org.alertThresholdDays);
+          setTrialEndsAt(org.trialEndsAt);
 
           // Chargee separement car elle depend de l'id d'organisation qui
           // vient d'etre recupere : ne bloque pas le reste de l'affichage
@@ -5288,6 +5309,95 @@ export default function ConfiaPrototype() {
     );
   }
 
+  // Calcul de l'etat de l'essai gratuit. isTrialActive est faux si aucune
+  // date n'est encore chargee (evite un flash d'acces refuse pendant le
+  // court instant ou trialEndsAt vaut encore null au tout premier rendu).
+  const trialEndsAtDate = trialEndsAt ? new Date(trialEndsAt) : null;
+  const isTrialActive = trialEndsAtDate ? trialEndsAtDate.getTime() > Date.now() : false;
+  const trialDaysLeft = trialEndsAtDate
+    ? Math.max(0, Math.ceil((trialEndsAtDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null;
+  const hasAccess = subscriptionStatus === "active" || isTrialActive;
+
+  // Une fois l'essai gratuit termine et sans abonnement actif, on bloque
+  // completement l'acces aux fonctionnalites : seule la page d'abonnement
+  // (reutilisee telle quelle) reste accessible, pour forcer le choix d'une
+  // offre avant de continuer.
+  if (!hasAccess) {
+    return (
+      <div style={{ fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 20px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 6,
+                  background: TOKENS.paperDim,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <LogoMark size={17} />
+              </div>
+              <span style={{ fontSize: 17, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                Confia
+              </span>
+            </div>
+            <button
+              onClick={handleLogout}
+              style={{
+                padding: "7px 14px",
+                borderRadius: 6,
+                border: "1px solid " + TOKENS.line,
+                background: "#fff",
+                color: TOKENS.inkSoft,
+                fontFamily: "'Inter', sans-serif",
+                fontSize: 12.5,
+                cursor: "pointer",
+              }}
+            >
+              Deconnexion
+            </button>
+          </div>
+          <div
+            style={{
+              background: "#fff",
+              border: "1px solid " + TOKENS.line,
+              boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
+              borderRadius: 8,
+              padding: "28px 30px",
+              textAlign: "center",
+              marginBottom: 24,
+            }}
+          >
+            <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 19, fontWeight: 600, color: TOKENS.ink, margin: "0 0 8px" }}>
+              Votre essai gratuit est termine
+            </h2>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13.5, color: TOKENS.inkSoft, margin: 0 }}>
+              Choisissez une offre ci-dessous pour continuer a utiliser Confia sans interruption. Vos donnees
+              sont conservees.
+            </p>
+          </div>
+          <AbonnementView
+            token={token}
+            organizationId={organizationId}
+            establishments={establishments}
+            staffCount={staff.length}
+            currentUserEmail={session?.user?.email}
+            subscriptionStatus={subscriptionStatus}
+            subscriptionPlan={subscriptionPlan}
+            subscriptionPeriod={subscriptionPeriod}
+            currentPeriodEnd={currentPeriodEnd}
+            stripeCustomerId={stripeCustomerId}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ fontFamily: "'Inter', sans-serif" }}>
       <div
@@ -5429,7 +5539,7 @@ export default function ConfiaPrototype() {
               {error}
             </div>
           )}
-          {view === "dashboard" && <Dashboard staff={staff} establishments={establishments} setView={setView} subscriptionStatus={subscriptionStatus} organizationName={organizationName} />}
+          {view === "dashboard" && <Dashboard staff={staff} establishments={establishments} setView={setView} subscriptionStatus={subscriptionStatus} organizationName={organizationName} trialDaysLeft={trialDaysLeft} />}
           {view === "staff" && <StaffView staff={staff} onReload={reloadStaff} onDeletePerson={handleDeletePerson} establishments={establishments} token={token} alertThresholdDays={alertThresholdDays} setView={setView} />}
           {view === "alerts" && <AlertsView staff={staff} establishments={establishments} userEmail={session?.user?.email} />}
           {view === "reports" && <ReportsView staff={staff} establishments={establishments} organizationName={organizationName} />}
