@@ -1060,7 +1060,7 @@ function OnboardingWelcome({ setView, organizationName }) {
   );
 }
 
-function Dashboard({ staff, establishments, setView, subscriptionStatus, organizationName, trialDaysLeft }) {
+function Dashboard({ staff, establishments, setView, subscriptionStatus, organizationName, trialDaysLeft, bannerDismissed, onDismissBanner }) {
   const total = staff.length;
   const conforme = staff.filter((s) => s.status === "conforme").length;
   const aVenir = staff.filter((s) => s.status === "a_venir").length;
@@ -1073,7 +1073,7 @@ function Dashboard({ staff, establishments, setView, subscriptionStatus, organiz
   // bienvenue (aucun etablissement encore cree) que sur le tableau de bord
   // complet : un nouveau compte doit voir son compte a rebours des le
   // premier ecran, pas seulement une fois l'onboarding termine.
-  const subscriptionBanner = subscriptionStatus !== "active" && (
+  const subscriptionBanner = subscriptionStatus !== "active" && !bannerDismissed && (
     <div
       style={{
         background: isTrialEndingSoon ? TOKENS.warnBg : TOKENS.okBg,
@@ -1107,24 +1107,44 @@ function Dashboard({ staff, establishments, setView, subscriptionStatus, organiz
           </>
         )}
       </div>
-      <button
-        onClick={() => setView("abonnement")}
-        style={{
-          padding: "8px 16px",
-          borderRadius: 6,
-          border: "none",
-          background: isTrialEndingSoon ? TOKENS.warn : TOKENS.ok,
-          color: "#fff",
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 13,
-          fontWeight: 500,
-          cursor: "pointer",
-          whiteSpace: "nowrap",
-          flexShrink: 0,
-        }}
-      >
-        Voir les offres
-      </button>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        <button
+          onClick={() => setView("abonnement")}
+          style={{
+            padding: "8px 16px",
+            borderRadius: 6,
+            border: "none",
+            background: isTrialEndingSoon ? TOKENS.warn : TOKENS.ok,
+            color: "#fff",
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 13,
+            fontWeight: 500,
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Voir les offres
+        </button>
+        <button
+          onClick={onDismissBanner}
+          title="Masquer pour cette session"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 26,
+            height: 26,
+            borderRadius: 5,
+            border: "none",
+            background: "transparent",
+            color: TOKENS.inkSoft,
+            cursor: "pointer",
+            flexShrink: 0,
+          }}
+        >
+          <X size={15} />
+        </button>
+      </div>
     </div>
   );
 
@@ -5091,6 +5111,11 @@ export default function ConfiaPrototype() {
   const [myDisplayName, setMyDisplayName] = useState(null);
   const [myAvatarUrl, setMyAvatarUrl] = useState(null);
   const [trialEndsAt, setTrialEndsAt] = useState(null);
+  // Ferme le bandeau d'essai pour la session en cours uniquement : reste en
+  // memoire tant que l'onglet est ouvert, mais revient automatiquement a la
+  // prochaine connexion ou au prochain rechargement de la page (l'etat
+  // repart a false a chaque nouveau chargement de l'application).
+  const [trialBannerDismissed, setTrialBannerDismissed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [recoveryToken] = useState(() => {
@@ -5550,7 +5575,7 @@ export default function ConfiaPrototype() {
               {error}
             </div>
           )}
-          {view === "dashboard" && <Dashboard staff={staff} establishments={establishments} setView={setView} subscriptionStatus={subscriptionStatus} organizationName={organizationName} trialDaysLeft={trialDaysLeft} />}
+          {view === "dashboard" && <Dashboard staff={staff} establishments={establishments} setView={setView} subscriptionStatus={subscriptionStatus} organizationName={organizationName} trialDaysLeft={trialDaysLeft} bannerDismissed={trialBannerDismissed} onDismissBanner={() => setTrialBannerDismissed(true)} />}
           {view === "staff" && <StaffView staff={staff} onReload={reloadStaff} onDeletePerson={handleDeletePerson} establishments={establishments} token={token} alertThresholdDays={alertThresholdDays} setView={setView} />}
           {view === "alerts" && <AlertsView staff={staff} establishments={establishments} userEmail={session?.user?.email} />}
           {view === "reports" && <ReportsView staff={staff} establishments={establishments} organizationName={organizationName} />}
