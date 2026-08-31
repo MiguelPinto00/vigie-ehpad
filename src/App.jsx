@@ -2556,6 +2556,11 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
         throw new Error(data.error || "Echec de l'envoi");
       }
       setResendResult((prev) => ({ ...prev, [inv.id]: "sent" }));
+      // Le message de confirmation s'efface tout seul apres quelques secondes,
+      // pour ne pas rester colle en permanence a cote du bouton "Renvoyer".
+      setTimeout(() => {
+        setResendResult((prev) => ({ ...prev, [inv.id]: null }));
+      }, 2500);
     } catch (err) {
       console.error("Erreur de renvoi d'invitation:", err);
       setResendResult((prev) => ({ ...prev, [inv.id]: "error" }));
@@ -2926,51 +2931,81 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                padding: "8px 12px",
+                padding: "10px 12px",
                 background: TOKENS.warnBg,
                 borderRadius: 6,
                 fontFamily: "'Inter', sans-serif",
                 fontSize: 13,
                 flexWrap: "wrap",
-                gap: 6,
+                gap: 10,
               }}
             >
-              <span>{inv.email}</span>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 11, color: TOKENS.warn }}>En attente</span>
-                {resendResult[inv.id] === "sent" && (
-                  <span style={{ fontSize: 11, color: TOKENS.ok }}>Renvoyee</span>
-                )}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{inv.email}</span>
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 600,
+                    color: TOKENS.warn,
+                    background: "#fff",
+                    border: "1px solid " + TOKENS.warn + "44",
+                    borderRadius: 4,
+                    padding: "2px 7px",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                >
+                  EN ATTENTE
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
                 {resendResult[inv.id] === "error" && (
-                  <span style={{ fontSize: 11, color: TOKENS.danger }}>Echec, reessayez</span>
+                  <span style={{ fontSize: 11, color: TOKENS.danger, marginRight: 2 }}>Echec</span>
                 )}
                 <button
                   onClick={() => resendInvite(inv)}
                   disabled={resendingInviteId === inv.id}
                   style={{
-                    background: "none",
-                    border: "none",
-                    color: TOKENS.brand,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "5px 10px",
+                    borderRadius: 5,
+                    border: "1px solid " + (resendResult[inv.id] === "sent" ? TOKENS.ok : TOKENS.line),
+                    background: "#fff",
+                    color: resendResult[inv.id] === "sent" ? TOKENS.ok : TOKENS.ink,
+                    fontFamily: "'Inter', sans-serif",
+                    fontSize: 11.5,
+                    fontWeight: 500,
                     cursor: resendingInviteId === inv.id ? "default" : "pointer",
-                    fontSize: 11,
-                    textDecoration: "underline",
                     opacity: resendingInviteId === inv.id ? 0.6 : 1,
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  {resendingInviteId === inv.id ? "Envoi..." : "Renvoyer"}
+                  {resendingInviteId === inv.id
+                    ? "Envoi..."
+                    : resendResult[inv.id] === "sent"
+                    ? "Envoyee"
+                    : "Renvoyer"}
                 </button>
                 <button
                   onClick={() => cancelInvite(inv.id)}
+                  title="Annuler l'invitation"
                   style={{
-                    background: "none",
-                    border: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 26,
+                    height: 26,
+                    borderRadius: 5,
+                    border: "1px solid " + TOKENS.line,
+                    background: "#fff",
                     color: TOKENS.danger,
                     cursor: "pointer",
-                    fontSize: 11,
-                    textDecoration: "underline",
+                    flexShrink: 0,
                   }}
                 >
-                  Annuler
+                  <Trash2 size={12} />
                 </button>
               </div>
             </div>
