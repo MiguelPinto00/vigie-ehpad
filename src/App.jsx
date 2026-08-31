@@ -21,6 +21,7 @@ import {
   ClipboardCheck,
   CreditCard,
   Upload,
+  History,
 } from "lucide-react";
 
 const TOKENS = {
@@ -187,7 +188,7 @@ async function fetchEstablishments(token) {
 
 async function fetchStaff(token) {
   const res = await fetch(
-    SUPABASE_URL + "/rest/v1/staff?select=*,staff_vaccinations(*)",
+    SUPABASE_URL + "/rest/v1/staff?select=*,staff_vaccinations(*),staff_history(*)",
     { headers: authHeaders(token) }
   );
   if (!res.ok) {
@@ -250,6 +251,36 @@ async function upsertVaccination(payload, vaccinationId, token) {
   const data = await res.json();
   return data[0];
 }
+
+// Enregistre un evenement dans l'historique d'un salarie (creation, import,
+// mise a jour d'un justificatif...). Ces entrees ne sont jamais modifiees ni
+// supprimees : elles servent de journal chronologique consultable en cas de
+// controle, pour prouver le suivi dans le temps et pas seulement l'etat present.
+async function insertHistoryEvent(payload, token) {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/staff_history", {
+    method: "POST",
+    headers: { ...authHeaders(token), Prefer: "return=representation" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    // On ne bloque jamais l'action principale (ajout/import d'un salarie) si
+    // seul le journal d'historique echoue : on log l'erreur et on continue.
+    console.error("Erreur d'enregistrement de l'historique:", await res.text().catch(() => ""));
+    return null;
+  }
+  const data = await res.json();
+  return data[0];
+}
+
+async function fetchHistoryForStaff(staffId, token) {
+  const res = await fetch(
+    SUPABASE_URL + "/rest/v1/staff_history?staff_id=eq." + staffId + "&select=*&order=created_at.desc",
+    { headers: authHeaders(token) }
+  );
+  if (!res.ok) throw new Error("Erreur de lecture de l'historique");
+  return res.json();
+}
+
 
 async function fetchOrganizationMembers(organizationId, token) {
   const res = await fetch(
@@ -479,12 +510,22 @@ function computeOverallStatus(vaccinations) {
 // vers le format utilise par l'interface
 function mapPersonRow(row) {
   const vaccinations = computePersonVaccinations(row);
+  const history = (row.staff_history || [])
+    .slice()
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .map((h) => ({
+      id: h.id,
+      eventType: h.event_type,
+      description: h.description,
+      createdAt: h.created_at,
+    }));
   return {
     id: row.id,
     name: row.name,
     role: row.role,
     site: row.establishment_id,
     vaccinations,
+    history,
     status: computeOverallStatus(vaccinations),
   };
 }
@@ -1138,6 +1179,10 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
       } else {
         const created = await insertStaffPerson(personPayload, token);
         personId = created.id;
+        await insertHistoryEvent(
+          { staff_id: personId, event_type: "creation", description: "Salarie ajoute a Confia." },
+          token
+        );
       }
 
       // Pour chaque vaccin renseigne avec une date, on cree ou met a jour son suivi.
@@ -1146,6 +1191,9 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
         const date = dates[v.key];
         if (!date) continue;
         const existing = findExisting(v.key);
+        // On ne journalise que si la date a reellement change, pour eviter de
+        // creer une entree d'historique inutile a chaque simple reenregistrement.
+        const dateChanged = !existing || existing.lastVaccinationDate !== date;
         let documentUrl = existing?.documentUrl || null;
         if (files[v.key]) {
           documentUrl = await uploadJustificatif(files[v.key], token);
@@ -1164,6 +1212,16 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff }) {
           existing?.id,
           token
         );
+        if (dateChanged) {
+          await insertHistoryEvent(
+            {
+              staff_id: personId,
+              event_type: "vaccination",
+              description: "Vaccin " + v.key + " : date de vaccination enregistree (" + computed.updatedLabel + ").",
+            },
+            token
+          );
+        }
       }
 
       await onSave();
@@ -1387,6 +1445,10 @@ function ImportStaffModal({ onClose, onSave, establishments, token }) {
             { name: name.trim(), role: (role || "").trim() || "-", establishment_id: establishment.id },
             token
           );
+          await insertHistoryEvent(
+            { staff_id: created.id, event_type: "creation", description: "Salarie importe via un fichier CSV." },
+            token
+          );
           for (const [vaccine, dateValue] of [
             ["Grippe", grippeDate],
             ["Rougeole", rougeoleDate],
@@ -1404,6 +1466,14 @@ function ImportStaffModal({ onClose, onSave, establishments, token }) {
                 next_label: computed.nextLabel,
               },
               null,
+              token
+            );
+            await insertHistoryEvent(
+              {
+                staff_id: created.id,
+                event_type: "vaccination",
+                description: "Vaccin " + vaccine + " : date de vaccination enregistree (" + computed.updatedLabel + ") via import CSV.",
+              },
               token
             );
           }
@@ -1587,6 +1657,95 @@ function ImportStaffModal({ onClose, onSave, establishments, token }) {
   );
 }
 
+// Affiche le journal chronologique des evenements d'un salarie (creation,
+// dates de vaccination enregistrees...). Lecture seule : ces entrees ne sont
+// jamais modifiees, elles servent de preuve du suivi dans le temps.
+function HistoryModal({ person, onClose }) {
+  const formatEventDate = (isoString) => {
+    try {
+      return new Date(isoString).toLocaleString("fr-FR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (e) {
+      return isoString;
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(22,35,31,0.35)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 50,
+        overflowY: "auto",
+        padding: "24px 0",
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 10,
+          padding: 24,
+          width: 420,
+          maxWidth: "92vw",
+          maxHeight: "80vh",
+          display: "flex",
+          flexDirection: "column",
+          boxShadow: "0 12px 40px rgba(22,35,31,0.18)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 17, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
+            Historique
+          </h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: TOKENS.inkSoft }}>
+            <X size={18} />
+          </button>
+        </div>
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 16px" }}>
+          {person.name}
+        </p>
+
+        <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+          {(person.history || []).length === 0 ? (
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: TOKENS.inkSoft }}>
+              Aucun evenement enregistre pour ce salarie.
+            </p>
+          ) : (
+            person.history.map((h) => (
+              <div
+                key={h.id}
+                style={{
+                  borderLeft: "2px solid " + TOKENS.brand,
+                  paddingLeft: 12,
+                  paddingBottom: 2,
+                }}
+              >
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: TOKENS.inkSoft }}>
+                  {formatEventDate(h.createdAt)}
+                </div>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: TOKENS.ink, marginTop: 2 }}>
+                  {h.description}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StaffView({ staff, onReload, onDeletePerson, establishments, token }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
@@ -1595,6 +1754,7 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token }) {
   const [showImportModal, setShowImportModal] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [historyStaff, setHistoryStaff] = useState(null);
 
   const filtered = useMemo(() => {
     return staff.filter((s) => {
@@ -1743,6 +1903,10 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token }) {
         />
       )}
 
+      {historyStaff && (
+        <HistoryModal person={historyStaff} onClose={() => setHistoryStaff(null)} />
+      )}
+
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, overflow: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'Inter', sans-serif" }}>
           <thead>
@@ -1792,6 +1956,24 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token }) {
                   </td>
                   <td style={{ padding: "11px 16px" }}>
                     <div style={{ display: "flex", gap: 6 }}>
+                      <button
+                        onClick={() => setHistoryStaff(s)}
+                        title="Voir l'historique"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: 26,
+                          height: 26,
+                          borderRadius: 5,
+                          border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
+                          background: "#fff",
+                          color: TOKENS.inkSoft,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <History size={13} />
+                      </button>
                       <button
                         onClick={() => {
                           setEditingStaff(s);
