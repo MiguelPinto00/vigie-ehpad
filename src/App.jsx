@@ -2457,6 +2457,8 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
   const [inviteSent, setInviteSent] = useState(false);
   const [inviteResultMessage, setInviteResultMessage] = useState(null);
   const [removingMemberId, setRemovingMemberId] = useState(null);
+  const [resendingInviteId, setResendingInviteId] = useState(null);
+  const [resendResult, setResendResult] = useState({});
   const [removeMemberError, setRemoveMemberError] = useState(null);
 
   useEffect(() => {
@@ -2533,6 +2535,32 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
       setPendingInvites((prev) => prev.filter((i) => i.id !== id));
     } catch (err) {
       console.error("Erreur d'annulation:", err);
+    }
+  };
+
+  const resendInvite = async (inv) => {
+    setResendingInviteId(inv.id);
+    setResendResult((prev) => ({ ...prev, [inv.id]: null }));
+    try {
+      const res = await fetch("/api/send-invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          toEmail: inv.email,
+          organizationName,
+          inviterEmail: currentUserEmail,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Echec de l'envoi");
+      }
+      setResendResult((prev) => ({ ...prev, [inv.id]: "sent" }));
+    } catch (err) {
+      console.error("Erreur de renvoi d'invitation:", err);
+      setResendResult((prev) => ({ ...prev, [inv.id]: "error" }));
+    } finally {
+      setResendingInviteId(null);
     }
   };
 
@@ -2903,11 +2931,34 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
                 borderRadius: 6,
                 fontFamily: "'Inter', sans-serif",
                 fontSize: 13,
+                flexWrap: "wrap",
+                gap: 6,
               }}
             >
               <span>{inv.email}</span>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 11, color: TOKENS.warn }}>En attente</span>
+                {resendResult[inv.id] === "sent" && (
+                  <span style={{ fontSize: 11, color: TOKENS.ok }}>Renvoyee</span>
+                )}
+                {resendResult[inv.id] === "error" && (
+                  <span style={{ fontSize: 11, color: TOKENS.danger }}>Echec, reessayez</span>
+                )}
+                <button
+                  onClick={() => resendInvite(inv)}
+                  disabled={resendingInviteId === inv.id}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: TOKENS.brand,
+                    cursor: resendingInviteId === inv.id ? "default" : "pointer",
+                    fontSize: 11,
+                    textDecoration: "underline",
+                    opacity: resendingInviteId === inv.id ? 0.6 : 1,
+                  }}
+                >
+                  {resendingInviteId === inv.id ? "Envoi..." : "Renvoyer"}
+                </button>
                 <button
                   onClick={() => cancelInvite(inv.id)}
                   style={{
