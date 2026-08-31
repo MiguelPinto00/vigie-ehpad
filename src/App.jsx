@@ -2613,6 +2613,41 @@ function AbonnementView({ token, organizationId, establishments, staffCount, cur
 }
 
 function SettingsView({ establishments, token, onUpdate, organizationId, onAddEstablishment, onDeleteEstablishment, organizationName, onRenameOrganization, currentUserEmail, onDeleteAccount, staffCount, subscriptionStatus, subscriptionPlan, subscriptionPeriod, currentPeriodEnd, alertThresholdDays, onUpdateAlertThreshold }) {
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordChanged, setPasswordChanged] = useState(false);
+  const [passwordChangeError, setPasswordChangeError] = useState(null);
+
+  const handleChangePassword = async () => {
+    setPasswordChanged(false);
+    setPasswordChangeError(null);
+    if (newPassword.length < 6) {
+      setPasswordChangeError("Le mot de passe doit contenir au moins 6 caracteres.");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setPasswordChangeError("Les deux mots de passe ne correspondent pas.");
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      // Le meme endpoint Supabase que celui utilise apres un clic sur le lien
+      // "mot de passe oublie" fonctionne aussi avec le token de la session en
+      // cours : pas besoin de repasser par un email pour changer son mot de
+      // passe quand on est deja connecte.
+      await updatePasswordWithToken(token, newPassword);
+      setPasswordChanged(true);
+      setNewPassword("");
+      setConfirmNewPassword("");
+    } catch (err) {
+      console.error("Erreur de changement de mot de passe:", err);
+      setPasswordChangeError(err.message || "Erreur lors du changement de mot de passe");
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   const [orgNameDraft, setOrgNameDraft] = useState(organizationName || "");
   const [renamingOrg, setRenamingOrg] = useState(false);
   const [orgRenamed, setOrgRenamed] = useState(false);
@@ -2928,6 +2963,76 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 640 }}>
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
+        <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
+          Mon profil
+        </h3>
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
+          Email de connexion : <strong>{currentUserEmail}</strong>
+        </p>
+        <label style={{ display: "block", fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500, color: TOKENS.inkSoft, marginBottom: 5 }}>
+          Nouveau mot de passe
+        </label>
+        <PasswordInput
+          placeholder="Au moins 6 caracteres"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "8px 10px",
+            borderRadius: 6,
+            border: "1px solid " + TOKENS.line,
+            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 13,
+            outline: "none",
+            boxSizing: "border-box",
+            marginBottom: 10,
+          }}
+        />
+        <label style={{ display: "block", fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 500, color: TOKENS.inkSoft, marginBottom: 5 }}>
+          Confirmer le nouveau mot de passe
+        </label>
+        <PasswordInput
+          placeholder="Confirmer"
+          value={confirmNewPassword}
+          onChange={(e) => setConfirmNewPassword(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "8px 10px",
+            borderRadius: 6,
+            border: "1px solid " + TOKENS.line,
+            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 13,
+            outline: "none",
+            boxSizing: "border-box",
+            marginBottom: 4,
+          }}
+        />
+        <button
+          onClick={handleChangePassword}
+          disabled={changingPassword || !newPassword || !confirmNewPassword}
+          style={{
+            marginTop: 10,
+            padding: "8px 16px",
+            borderRadius: 6,
+            border: "none",
+            background: TOKENS.brand,
+            color: "#fff",
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 12.5,
+            fontWeight: 500,
+            cursor: changingPassword ? "default" : "pointer",
+            opacity: changingPassword || !newPassword || !confirmNewPassword ? 0.6 : 1,
+          }}
+        >
+          {changingPassword ? "..." : "Changer le mot de passe"}
+        </button>
+        {passwordChanged && <div style={{ fontSize: 11.5, color: TOKENS.ok, marginTop: 8 }}>Mot de passe modifie avec succes.</div>}
+        {passwordChangeError && <div style={{ fontSize: 11.5, color: TOKENS.danger, marginTop: 8 }}>{passwordChangeError}</div>}
+      </div>
+
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
         <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
           Nom de votre organisation
