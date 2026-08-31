@@ -160,6 +160,23 @@ async function requestPasswordReset(email) {
   return true;
 }
 
+// Renvoie l'email de confirmation d'inscription, pour les cas ou il n'est
+// jamais arrive ou a ete supprime par erreur. Supabase renvoie un succes
+// meme si le compte n'existe pas ou est deja confirme (pour ne pas reveler
+// si un email est enregistre), donc on affiche toujours un message neutre.
+async function resendConfirmationEmail(email) {
+  const res = await fetch(SUPABASE_URL + "/auth/v1/resend", {
+    method: "POST",
+    headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "signup", email }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.msg || data.error_description || "Erreur lors de l'envoi");
+  }
+  return true;
+}
+
 async function updatePasswordWithToken(accessToken, newPassword) {
   const res = await fetch(SUPABASE_URL + "/auth/v1/user", {
     method: "PUT",
@@ -3978,6 +3995,28 @@ function LoginScreen({ onLogin, initialMode, onBackToLanding }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [info, setInfo] = useState(null);
+  const [resendingConfirmation, setResendingConfirmation] = useState(false);
+  const [resendConfirmationMessage, setResendConfirmationMessage] = useState(null);
+
+  const handleResendConfirmation = async () => {
+    if (!email.trim()) {
+      setResendConfirmationMessage({ type: "error", text: "Saisissez d'abord votre email ci-dessus." });
+      return;
+    }
+    setResendingConfirmation(true);
+    setResendConfirmationMessage(null);
+    try {
+      await resendConfirmationEmail(email.trim());
+      setResendConfirmationMessage({
+        type: "ok",
+        text: "Si un compte existe avec cet email et n'est pas encore confirme, un nouvel email vient d'etre envoye.",
+      });
+    } catch (err) {
+      setResendConfirmationMessage({ type: "error", text: err.message || "Erreur lors de l'envoi" });
+    } finally {
+      setResendingConfirmation(false);
+    }
+  };
 
   const inputStyle = {
     width: "100%",
@@ -4171,6 +4210,42 @@ function LoginScreen({ onLogin, initialMode, onBackToLanding }) {
           >
             Mot de passe oublie ?
           </button>
+        )}
+
+        {mode === "login" && (
+          <button
+            type="button"
+            onClick={handleResendConfirmation}
+            disabled={resendingConfirmation}
+            style={{
+              width: "100%",
+              padding: "4px",
+              marginTop: 2,
+              border: "none",
+              background: "none",
+              color: TOKENS.inkSoft,
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 12.5,
+              cursor: resendingConfirmation ? "default" : "pointer",
+              textDecoration: "underline",
+              opacity: resendingConfirmation ? 0.6 : 1,
+            }}
+          >
+            {resendingConfirmation ? "Envoi..." : "Email de confirmation non recu ? Renvoyer"}
+          </button>
+        )}
+        {resendConfirmationMessage && (
+          <div
+            style={{
+              fontSize: 11.5,
+              color: resendConfirmationMessage.type === "ok" ? TOKENS.ok : TOKENS.danger,
+              textAlign: "center",
+              marginTop: 4,
+              lineHeight: 1.5,
+            }}
+          >
+            {resendConfirmationMessage.text}
+          </div>
         )}
 
         <button
