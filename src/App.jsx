@@ -3498,6 +3498,8 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
             placeholder="email@collegue.fr"
             value={inviteEmail}
             onChange={(e) => setInviteEmail(e.target.value)}
+            autoComplete="off"
+            name="confia-invite-email"
             style={{
               flex: 1,
               padding: "8px 10px",
@@ -3794,6 +3796,8 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
                   placeholder="email@etablissement.fr"
                   value={d.contact_email}
                   onChange={(ev) => setField("contact_email", ev.target.value)}
+                  autoComplete="off"
+                  name={"contact-email-" + e.id}
                   style={{ ...inputStyle, flex: "3 1 180px" }}
                 />
                 <button
