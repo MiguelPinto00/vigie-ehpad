@@ -3278,6 +3278,8 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
             placeholder="nouvelle.adresse@exemple.fr"
             value={newEmail}
             onChange={(e) => setNewEmail(e.target.value)}
+            autoComplete="off"
+            name="confia-new-email"
             style={{
               flex: "1 1 200px",
               padding: "8px 10px",
@@ -3327,6 +3329,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
           placeholder="Au moins 6 caracteres"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
+          autoComplete="new-password"
           style={{
             width: "100%",
             padding: "8px 10px",
@@ -3347,6 +3350,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
           placeholder="Confirmer"
           value={confirmNewPassword}
           onChange={(e) => setConfirmNewPassword(e.target.value)}
+          autoComplete="new-password"
           style={{
             width: "100%",
             padding: "8px 10px",
@@ -4631,6 +4635,7 @@ function LoginScreen({ onLogin, initialMode, onBackToLanding }) {
               style={inputStyle}
               required
               minLength={6}
+              autoComplete={mode === "signup" ? "new-password" : "current-password"}
             />
             {mode === "signup" && (
               <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11.5, color: TOKENS.inkSoft, marginTop: -6, marginBottom: 12 }}>
@@ -4765,7 +4770,7 @@ function LoginScreen({ onLogin, initialMode, onBackToLanding }) {
   );
 }
 
-function PasswordInput({ value, onChange, placeholder, style, required, minLength }) {
+function PasswordInput({ value, onChange, placeholder, style, required, minLength, autoComplete }) {
   const [visible, setVisible] = useState(false);
   return (
     <div style={{ position: "relative", marginBottom: style?.marginBottom ?? 12 }}>
@@ -4776,6 +4781,7 @@ function PasswordInput({ value, onChange, placeholder, style, required, minLengt
         onChange={onChange}
         required={required}
         minLength={minLength}
+        autoComplete={autoComplete}
         style={{ ...style, marginBottom: 0, paddingRight: 38 }}
       />
       <button
@@ -4872,6 +4878,7 @@ function ResetPasswordScreen({ accessToken, onDone }) {
           style={inputStyle}
           required
           minLength={6}
+          autoComplete="new-password"
         />
         <PasswordInput
           placeholder="Confirmer le mot de passe"
@@ -4880,6 +4887,7 @@ function ResetPasswordScreen({ accessToken, onDone }) {
           style={inputStyle}
           required
           minLength={6}
+          autoComplete="new-password"
         />
 
         {error && <div style={{ color: TOKENS.danger, fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
