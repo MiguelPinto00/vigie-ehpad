@@ -4271,7 +4271,7 @@ function LandingFeatureCard({ icon: Icon, title, description }) {
   );
 }
 
-function LandingPage({ onGetStarted, onLogin }) {
+function LandingPage({ onGetStarted, onLogin, onNavigateBlog }) {
   const [billingPeriod, setBillingPeriod] = useState("monthly");
   const [legalModal, setLegalModal] = useState(null); // null | "mentions" | "confidentialite"
 
@@ -4306,22 +4306,39 @@ function LandingPage({ onGetStarted, onLogin }) {
             Confia
           </span>
         </div>
-        <button
-          onClick={onLogin}
-          style={{
-            background: "none",
-            border: "1px solid " + TOKENS.line,
-            borderRadius: 6,
-            padding: "8px 16px",
-            fontFamily: "'Inter', sans-serif",
-            fontSize: 13,
-            fontWeight: 500,
-            color: TOKENS.ink,
-            cursor: "pointer",
-          }}
-        >
-          Se connecter
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+          <button
+            onClick={onNavigateBlog}
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 13,
+              fontWeight: 500,
+              color: TOKENS.inkSoft,
+              cursor: "pointer",
+            }}
+          >
+            Blog
+          </button>
+          <button
+            onClick={onLogin}
+            style={{
+              background: "none",
+              border: "1px solid " + TOKENS.line,
+              borderRadius: 6,
+              padding: "8px 16px",
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 13,
+              fontWeight: 500,
+              color: TOKENS.ink,
+              cursor: "pointer",
+            }}
+          >
+            Se connecter
+          </button>
+        </div>
       </div>
 
       {/* Hero */}
@@ -4571,6 +4588,12 @@ function LandingPage({ onGetStarted, onLogin }) {
         </span>
         <div style={{ display: "flex", justifyContent: "center", gap: 18, marginTop: 10, flexWrap: "wrap" }}>
           <button
+            onClick={onNavigateBlog}
+            style={{ background: "none", border: "none", padding: 0, color: TOKENS.inkSoft, fontSize: 11.5, textDecoration: "underline", cursor: "pointer" }}
+          >
+            Blog
+          </button>
+          <button
             onClick={() => setLegalModal("mentions")}
             style={{ background: "none", border: "none", padding: 0, color: TOKENS.inkSoft, fontSize: 11.5, textDecoration: "underline", cursor: "pointer" }}
           >
@@ -4650,6 +4673,380 @@ function LandingPage({ onGetStarted, onLogin }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Contenu des articles du blog, sous forme de blocs structures (titre,
+// paragraphe, liste...) plutot que du markdown brut : rendu par
+// renderBlogSections plus bas, dans le meme style visuel (TOKENS) que le
+// reste de l'application, sans dependance a une librairie externe.
+const BLOG_POSTS = [
+  {
+    slug: "obligation-vaccinale-ehpad-2026",
+    title: "Obligation vaccinale en EHPAD 2026 : ce que dit vraiment la loi",
+    metaDescription:
+      "Grippe, rougeole : ce que change la loi en 2026 pour le personnel soignant en EHPAD, et comment rester conforme sans y passer vos soirees.",
+    publishedLabel: "Janvier 2026",
+    excerpt:
+      "Article L.3111-4, LFSS 2026, obligations pour le personnel et les residents : le point clair sur une situation qui prete souvent a confusion.",
+    sections: [
+      {
+        type: "p",
+        text: "Depuis le 1er janvier 2026, une nouvelle obligation legale s'impose au personnel soignant des EHPAD. Entre le texte du code de la sante publique, les debats parlementaires autour du budget de la Securite sociale et les informations parfois contradictoires qui circulent, il n'est pas toujours simple de savoir precisement ce qui est exige, pour qui, et depuis quand. Voici un point clair sur la situation actuelle.",
+      },
+      { type: "h2", text: "Ce qui est en vigueur depuis le 1er janvier 2026" },
+      {
+        type: "p",
+        text: "L'article L.3111-4 du code de la sante publique impose desormais la vaccination contre la grippe au personnel exercant dans un etablissement hebergeant des personnes agees, des lors que son activite l'expose ou expose les residents a un risque de contamination. Concretement, cela concerne l'ensemble du personnel soignant en contact avec les residents : infirmiers, aides-soignants, mais aussi, selon les postes, une partie du personnel paramedical.",
+      },
+      {
+        type: "p",
+        text: "Ce n'est pas une mesure isolee : elle s'inscrit dans la meme logique que les obligations vaccinales deja connues des soignants contre l'hepatite B, la diphterie, le tetanos ou la poliomyelite.",
+      },
+      { type: "h2", text: "Et du cote des residents ?" },
+      {
+        type: "p",
+        text: "C'est ici que la situation demande un peu plus de nuance. La loi de financement de la Securite sociale (LFSS) pour 2026 a ouvert la possibilite d'etendre une obligation vaccinale contre la grippe aux residents eux-memes, sauf contre-indication medicale, pendant la periode epidemique. Le sujet a fait l'objet d'allers-retours entre l'Assemblee nationale et le Senat, et son application concrete reste conditionnee a une recommandation de la Haute Autorite de Sante (HAS), attendue au premier semestre 2026.",
+      },
+      {
+        type: "p",
+        text: "Autrement dit : pour le personnel, l'obligation est effective. Pour les residents, les textes reglementaires d'application restent a preciser. Un etablissement serieux a tout interet a suivre cette actualite de pres, car les delais d'adaptation, une fois le texte definitif publie, sont rarement genereux.",
+      },
+      {
+        type: "p",
+        text: "La LFSS 2026 introduit egalement une piste d'obligation d'immunisation contre la rougeole pour certaines categories de personnels du secteur medico-social, avec les memes reserves de calendrier d'application.",
+      },
+      { type: "h2", text: "Ce que ca change concretement pour un directeur d'etablissement" },
+      {
+        type: "p",
+        text: "Sur le papier, l'obligation existe. Dans la pratique, elle souleve trois questions tres concretes pour qui dirige un EHPAD :",
+      },
+      {
+        type: "list",
+        items: [
+          "Comment prouver, a tout moment, que chaque membre du personnel est a jour ? Un controle ARS, un renouvellement d'agrement ou meme une simple inspection interne peuvent demander cette preuve du jour au lendemain.",
+          "Comment gerer les renouvellements et les echeances ? Une vaccination antigrippale se renouvelle chaque annee, a des dates differentes selon les arrivees de personnel.",
+          "Comment documenter les exceptions ? Contre-indications medicales, refus, justificatifs a archiver : chaque cas particulier doit etre tracable, pas seulement memorise.",
+        ],
+      },
+      { type: "h2", text: "Le risque du suivi manuel" },
+      {
+        type: "p",
+        text: "Beaucoup d'etablissements gerent encore ce suivi via un tableur, complete au fil de l'eau, parfois par plusieurs personnes differentes selon les periodes. Le probleme n'est pas la bonne volonte des equipes, mais la nature meme de l'exercice : un tableau Excel ne previent jamais personne quand une echeance approche, ne conserve pas d'historique fiable en cas de modification, et devient rapidement difficile a exploiter en cas de controle inopine.",
+      },
+      {
+        type: "p",
+        text: "Or, en matiere de conformite reglementaire, ce n'est generalement pas l'absence de vaccination qui pose probleme le jour d'un controle — c'est l'incapacite a en produire la preuve rapidement et de facon organisee.",
+      },
+      { type: "h2", text: "Anticiper plutot que subir" },
+      {
+        type: "p",
+        text: "La bonne nouvelle, c'est que cette obligation, aussi contraignante soit-elle sur le papier, devient tres gerable des lors qu'elle est suivie avec le bon outil : un tableau de bord centralise, des alertes automatiques avant chaque echeance, et un export en un clic pour tout controle ou renouvellement d'agrement.",
+      },
+      {
+        type: "cta",
+        title: "Confia centralise ce suivi pour vous",
+        text: "Tableau de bord unique, alertes automatiques et export de rapport en un clic, pense specifiquement pour la conformite vaccinale en EHPAD.",
+      },
+      {
+        type: "disclaimer",
+        text: "Cet article a une visee d'information generale et ne constitue pas un conseil juridique. Pour toute question sur l'application de ces obligations dans votre etablissement, il est recommande de se referer aux textes officiels (Legifrance) et, le cas echeant, de consulter un professionnel du droit ou votre ARS de rattachement.",
+      },
+    ],
+  },
+  {
+    slug: "controle-conformite-vaccinale-ehpad",
+    title: "Controle de conformite vaccinale en EHPAD : le guide pratique",
+    metaDescription:
+      "ARS, renouvellement d'agrement, inspection : comment preparer et reussir un controle de conformite vaccinale en EHPAD sans stress.",
+    publishedLabel: "Janvier 2026",
+    excerpt:
+      "Ce qu'un controle verifie reellement, les trois failles les plus courantes, et une checklist simple a suivre avant toute inspection.",
+    sections: [
+      {
+        type: "p",
+        text: "Un controle de l'ARS, une visite dans le cadre du renouvellement d'un agrement, un audit qualite interne : dans un EHPAD, la question de la conformite vaccinale du personnel peut etre posee a peu pres n'importe quel jour de l'annee, souvent avec peu de preavis. Voici comment s'y preparer sereinement, sans y consacrer des heures de recherche dans des dossiers papier ou des fichiers Excel disperses.",
+      },
+      { type: "h2", text: "Ce qu'un controle verifie reellement" },
+      {
+        type: "p",
+        text: "Un controle de conformite vaccinale ne se limite pas a verifier que la vaccination a eu lieu. Dans la grande majorite des cas, ce qui est demande, c'est la capacite de l'etablissement a produire une preuve claire et a jour, pour chaque membre du personnel concerne :",
+      },
+      {
+        type: "list",
+        items: [
+          "La date de la derniere vaccination contre la grippe (obligatoire depuis le 1er janvier 2026 pour le personnel soignant, en application de l'article L.3111-4 du code de la sante publique)",
+          "Les justificatifs correspondants, classes et facilement accessibles",
+          "Le traitement des cas particuliers : contre-indications medicales documentees, arrivees recentes de personnel, changements de poste",
+          "La coherence de l'ensemble avec l'effectif reel de l'etablissement au moment du controle",
+        ],
+      },
+      {
+        type: "p",
+        text: "Un controleur ne cherche pas a pieger un etablissement. Mais un dossier incomplet, une information introuvable sur le moment, ou un tableau qui ne reflete pas la realite actuelle du personnel, transforment une formalite en un moment de stress evitable.",
+      },
+      { type: "h2", text: "Les trois failles les plus courantes" },
+      {
+        type: "list",
+        items: [
+          "Le suivi eclate entre plusieurs fichiers ou plusieurs personnes. Quand le tableau de suivi vaccinal a ete mis a jour tour a tour par la direction, l'IDEC, puis un remplacant pendant un conge, les versions finissent par diverger.",
+          "L'absence d'historique. Un tableur classique ecrase l'ancienne valeur des qu'elle est modifiee. Si une question porte sur l'evolution de la conformite sur les douze derniers mois, l'information a souvent disparu.",
+          "Les echeances qui passent inapercues. Sans alerte automatique, il est frequent qu'une echeance soit reperee apres coup — parfois seulement au moment du controle lui-meme.",
+        ],
+      },
+      { type: "h2", text: "Comment transformer un controle en formalite rapide" },
+      {
+        type: "p",
+        text: "La difference entre un controle vecu dans la serenite et un controle vecu dans le stress tient rarement a la realite du terrain — la plupart des equipes soignantes respectent bien leurs obligations. Elle tient presque toujours a l'organisation du suivi. Trois reflexes changent tout :",
+      },
+      {
+        type: "list",
+        items: [
+          "Centraliser, a un seul endroit. Un tableau de bord unique, a jour en temps reel, evite les versions multiples et les incoherences.",
+          "Automatiser les alertes. Etre prevenu suffisamment a l'avance qu'une echeance approche permet d'agir avant qu'elle ne devienne un probleme.",
+          "Pouvoir exporter en un clic. Le jour ou un rapport est demande, la rapidite de la reponse en dit souvent plus long sur le serieux de l'etablissement que le contenu du rapport lui-meme.",
+        ],
+      },
+      { type: "h2", text: "Une checklist simple avant tout controle" },
+      {
+        type: "list",
+        items: [
+          "Le statut vaccinal de chaque membre du personnel soignant est-il a jour dans un seul et meme endroit ?",
+          "Les justificatifs (certificats, attestations, contre-indications) sont-ils classes et rapidement accessibles ?",
+          "Existe-t-il un historique des changements de statut, en cas de question sur une periode anterieure ?",
+          "Un rapport de synthese peut-il etre genere en quelques minutes, sans reconstitution manuelle ?",
+        ],
+      },
+      {
+        type: "p",
+        text: "Si l'une de ces reponses est non, c'est le signe qu'il est temps de structurer le suivi plutot que de continuer a le gerer au fil de l'eau.",
+      },
+      {
+        type: "cta",
+        title: "Confia prepare vos controles a l'avance",
+        text: "Tableau de bord de conformite vaccinale pense pour les EHPAD, avec alertes automatiques et export de rapport en un clic, pret pour tout controle ou renouvellement d'agrement.",
+      },
+      {
+        type: "disclaimer",
+        text: "Cet article a une visee d'information generale et ne constitue pas un conseil juridique. Pour toute question sur les modalites precises d'un controle dans votre etablissement, il est recommande de vous rapprocher de votre ARS de rattachement.",
+      },
+    ],
+  },
+];
+
+function BlogNav({ onNavigateHome, onNavigateBlog, onLogin }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "18px 4px",
+        maxWidth: 780,
+        margin: "0 auto",
+      }}
+    >
+      <button
+        onClick={onNavigateHome}
+        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+      >
+        <div
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 7,
+            background: TOKENS.paperDim,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <LogoMark size={18} />
+        </div>
+        <span style={{ fontSize: 17, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: TOKENS.ink }}>
+          Confia
+        </span>
+      </button>
+      <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+        <button
+          onClick={onNavigateBlog}
+          style={{ background: "none", border: "none", padding: 0, fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 600, color: TOKENS.brand, cursor: "pointer" }}
+        >
+          Blog
+        </button>
+        <button
+          onClick={onLogin}
+          style={{
+            background: "none",
+            border: "1px solid " + TOKENS.line,
+            borderRadius: 6,
+            padding: "8px 16px",
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 13,
+            fontWeight: 500,
+            color: TOKENS.ink,
+            cursor: "pointer",
+          }}
+        >
+          Se connecter
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function BlogListPage({ onBack, onSelectPost, onGetStarted }) {
+  useEffect(() => {
+    document.title = "Blog — Confia";
+  }, []);
+
+  return (
+    <div style={{ fontFamily: "'Inter', sans-serif", color: TOKENS.ink }}>
+      <BlogNav onNavigateHome={onBack} onNavigateBlog={() => {}} onLogin={onGetStarted} />
+      <div style={{ maxWidth: 780, margin: "0 auto", padding: "20px 20px 60px" }}>
+        <h1 style={{ fontSize: 28, fontWeight: 700, margin: "20px 0 8px" }}>Blog Confia</h1>
+        <p style={{ fontSize: 14, color: TOKENS.inkSoft, margin: "0 0 32px", lineHeight: 1.6 }}>
+          Obligations reglementaires, conformite, bonnes pratiques : de quoi anticiper sereinement le suivi
+          vaccinal de votre personnel soignant.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {BLOG_POSTS.map((post) => (
+            <button
+              key={post.slug}
+              onClick={() => onSelectPost(post.slug)}
+              style={{
+                textAlign: "left",
+                background: "#fff",
+                border: "1px solid " + TOKENS.line,
+                boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)",
+                borderRadius: 10,
+                padding: "22px 24px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginBottom: 6, fontFamily: "'IBM Plex Mono', monospace" }}>
+                {post.publishedLabel}
+              </div>
+              <h2 style={{ fontSize: 17, fontWeight: 600, color: TOKENS.ink, margin: "0 0 8px" }}>{post.title}</h2>
+              <p style={{ fontSize: 13.5, color: TOKENS.inkSoft, lineHeight: 1.6, margin: "0 0 10px" }}>{post.excerpt}</p>
+              <span style={{ fontSize: 13, fontWeight: 600, color: TOKENS.brand }}>Lire l'article →</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Rendu des blocs structures d'un article (voir BLOG_POSTS). Un bloc de
+// type "cta" met en avant Confia au fil de la lecture, sans etre une pub
+// intrusive ; le disclaimer juridique est toujours affiche en fin d'article.
+function renderBlogSections(sections, onGetStarted) {
+  return sections.map((block, idx) => {
+    if (block.type === "h2") {
+      return (
+        <h2 key={idx} style={{ fontSize: 19, fontWeight: 600, color: TOKENS.ink, margin: "28px 0 10px" }}>
+          {block.text}
+        </h2>
+      );
+    }
+    if (block.type === "p") {
+      return (
+        <p key={idx} style={{ fontSize: 14.5, color: TOKENS.inkSoft, lineHeight: 1.75, margin: "0 0 14px" }}>
+          {block.text}
+        </p>
+      );
+    }
+    if (block.type === "list") {
+      return (
+        <ul key={idx} style={{ margin: "0 0 14px", padding: "0 0 0 20px", fontSize: 14.5, color: TOKENS.inkSoft, lineHeight: 1.75 }}>
+          {block.items.map((item, i) => (
+            <li key={i} style={{ marginBottom: 6 }}>{item}</li>
+          ))}
+        </ul>
+      );
+    }
+    if (block.type === "cta") {
+      return (
+        <div
+          key={idx}
+          style={{
+            background: TOKENS.okBg,
+            border: "1px solid " + TOKENS.ok + "33",
+            borderRadius: 10,
+            padding: "20px 22px",
+            margin: "24px 0",
+          }}
+        >
+          <h3 style={{ fontSize: 15.5, fontWeight: 600, color: TOKENS.ink, margin: "0 0 6px" }}>{block.title}</h3>
+          <p style={{ fontSize: 13.5, color: TOKENS.inkSoft, lineHeight: 1.6, margin: "0 0 14px" }}>{block.text}</p>
+          <button
+            onClick={onGetStarted}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              background: TOKENS.brand,
+              color: "#fff",
+              border: "none",
+              borderRadius: 6,
+              padding: "9px 16px",
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Essayer gratuitement 14 jours <ChevronRight size={14} />
+          </button>
+        </div>
+      );
+    }
+    if (block.type === "disclaimer") {
+      return (
+        <p key={idx} style={{ fontSize: 12, color: TOKENS.inkSoft, fontStyle: "italic", lineHeight: 1.6, margin: "24px 0 0", borderTop: "1px solid " + TOKENS.line, paddingTop: 16 }}>
+          {block.text}
+        </p>
+      );
+    }
+    return null;
+  });
+}
+
+function BlogPostPage({ post, onBackToBlog, onBackToLanding, onGetStarted }) {
+  useEffect(() => {
+    if (post) document.title = post.title + " — Confia";
+  }, [post]);
+
+  if (!post) return null;
+
+  return (
+    <div style={{ fontFamily: "'Inter', sans-serif", color: TOKENS.ink }}>
+      <BlogNav onNavigateHome={onBackToLanding} onNavigateBlog={onBackToBlog} onLogin={onGetStarted} />
+      <div style={{ maxWidth: 700, margin: "0 auto", padding: "20px 20px 60px" }}>
+        <button
+          onClick={onBackToBlog}
+          style={{
+            background: "none",
+            border: "none",
+            padding: 0,
+            marginBottom: 18,
+            color: TOKENS.inkSoft,
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 12.5,
+            cursor: "pointer",
+            textDecoration: "underline",
+          }}
+        >
+          ← Retour au blog
+        </button>
+        <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginBottom: 8, fontFamily: "'IBM Plex Mono', monospace" }}>
+          {post.publishedLabel}
+        </div>
+        <h1 style={{ fontSize: 27, fontWeight: 700, lineHeight: 1.3, margin: "0 0 22px" }}>{post.title}</h1>
+        {renderBlogSections(post.sections, onGetStarted)}
+      </div>
     </div>
   );
 }
@@ -5095,7 +5492,21 @@ function ResetPasswordScreen({ accessToken, onDone }) {
 
 export default function ConfiaPrototype() {
   const [session, setSession] = useState(() => getStoredSession());
-  const [showLanding, setShowLanding] = useState(true);
+  // Etat de navigation publique (avant connexion) : "landing" | "login" |
+  // "blog" | "blogPost". Initialise depuis l'URL du navigateur pour que les
+  // liens directs /blog et /blog/<slug> fonctionnent (partage, moteurs de
+  // recherche), et synchronise ensuite via window.history.pushState.
+  const [publicView, setPublicView] = useState(() => {
+    const path = window.location.pathname;
+    if (path.startsWith("/blog/")) return "blogPost";
+    if (path === "/blog") return "blog";
+    return "landing";
+  });
+  const [activeBlogSlug, setActiveBlogSlug] = useState(() => {
+    const path = window.location.pathname;
+    if (path.startsWith("/blog/")) return path.replace("/blog/", "").split("/")[0];
+    return null;
+  });
   const [authInitialMode, setAuthInitialMode] = useState("login");
   const [view, setView] = useState("dashboard");
   const [staff, setStaff] = useState([]);
@@ -5126,6 +5537,46 @@ export default function ConfiaPrototype() {
     }
     return null;
   });
+
+  // Navigation publique (avant connexion) : met a jour l'URL affichee dans
+  // le navigateur en plus de l'etat React, pour que l'adresse /blog/<slug>
+  // soit partageable et reste correcte si l'utilisateur rafraichit la page.
+  const goToLanding = () => {
+    window.history.pushState(null, "", "/");
+    setPublicView("landing");
+  };
+  const goToLoginScreen = (mode) => {
+    setAuthInitialMode(mode);
+    setPublicView("login");
+  };
+  const goToBlogList = () => {
+    window.history.pushState(null, "", "/blog");
+    setPublicView("blog");
+  };
+  const goToBlogPost = (slug) => {
+    window.history.pushState(null, "", "/blog/" + slug);
+    setActiveBlogSlug(slug);
+    setPublicView("blogPost");
+  };
+
+  // Garde la navigation coherente avec les boutons precedent/suivant du
+  // navigateur (l'utilisateur revient sur /blog apres avoir lu un article,
+  // par exemple).
+  useEffect(() => {
+    function handlePopState() {
+      const path = window.location.pathname;
+      if (path.startsWith("/blog/")) {
+        setActiveBlogSlug(path.replace("/blog/", "").split("/")[0]);
+        setPublicView("blogPost");
+      } else if (path === "/blog") {
+        setPublicView("blog");
+      } else {
+        setPublicView("landing");
+      }
+    }
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   // Detection simple d'un ecran mobile (moins de 768px de large), remise a
   // jour si l'utilisateur tourne son telephone ou redimensionne la fenetre.
@@ -5289,17 +5740,32 @@ export default function ConfiaPrototype() {
   }
 
   if (!session) {
-    if (showLanding) {
+    if (publicView === "blog") {
+      return (
+        <BlogListPage
+          onBack={goToLanding}
+          onSelectPost={goToBlogPost}
+          onGetStarted={() => goToLoginScreen("signup")}
+        />
+      );
+    }
+    if (publicView === "blogPost") {
+      const post = BLOG_POSTS.find((p) => p.slug === activeBlogSlug) || BLOG_POSTS[0];
+      return (
+        <BlogPostPage
+          post={post}
+          onBackToBlog={goToBlogList}
+          onBackToLanding={goToLanding}
+          onGetStarted={() => goToLoginScreen("signup")}
+        />
+      );
+    }
+    if (publicView === "landing") {
       return (
         <LandingPage
-          onGetStarted={() => {
-            setAuthInitialMode("signup");
-            setShowLanding(false);
-          }}
-          onLogin={() => {
-            setAuthInitialMode("login");
-            setShowLanding(false);
-          }}
+          onGetStarted={() => goToLoginScreen("signup")}
+          onLogin={() => goToLoginScreen("login")}
+          onNavigateBlog={goToBlogList}
         />
       );
     }
@@ -5307,7 +5773,7 @@ export default function ConfiaPrototype() {
       <LoginScreen
         onLogin={handleLogin}
         initialMode={authInitialMode}
-        onBackToLanding={() => setShowLanding(true)}
+        onBackToLanding={goToLanding}
       />
     );
   }
