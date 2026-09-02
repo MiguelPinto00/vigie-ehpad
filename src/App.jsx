@@ -52,8 +52,8 @@ const PLANS = [
     name: "Solo",
     monthly: "39\u20ac",
     annual: "390\u20ac",
-    tagline: "Pour un etablissement isole",
-    features: ["1 etablissement", "Salaries illimites", "Alertes automatiques quotidiennes", "Export PDF", "Upload de justificatifs", "2 membres d'equipe"],
+    tagline: "Pour un établissement isolé",
+    features: ["1 établissement", "Salariés illimités", "Alertes automatiques quotidiennes", "Export PDF", "Upload de justificatifs", "2 membres d'équipe"],
   },
   {
     key: "croissance",
@@ -61,7 +61,7 @@ const PLANS = [
     monthly: "99\u20ac",
     annual: "990\u20ac",
     tagline: "Pour les petits groupes",
-    features: ["Jusqu'a 3 etablissements", "Alertes automatiques quotidiennes", "Jusqu'a 6 membres d'equipe", "Tout Solo inclus"],
+    features: ["Jusqu'à 3 établissements", "Alertes automatiques quotidiennes", "Jusqu'à 6 membres d'équipe", "Tout Solo inclus"],
     highlighted: true,
   },
   {
@@ -70,7 +70,7 @@ const PLANS = [
     monthly: "249\u20ac",
     annual: "2490\u20ac",
     tagline: "Pour les grands groupes",
-    features: ["Jusqu'a 10 etablissements", "Membres d'equipe illimites", "Support prioritaire", "Tout Croissance inclus"],
+    features: ["Jusqu'à 10 établissements", "Membres d'équipe illimités", "Support prioritaire", "Tout Croissance inclus"],
   },
 ];
 
@@ -146,7 +146,7 @@ async function patchAndExpectRow(url, body, token, actionLabel) {
   const data = await res.json();
   if (!data || data.length === 0) {
     throw new Error(
-      "La modification n'a pas ete enregistree (droits d'acces insuffisants pour : " + actionLabel + "). Contactez le support."
+      "La modification n'a pas ete enregistree (droits d'accès insuffisants pour : " + actionLabel + "). Contactez le support."
     );
   }
   return data[0];
@@ -267,13 +267,13 @@ async function insertStaffPerson(row, token) {
     headers: { ...authHeaders(token), Prefer: "return=representation" },
     body: JSON.stringify(row),
   });
-  if (!res.ok) throw new Error("Erreur d'enregistrement du salarie");
+  if (!res.ok) throw new Error("Erreur d'enregistrement du salarié");
   const data = await res.json();
   return data[0];
 }
 
 async function updateStaffPerson(id, updates, token) {
-  return patchAndExpectRow(SUPABASE_URL + "/rest/v1/staff?id=eq." + id, updates, token, "la mise a jour du salarie");
+  return patchAndExpectRow(SUPABASE_URL + "/rest/v1/staff?id=eq." + id, updates, token, "la mise à jour du salarié");
 }
 
 async function deleteStaffPerson(id, token) {
@@ -294,7 +294,7 @@ async function upsertVaccination(payload, vaccinationId, token) {
       headers: { ...authHeaders(token), Prefer: "return=representation" },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error("Erreur de mise a jour du suivi vaccinal");
+    if (!res.ok) throw new Error("Erreur de mise à jour du suivi vaccinal");
     const data = await res.json();
     return data[0];
   }
@@ -383,7 +383,7 @@ async function checkAndInvite(email, organizationId) {
     body: JSON.stringify({ email, organizationId }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Erreur lors de la verification du compte");
+  if (!res.ok) throw new Error(data.error || "Erreur lors de la vérification du compte");
   return data;
 }
 
@@ -423,7 +423,7 @@ async function updateMemberDisplayName(organizationId, userId, displayName, toke
     SUPABASE_URL + "/rest/v1/organization_members?organization_id=eq." + organizationId + "&user_id=eq." + userId,
     { display_name: displayName },
     token,
-    "la mise a jour du nom affiche"
+    "la mise à jour du nom affiché"
   );
 }
 
@@ -474,7 +474,7 @@ async function updateMemberAvatarUrl(organizationId, userId, avatarUrl, token) {
     SUPABASE_URL + "/rest/v1/organization_members?organization_id=eq." + organizationId + "&user_id=eq." + userId,
     { avatar_url: avatarUrl },
     token,
-    "la mise a jour de la photo de profil"
+    "la mise à jour de la photo de profil"
   );
 }
 
@@ -483,7 +483,7 @@ async function updateAlertThreshold(organizationId, days, token) {
     SUPABASE_URL + "/rest/v1/organizations?id=eq." + organizationId,
     { alert_threshold_days: days },
     token,
-    "la mise a jour du seuil d'alerte"
+    "la mise à jour du seuil d'alerte"
   );
 }
 
@@ -492,7 +492,7 @@ async function updateEstablishmentDetails(establishmentId, updates, token) {
     SUPABASE_URL + "/rest/v1/establishments?id=eq." + establishmentId,
     updates,
     token,
-    "la mise a jour de l'etablissement"
+    "la mise à jour de l'établissement"
   );
 }
 
@@ -558,7 +558,7 @@ async function insertEstablishment(name, city, organizationId, token) {
     headers: { ...authHeaders(token), Prefer: "return=representation" },
     body: JSON.stringify({ name, city, organization_id: organizationId }),
   });
-  if (!res.ok) throw new Error("Erreur de creation de l'etablissement");
+  if (!res.ok) throw new Error("Erreur de creation de l'établissement");
   const data = await res.json();
   return data[0];
 }
@@ -585,7 +585,7 @@ async function uploadJustificatif(file, token) {
     headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" },
     body: JSON.stringify({ expiresIn: 60 * 60 * 24 * 365 }),
   });
-  if (!signRes.ok) throw new Error("Echec de la generation du lien du document");
+  if (!signRes.ok) throw new Error("Echec de la génération du lien du document");
   const signData = await signRes.json();
   return SUPABASE_URL + "/storage/v1" + signData.signedURL;
 }
@@ -596,7 +596,7 @@ function computePersonVaccinations(row, alertThresholdDays) {
     // Si aucune vraie date n'est enregistree, on ne devine jamais un statut
     // a partir d'une ancienne valeur saisie a la main : on l'affiche
     // clairement comme "Date manquante" plutot que de risquer d'afficher
-    // "Non conforme" ou "A jour" de facon trompeuse.
+    // "Non conforme" ou "À jour" de facon trompeuse.
     if (!v.last_vaccination_date) {
       return {
         id: v.id,
@@ -657,8 +657,8 @@ function mapPersonRow(row, alertThresholdDays) {
 }
 
 const STATUS_META = {
-  conforme: { label: "A jour", color: TOKENS.ok, bg: TOKENS.okBg },
-  a_venir: { label: "Echeance proche", color: TOKENS.warn, bg: TOKENS.warnBg },
+  conforme: { label: "À jour", color: TOKENS.ok, bg: TOKENS.okBg },
+  a_venir: { label: "Échéance proche", color: TOKENS.warn, bg: TOKENS.warnBg },
   non_conforme: { label: "Non conforme", color: TOKENS.danger, bg: TOKENS.dangerBg },
   non_renseigne: { label: "Date manquante", color: TOKENS.inkSoft, bg: TOKENS.paperDim },
 };
@@ -781,7 +781,7 @@ function BeamGauge({ percent }) {
           {percent}%
         </div>
         <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: TOKENS.inkSoft, marginTop: 4 }}>
-          conformite
+          conformité
         </div>
       </div>
     </div>
@@ -906,14 +906,14 @@ function Sidebar({ view, setView, establishmentCount, isMobile, open, onNavigate
           )}
         </div>
         <NavItem icon={LayoutDashboard} label="Tableau de bord" active={view === "dashboard"} onClick={() => handleNav("dashboard")} />
-        <NavItem icon={Users} label="Salaries" active={view === "staff"} onClick={() => handleNav("staff")} />
+        <NavItem icon={Users} label="Salariés" active={view === "staff"} onClick={() => handleNav("staff")} />
         <NavItem icon={BellRing} label="Alertes" active={view === "alerts"} onClick={() => handleNav("alerts")} />
         <NavItem icon={FileDown} label="Rapports" active={view === "reports"} onClick={() => handleNav("reports")} />
         <NavItem icon={CreditCard} label="Abonnement" active={view === "abonnement"} onClick={() => handleNav("abonnement")} />
-        <NavItem icon={Settings} label="Parametres" active={view === "settings"} onClick={() => handleNav("settings")} />
+        <NavItem icon={Settings} label="Paramètres" active={view === "settings"} onClick={() => handleNav("settings")} />
         <div style={{ marginTop: 20, padding: "12px 10px 4px", borderTop: "1px solid " + TOKENS.line }}>
           <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11.5, color: TOKENS.inkSoft }}>
-            {establishmentCount} etablissement{establishmentCount === 1 ? "" : "s"} suivi{establishmentCount === 1 ? "" : "s"}
+            {establishmentCount} établissement{establishmentCount === 1 ? "" : "s"} suivi{establishmentCount === 1 ? "" : "s"}
           </div>
         </div>
       </div>
@@ -952,22 +952,22 @@ function OnboardingWelcome({ setView, organizationName }) {
   const steps = [
     {
       icon: Building2,
-      title: "Ajoutez votre premier etablissement",
-      description: "Chaque EHPAD ou site que vous gerez doit d'abord etre cree dans Parametres.",
-      action: "Aller dans Parametres",
+      title: "Ajoutez votre premier établissement",
+      description: "Chaque EHPAD ou site que vous gérez doit d'abord être créé dans Paramètres.",
+      action: "Aller dans Paramètres",
       view: "settings",
     },
     {
       icon: Users,
-      title: "Ajoutez vos salaries",
-      description: "Une fois un etablissement cree, ajoutez-y vos salaries un par un ou en important un fichier CSV.",
-      action: "Aller dans Salaries",
+      title: "Ajoutez vos salariés",
+      description: "Une fois un établissement créé, ajoutez-y vos salariés un par un ou en important un fichier CSV.",
+      action: "Aller dans Salariés",
       view: "staff",
     },
     {
       icon: CreditCard,
       title: "Choisissez votre abonnement",
-      description: "Selectionnez l'offre adaptee a votre organisation pour activer le suivi complet.",
+      description: "Sélectionnez l'offre adaptée à votre organisation pour activer le suivi complet.",
       action: "Voir les offres",
       view: "abonnement",
     },
@@ -989,8 +989,8 @@ function OnboardingWelcome({ setView, organizationName }) {
         Bienvenue sur Confia{organizationName ? ", " + organizationName : ""} !
       </h2>
       <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13.5, color: TOKENS.inkSoft, margin: "0 0 26px", lineHeight: 1.6 }}>
-        Votre compte est cree. Il ne reste que quelques etapes avant de pouvoir suivre la conformite
-        vaccinale de vos equipes.
+        Votre compte est créé. Il ne reste que quelques étapes avant de pouvoir suivre la conformité
+        vaccinale de vos équipes.
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
         {steps.map((step, idx) => (
@@ -1098,11 +1098,11 @@ function Dashboard({ staff, establishments, setView, subscriptionStatus, organiz
                 ? "Il vous reste 1 jour d'essai gratuit."
                 : "Il vous reste " + trialDaysLeft + " jours d'essai gratuit."}
             </strong>{" "}
-            Choisissez une offre pour continuer sans interruption a la fin de votre essai.
+            Choisissez une offre pour continuer sans interruption à la fin de votre essai.
           </>
         ) : (
           <>
-            <strong>Aucun abonnement actif.</strong> Choisissez une offre pour continuer a utiliser Confia sans
+            <strong>Aucun abonnement actif.</strong> Choisissez une offre pour continuer à utiliser Confia sans
             interruption.
           </>
         )}
@@ -1178,7 +1178,7 @@ function Dashboard({ staff, establishments, setView, subscriptionStatus, organiz
             Obligation vaccinale grippe — en vigueur depuis le 1er janvier 2026
           </h2>
           <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13.5, color: TOKENS.inkSoft, marginTop: 6, lineHeight: 1.55, maxWidth: 460 }}>
-            {nonConforme} salarie{nonConforme > 1 ? "s" : ""} sur {total} n'a pas de justificatif a jour (grippe ou rougeole). L'article L.3111-4 du code de la sante publique s'applique deja a votre personnel soignant.
+            {nonConforme} salarié{nonConforme > 1 ? "s" : ""} sur {total} n'a pas de justificatif à jour (grippe ou rougeole). L'article L.3111-4 du code de la santé publique s'applique déjà à votre personnel soignant.
           </p>
           <button
             onClick={() => setView("alerts")}
@@ -1198,22 +1198,22 @@ function Dashboard({ staff, establishments, setView, subscriptionStatus, organiz
               cursor: "pointer",
             }}
           >
-            Voir les non-conformites <ChevronRight size={14} />
+            Voir les non-conformités <ChevronRight size={14} />
           </button>
         </div>
       </div>
 
       <div style={{ display: "flex", gap: 14, marginBottom: 20, flexWrap: "wrap" }}>
-        <div style={{ flex: "1 1 130px" }}><StatCard label="Salaries suivis" value={total} /></div>
-        <div style={{ flex: "1 1 130px" }}><StatCard label="A jour" value={conforme} accent={TOKENS.ok} /></div>
-        <div style={{ flex: "1 1 130px" }}><StatCard label="Echeance proche" value={aVenir} accent={TOKENS.warn} /></div>
+        <div style={{ flex: "1 1 130px" }}><StatCard label="Salariés suivis" value={total} /></div>
+        <div style={{ flex: "1 1 130px" }}><StatCard label="À jour" value={conforme} accent={TOKENS.ok} /></div>
+        <div style={{ flex: "1 1 130px" }}><StatCard label="Échéance proche" value={aVenir} accent={TOKENS.warn} /></div>
         <div style={{ flex: "1 1 130px" }}><StatCard label="Non conformes" value={nonConforme} accent={TOKENS.danger} /></div>
       </div>
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, overflow: "hidden" }}>
         <div style={{ padding: "16px 20px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
           <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
-            Detail par etablissement
+            Détail par établissement
           </h3>
           <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: TOKENS.inkSoft, fontStyle: "italic" }}>
             Faites glisser vers la gauche pour voir toutes les colonnes →
@@ -1223,7 +1223,7 @@ function Dashboard({ staff, establishments, setView, subscriptionStatus, organiz
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 560 }}>
           <thead>
             <tr style={{ background: TOKENS.paperDim, borderTop: "1px solid " + TOKENS.line, borderBottom: "1px solid " + TOKENS.line }}>
-              {["Etablissement", "Salaries", "A jour", "Echeance proche", "Non conformes", "Conformite"].map((h, i) => (
+              {["Établissement", "Salariés", "À jour", "Échéance proche", "Non conformes", "Conformité"].map((h, i) => (
                 <th
                   key={h}
                   style={{
@@ -1316,7 +1316,7 @@ function Dashboard({ staff, establishments, setView, subscriptionStatus, organiz
 // Duree de validite du vaccin grippe (en jours) avant qu'une nouvelle
 // injection soit recommandee. Ajustable ici si la recommandation change.
 const GRIPPE_VALIDITE_JOURS = 365;
-// Valeur par defaut du nombre de jours avant l'echeance a partir duquel le
+// Valeur par défaut du nombre de jours avant l'echeance a partir duquel le
 // statut passe en "Echeance proche". Chaque organisation peut desormais
 // personnaliser ce seuil depuis Parametres ; cette constante ne sert que de
 // valeur de repli si aucun reglage n'a encore ete enregistre.
@@ -1341,7 +1341,7 @@ function computeVaccineCompliance(vaccine, lastVaccinationDateStr, alertThreshol
 
   if (vaccine === "Rougeole") {
     // Immunite consideree comme durable : pas de rappel periodique attendu.
-    return { status: "conforme", updatedLabel, nextLabel: "Aucune echeance (immunite durable)" };
+    return { status: "conforme", updatedLabel, nextLabel: "Aucune échéance (immunité durable)" };
   }
 
   // Grippe (et par defaut pour tout autre vaccin a rappel annuel)
@@ -1366,7 +1366,7 @@ function computeVaccineCompliance(vaccine, lastVaccinationDateStr, alertThreshol
 
 const VACCINE_TYPES = [
   { key: "Grippe", label: "Grippe (obligatoire depuis 01/01/2026)" },
-  { key: "Rougeole", label: "Rougeole (LFSS 2026, decret a venir)" },
+  { key: "Rougeole", label: "Rougeole (LFSS 2026, décret a venir)" },
 ];
 
 function VaccineSection({ vaccineKey, label, date, onDateChange, file, onFileChange, existingDocumentUrl, alertThresholdDays }) {
@@ -1477,7 +1477,7 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff, aler
         const created = await insertStaffPerson(personPayload, token);
         personId = created.id;
         await insertHistoryEvent(
-          { staff_id: personId, event_type: "creation", description: "Salarie ajoute a Confia." },
+          { staff_id: personId, event_type: "creation", description: "Salarié ajoute a Confia." },
           token
         );
       }
@@ -1558,7 +1558,7 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff, aler
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 17, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
-            {isEditing ? "Modifier le salarie" : "Ajouter un salarie"}
+            {isEditing ? "Modifier le salarié" : "Ajouter un salarié"}
           </h3>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: TOKENS.inkSoft }}>
             <X size={18} />
@@ -1571,7 +1571,7 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff, aler
         <label style={labelStyle}>Fonction</label>
         <input style={inputStyle} value={role} onChange={(e) => setRole(e.target.value)} placeholder="Ex. Auxiliaire de puericulture" />
 
-        <label style={labelStyle}>Etablissement</label>
+        <label style={labelStyle}>Établissement</label>
         <select style={inputStyle} value={site} onChange={(e) => setSite(e.target.value)}>
           {establishments.map((e) => (
             <option key={e.id} value={e.id}>
@@ -1633,7 +1633,7 @@ function StaffModal({ onClose, onSave, establishments, token, editingStaff, aler
 const IMPORT_CSV_HEADERS = [
   "Nom",
   "Fonction",
-  "Etablissement",
+  "Établissement",
   "Date vaccination Grippe (AAAA-MM-JJ)",
   "Date vaccination Rougeole (AAAA-MM-JJ)",
 ];
@@ -1687,7 +1687,7 @@ function ImportStaffModal({ onClose, onSave, establishments, token, alertThresho
     const example = [
       "Marie Dupont",
       "Aide-soignante",
-      establishments[0]?.name || "Nom exact de l'etablissement",
+      establishments[0]?.name || "Nom exact de l'établissement",
       "2025-10-01",
       "",
     ];
@@ -1733,7 +1733,7 @@ function ImportStaffModal({ onClose, onSave, establishments, token, alertThresho
         if (!establishment) {
           errors.push({
             line: lineNumber,
-            reason: "Etablissement \"" + (estabName || "-") + "\" introuvable (verifiez l'orthographe exacte).",
+            reason: "Établissement \"" + (estabName || "-") + "\" introuvable (vérifiez l'orthographe exacte).",
           });
           continue;
         }
@@ -1744,7 +1744,7 @@ function ImportStaffModal({ onClose, onSave, establishments, token, alertThresho
             token
           );
           await insertHistoryEvent(
-            { staff_id: created.id, event_type: "creation", description: "Salarie importe via un fichier CSV." },
+            { staff_id: created.id, event_type: "creation", description: "Salarié importe via un fichier CSV." },
             token
           );
           for (const [vaccine, dateValue] of [
@@ -1819,7 +1819,7 @@ function ImportStaffModal({ onClose, onSave, establishments, token, alertThresho
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 17, fontWeight: 600, color: TOKENS.ink, margin: 0 }}>
-            Importer des salaries
+            Importer des salariés
           </h3>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: TOKENS.inkSoft }}>
             <X size={18} />
@@ -1827,8 +1827,8 @@ function ImportStaffModal({ onClose, onSave, establishments, token, alertThresho
         </div>
 
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, lineHeight: 1.6, margin: "0 0 14px" }}>
-          Importez plusieurs salaries d'un coup depuis un fichier CSV. Le nom de l'etablissement dans le fichier
-          doit correspondre exactement a celui deja cree dans Confia.
+          Importez plusieurs salariés d'un coup depuis un fichier CSV. Le nom de l'établissement dans le fichier
+          doit correspondre exactement à celui déjà créé dans Confia.
         </p>
 
         <button
@@ -1849,7 +1849,7 @@ function ImportStaffModal({ onClose, onSave, establishments, token, alertThresho
             marginBottom: 16,
           }}
         >
-          <FileDown size={13} /> Telecharger le modele CSV
+          <FileDown size={13} /> Télécharger le modèle CSV
         </button>
 
         <label
@@ -1897,7 +1897,7 @@ function ImportStaffModal({ onClose, onSave, establishments, token, alertThresho
             }}
           >
             <div style={{ fontWeight: 600, color: TOKENS.ink, marginBottom: results.errors.length > 0 ? 6 : 0 }}>
-              {results.success} salarie{results.success > 1 ? "s" : ""} importe{results.success > 1 ? "s" : ""} avec succes.
+              {results.success} salarié{results.success > 1 ? "s" : ""} importé{results.success > 1 ? "s" : ""} avec succès.
             </div>
             {results.errors.length > 0 && (
               <div>
@@ -2017,7 +2017,7 @@ function HistoryModal({ person, onClose }) {
         <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
           {(person.history || []).length === 0 ? (
             <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: TOKENS.inkSoft }}>
-              Aucun evenement enregistre pour ce salarie.
+              Aucun événement enregistré pour ce salarié.
             </p>
           ) : (
             person.history.map((h) => (
@@ -2064,7 +2064,7 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token, ale
   }, [staff, query, filter, siteFilter]);
 
   const handleDelete = async (s) => {
-    if (!window.confirm("Supprimer " + s.name + " ? Cette action est irreversible et supprimera tous ses suivis vaccinaux.")) return;
+    if (!window.confirm("Supprimer " + s.name + " ? Cette action est irréversible et supprimera tous ses suivis vaccinaux.")) return;
     setDeletingId(s.id);
     try {
       await onDeletePerson(s.id);
@@ -2106,11 +2106,11 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token, ale
           <Building2 size={20} color={TOKENS.brand} />
         </div>
         <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 17, fontWeight: 600, color: TOKENS.ink, margin: "0 0 8px" }}>
-          Creez d'abord un etablissement
+          Créez d'abord un établissement
         </h3>
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: TOKENS.inkSoft, lineHeight: 1.6, margin: "0 0 18px" }}>
-          Chaque salarie doit etre rattache a un etablissement. Ajoutez votre premier etablissement dans
-          Parametres avant de pouvoir ajouter ou importer des salaries.
+          Chaque salarié doit être rattaché à un établissement. Ajoutez votre premier établissement dans
+          Paramètres avant de pouvoir ajouter ou importer des salariés.
         </p>
         <button
           onClick={() => setView && setView("settings")}
@@ -2129,7 +2129,7 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token, ale
             cursor: "pointer",
           }}
         >
-          Aller dans Parametres <ChevronRight size={14} />
+          Aller dans Paramètres <ChevronRight size={14} />
         </button>
       </div>
     );
@@ -2143,7 +2143,7 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token, ale
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher un salarie..."
+            placeholder="Rechercher un salarié..."
             style={{
               width: "100%",
               padding: "8px 10px 8px 30px",
@@ -2191,7 +2191,7 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token, ale
               outline: "none",
             }}
           >
-            <option value="all">Tous les etablissements</option>
+            <option value="all">Tous les établissements</option>
             {establishments.map((e) => (
               <option key={e.id} value={e.id}>
                 {e.name}
@@ -2273,7 +2273,7 @@ function StaffView({ staff, onReload, onDeletePerson, establishments, token, ale
         <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'Inter', sans-serif" }}>
           <thead>
             <tr style={{ background: TOKENS.paperDim, borderBottom: "1px solid " + TOKENS.line }}>
-              {["Nom", "Fonction", "Etablissement", "Statut global", "Grippe", "Rougeole", "Actions"].map((h) => (
+              {["Nom", "Fonction", "Établissement", "Statut global", "Grippe", "Rougeole", "Actions"].map((h) => (
                 <th
                   key={h}
                   style={{
@@ -2435,7 +2435,7 @@ function AlertsView({ staff, establishments, userEmail }) {
           staffName: a.name,
           establishmentName: establishments.find((e) => e.id === a.site)?.name || "-",
           vaccine: a.vaccine,
-          reason: a.status === "non_conforme" ? "Aucun justificatif enregistre" : "Echeance proche (" + a.next + ")",
+          reason: a.status === "non_conforme" ? "Aucun justificatif enregistre" : "Échéance proche (" + a.next + ")",
         }),
       });
       const data = await res.json();
@@ -2475,10 +2475,10 @@ function AlertsView({ staff, establishments, userEmail }) {
                 {!a.vaccine
                   ? "Aucun suivi vaccinal enregistre pour cette personne."
                   : a.status === "non_renseigne"
-                  ? `Date de vaccination ${a.vaccine.toLowerCase()} non renseignee : impossible de verifier la conformite.`
+                  ? `Date de vaccination ${a.vaccine.toLowerCase()} non renseignee : impossible de vérifier la conformité.`
                   : isOverdue
                   ? `Aucun justificatif d'immunisation ${a.vaccine.toLowerCase()} valide enregistre.`
-                  : `Echeance de controle (${a.vaccine}) : ${a.next}.`}
+                  : `Échéance de contrôle (${a.vaccine}) : ${a.next}.`}
               </div>
               {state === "sent" && (
                 <div style={{ fontSize: 11.5, color: TOKENS.ok, marginTop: 4 }}>Email envoye</div>
@@ -2550,7 +2550,7 @@ function AbonnementView({ token, organizationId, establishments, staffCount, cur
       window.location.href = url;
     } catch (err) {
       console.error("Erreur de paiement:", err);
-      setCheckoutError(err.message || "Erreur lors de la creation du paiement");
+      setCheckoutError(err.message || "Erreur lors de la création du paiement");
       setCheckoutLoadingKey(null);
     }
   };
@@ -2591,19 +2591,19 @@ function AbonnementView({ token, organizationId, establishments, staffCount, cur
             <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
               {establishments.length}
             </div>
-            <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginTop: 2 }}>Etablissements</div>
+            <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginTop: 2 }}>Établissements</div>
           </div>
           <div style={{ flex: 1, padding: "12px 14px", background: TOKENS.paperDim, borderRadius: 6, textAlign: "center" }}>
             <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
               {staffCount}
             </div>
-            <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginTop: 2 }}>Salaries suivis</div>
+            <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginTop: 2 }}>Salariés suivis</div>
           </div>
           <div style={{ flex: 1, padding: "12px 14px", background: TOKENS.paperDim, borderRadius: 6, textAlign: "center" }}>
             <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600, color: TOKENS.ink }}>
               {membersCount ?? "-"}
             </div>
-            <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginTop: 2 }}>Membres d'equipe</div>
+            <div style={{ fontSize: 11.5, color: TOKENS.inkSoft, marginTop: 2 }}>Membres d'équipe</div>
           </div>
         </div>
         {stripeCustomerId && (
@@ -2629,11 +2629,11 @@ function AbonnementView({ token, organizationId, establishments, staffCount, cur
               <CreditCard size={17} style={{ flexShrink: 0 }} />
               <span style={{ textAlign: "left" }}>
                 <span style={{ display: "block", fontSize: 13.5, fontWeight: 600, lineHeight: 1.3 }}>
-                  {portalLoading ? "Ouverture..." : "Gerer mon abonnement"}
+                  {portalLoading ? "Ouverture..." : "Gérer mon abonnement"}
                 </span>
                 {!portalLoading && (
                   <span style={{ display: "block", fontSize: 11, fontWeight: 400, opacity: 0.85, marginTop: 1, lineHeight: 1.3 }}>
-                    Resiliation, facture, moyen de paiement
+                    Résiliation, facture, moyen de paiement
                   </span>
                 )}
               </span>
@@ -2673,7 +2673,7 @@ function AbonnementView({ token, organizationId, establishments, staffCount, cur
           </div>
         </div>
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 18px" }}>
-          Choisissez l'offre adaptee a votre organisation. Paiement securise par carte bancaire, sans engagement.
+          Choisissez l'offre adaptée à votre organisation. Paiement sécurisé par carte bancaire, sans engagement.
         </p>
         {checkoutError && (
           <div style={{ fontSize: 12, color: TOKENS.danger, marginBottom: 14 }}>{checkoutError}</div>
@@ -2769,7 +2769,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
     setPasswordChanged(false);
     setPasswordChangeError(null);
     if (newPassword.length < 6) {
-      setPasswordChangeError("Le mot de passe doit contenir au moins 6 caracteres.");
+      setPasswordChangeError("Le mot de passe doit contenir au moins 6 caractères.");
       return;
     }
     if (newPassword !== confirmNewPassword) {
@@ -2808,7 +2808,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
       return;
     }
     if (trimmed.toLowerCase() === (currentUserEmail || "").toLowerCase()) {
-      setEmailChangeError("C'est deja votre adresse email actuelle.");
+      setEmailChangeError("C'est déjà votre adresse email actuelle.");
       return;
     }
     setChangingEmail(true);
@@ -2852,7 +2852,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
       await onUpdateAlertThreshold(days);
       setThresholdSaved(true);
     } catch (err) {
-      console.error("Erreur de mise a jour du seuil:", err);
+      console.error("Erreur de mise à jour du seuil:", err);
       setThresholdError(err.message || "Erreur lors de l'enregistrement");
     } finally {
       setSavingThreshold(false);
@@ -2889,7 +2889,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
         const ownRow = m.find((row) => row.email === currentUserEmail);
         setDisplayNameDraft(ownRow?.display_name || "");
       })
-      .catch((err) => console.error("Erreur de chargement equipe:", err));
+      .catch((err) => console.error("Erreur de chargement équipe:", err));
   }, [organizationId, token]);
 
   const saveDisplayName = async () => {
@@ -2905,7 +2905,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
       if (onUpdateProfile) onUpdateProfile({ displayName: trimmed });
       setDisplayNameSaved(true);
     } catch (err) {
-      console.error("Erreur de mise a jour du nom affiche:", err);
+      console.error("Erreur de mise à jour du nom affiché:", err);
       setDisplayNameError(err.message || "Erreur lors de l'enregistrement");
     } finally {
       setSavingDisplayName(false);
@@ -2974,7 +2974,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
 
       // Etape 2 : aucun compte existant, on envoie une invitation classique par email
       const invitation = await createInvitation(email, organizationId, token);
-      if (!invitation) throw new Error("Aucune donnee retournee");
+      if (!invitation) throw new Error("Aucune donnée retournee");
       setPendingInvites((prev) => [...prev, invitation]);
       await fetch("/api/send-invite", {
         method: "POST",
@@ -3038,7 +3038,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
 
   const handleRemoveMember = async (member) => {
     const confirmed = window.confirm(
-      "Retirer " + member.email + " de l'organisation ? Cette personne perdra immediatement l'acces a toutes les donnees."
+      "Retirer " + member.email + " de l'organisation ? Cette personne perdra immédiatement l'accès a toutes les données."
     );
     if (!confirmed) return;
     setRemovingMemberId(member.user_id);
@@ -3112,7 +3112,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
     setOrgRenameError(null);
     try {
       const updated = await renameOrganization(organizationId, orgNameDraft.trim(), token);
-      if (!updated) throw new Error("Aucune donnee retournee");
+      if (!updated) throw new Error("Aucune donnée retournee");
       onRenameOrganization(updated.name);
       setOrgRenamed(true);
     } catch (err) {
@@ -3129,7 +3129,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
     setCreateError(null);
     try {
       const created = await insertEstablishment(newName.trim(), newCity.trim(), organizationId, token);
-      if (!created) throw new Error("Aucune donnee retournee");
+      if (!created) throw new Error("Aucune donnée retournee");
       onAddEstablishment(created);
       setNewName("");
       setNewCity("");
@@ -3165,7 +3165,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
         token
       );
       if (!updated) {
-        throw new Error("Aucune donnee retournee (droits d'acces manquants sur la base ?)");
+        throw new Error("Aucune donnée retournee (droits d'accès manquants sur la base ?)");
       }
       onUpdate(updated);
       setSaved((prev) => ({ ...prev, [id]: true }));
@@ -3179,7 +3179,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
 
   const handleDeleteEstablishment = async (e) => {
     const confirmed = window.confirm(
-      "Supprimer \"" + e.name + "\" ? Tous les salaries rattaches a cet etablissement seront egalement supprimes definitivement."
+      "Supprimer \"" + e.name + "\" ? Tous les salariés rattaches a cet établissement seront également supprimes définitivement."
     );
     if (!confirmed) return;
     setDeletingEstabId(e.id);
@@ -3309,9 +3309,9 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
           </button>
         </div>
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: TOKENS.inkSoft, margin: "0 0 14px", lineHeight: 1.5 }}>
-          S'affiche a la place de votre email dans la liste des membres de l'equipe. Laissez vide pour continuer a afficher votre email.
+          S'affiche à la place de votre email dans la liste des membres de l'équipe. Laissez vide pour continuer à afficher votre email.
         </p>
-        {displayNameSaved && <div style={{ fontSize: 11.5, color: TOKENS.ok, marginBottom: 14 }}>Enregistre.</div>}
+        {displayNameSaved && <div style={{ fontSize: 11.5, color: TOKENS.ok, marginBottom: 14 }}>Enregistré.</div>}
         {displayNameError && <div style={{ fontSize: 11.5, color: TOKENS.danger, marginBottom: 14 }}>{displayNameError}</div>}
 
         <div style={{ borderTop: "1px solid " + TOKENS.line, margin: "4px 0 16px" }} />
@@ -3361,8 +3361,8 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
         </div>
         {emailChangeRequested && (
           <div style={{ fontSize: 11.5, color: TOKENS.ok, marginBottom: 14, lineHeight: 1.5 }}>
-            Un email de confirmation a ete envoye a la nouvelle adresse. Le changement ne sera effectif
-            qu'apres avoir clique sur le lien recu.
+            Un email de confirmation a été envoyé à la nouvelle adresse. Le changement ne sera effectif
+            qu'après avoir clique sur le lien recu.
           </div>
         )}
         {emailChangeError && <div style={{ fontSize: 11.5, color: TOKENS.danger, marginBottom: 14 }}>{emailChangeError}</div>}
@@ -3475,17 +3475,17 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
             {renamingOrg ? "..." : "Enregistrer"}
           </button>
         </div>
-        {orgRenamed && <div style={{ fontSize: 11.5, color: TOKENS.ok, marginTop: 8 }}>Enregistre</div>}
+        {orgRenamed && <div style={{ fontSize: 11.5, color: TOKENS.ok, marginTop: 8 }}>Enregistré</div>}
         {orgRenameError && <div style={{ fontSize: 11.5, color: TOKENS.danger, marginTop: 8 }}>{orgRenameError}</div>}
       </div>
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
         <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
-          Seuil d'alerte "Echeance proche"
+          Seuil d'alerte "Échéance proche"
         </h3>
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
-          Nombre de jours avant l'echeance du vaccin grippe a partir duquel un salarie passe au statut
-          "Echeance proche" plutot que "A jour". Valeur par defaut : 45 jours.
+          Nombre de jours avant l'échéance du vaccin grippe à partir duquel un salarié passe au statut
+          "Échéance proche" plutôt que "À jour". Valeur par défaut : 45 jours.
         </p>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <input
@@ -3527,16 +3527,16 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
             {savingThreshold ? "..." : "Enregistrer"}
           </button>
         </div>
-        {thresholdSaved && <div style={{ fontSize: 11.5, color: TOKENS.ok, marginTop: 8 }}>Enregistre. Les statuts ont ete recalcules.</div>}
+        {thresholdSaved && <div style={{ fontSize: 11.5, color: TOKENS.ok, marginTop: 8 }}>Enregistré. Les statuts ont été recalculés.</div>}
         {thresholdError && <div style={{ fontSize: 11.5, color: TOKENS.danger, marginTop: 8 }}>{thresholdError}</div>}
       </div>
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
         <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
-          Membres de l'equipe
+          Membres de l'équipe
         </h3>
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
-          Invitez des collegues a rejoindre votre organisation. Ils devront s'inscrire avec la meme adresse email que celle invitee.
+          Invitez des collègues à rejoindre votre organisation. Ils devront s'inscrire avec la même adresse email que celle invitée.
         </p>
 
         <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
@@ -3753,14 +3753,14 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
         <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
-          Ajouter un etablissement
+          Ajouter un établissement
         </h3>
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
-          Chaque etablissement que vous ajoutez ici est visible uniquement par votre organisation.
+          Chaque établissement que vous ajoutez ici est visible uniquement par votre organisation.
         </p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <input
-            placeholder="Nom de l'etablissement"
+            placeholder="Nom de l'établissement"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             style={{ ...inputStyle, flex: "2 1 180px" }}
@@ -3799,14 +3799,14 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
 
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
       <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
-        Vos etablissements
+        Vos établissements
       </h3>
       <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 18px" }}>
-        Modifiez le nom, la ville ou l'email de contact de chaque etablissement, ou supprimez-le.
+        Modifiez le nom, la ville ou l'email de contact de chaque établissement, ou supprimez-le.
       </p>
       {establishments.length === 0 ? (
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: TOKENS.inkSoft }}>
-          Ajoutez d'abord un etablissement ci-dessus.
+          Ajoutez d'abord un établissement ci-dessus.
         </p>
       ) : (
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -3835,12 +3835,12 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
                 </div>
               </div>
               <label style={{ display: "block", fontSize: 11.5, color: TOKENS.inkSoft, marginBottom: 4 }}>
-                Email de contact (pour le resume quotidien)
+                Email de contact (pour le résumé quotidien)
               </label>
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                 <input
                   type="email"
-                  placeholder="email@etablissement.fr"
+                  placeholder="email@établissement.fr"
                   value={d.contact_email}
                   onChange={(ev) => setField("contact_email", ev.target.value)}
                   autoComplete="off"
@@ -3870,7 +3870,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
                 <button
                   onClick={() => handleDeleteEstablishment(e)}
                   disabled={deletingEstabId === e.id}
-                  title="Supprimer cet etablissement"
+                  title="Supprimer cet établissement"
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -3907,7 +3907,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
           Zone de danger
         </h3>
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
-          Supprimer votre compte est definitif et irreversible. Vos etablissements et salaries resteront lies a votre organisation mais vous n'y aurez plus acces.
+          Supprimer votre compte est définitif et irréversible. Vos établissements et salariés resteront liés à votre organisation mais vous n'y aurez plus accès.
         </p>
         <label style={{ display: "block", fontSize: 12, color: TOKENS.ink, marginBottom: 6 }}>
           Tapez votre email (<strong>{currentUserEmail}</strong>) pour confirmer :
@@ -3978,7 +3978,7 @@ function ReportsView({ staff, establishments, organizationName }) {
     setGeneratingCsv(true);
     try {
       const today = new Date().toLocaleDateString("fr-FR");
-      const headers = ["Nom", "Fonction", "Etablissement", "Vaccin", "Statut", "Derniere mise a jour", "Echeance"];
+      const headers = ["Nom", "Fonction", "Établissement", "Vaccin", "Statut", "Dernière mise à jour", "Échéance"];
       const rows = [headers];
 
       staff.forEach((s) => {
@@ -4015,8 +4015,8 @@ function ReportsView({ staff, establishments, organizationName }) {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error("Erreur de generation CSV:", err);
-      alert("Erreur lors de la generation du CSV. Reessayez.");
+      console.error("Erreur de génération CSV:", err);
+      alert("Erreur lors de la génération du CSV. Reessayez.");
     } finally {
       setGeneratingCsv(false);
     }
@@ -4033,26 +4033,26 @@ function ReportsView({ staff, establishments, organizationName }) {
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(16);
-      doc.text("Rapport de conformite vaccinale", 14, 18);
+      doc.text("Rapport de conformité vaccinale", 14, 18);
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
       doc.text(organizationName || "Confia", 14, 26);
-      doc.text("Genere le " + today, 14, 32);
-      doc.text("Taux de conformite global : " + percent + "% (" + conforme + "/" + total + ")", 14, 40);
+      doc.text("Généré le " + today, 14, 32);
+      doc.text("Taux de conformité global : " + percent + "% (" + conforme + "/" + total + ")", 14, 40);
 
       let y = 52;
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
-      doc.text("Detail par salarie", 14, y);
+      doc.text("Détail par salarié", 14, y);
       y += 8;
 
       doc.setFontSize(9);
       doc.text("Nom", 14, y);
-      doc.text("Etablissement", 65, y);
+      doc.text("Établissement", 65, y);
       doc.text("Vaccin", 120, y);
       doc.text("Statut", 145, y);
-      doc.text("Echeance", 172, y);
+      doc.text("Échéance", 172, y);
       y += 5;
       doc.setLineWidth(0.2);
       doc.line(14, y, 196, y);
@@ -4082,15 +4082,15 @@ function ReportsView({ staff, establishments, organizationName }) {
       doc.setFontSize(8);
       doc.setTextColor(150);
       doc.text(
-        "Document genere automatiquement par Confia - a des fins de suivi interne.",
+        "Document généré automatiquement par Confia - à des fins de suivi interne.",
         14,
         290
       );
 
       doc.save("rapport-conformite-vaccinale-" + today.replace(/\//g, "-") + ".pdf");
     } catch (err) {
-      console.error("Erreur de generation PDF:", err);
-      alert("Erreur lors de la generation du PDF. Reessayez.");
+      console.error("Erreur de génération PDF:", err);
+      alert("Erreur lors de la génération du PDF. Reessayez.");
     } finally {
       setGenerating(false);
     }
@@ -4123,10 +4123,10 @@ function ReportsView({ staff, establishments, organizationName }) {
         <FileDown size={20} color={TOKENS.brand} />
       </div>
       <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 17, fontWeight: 600, color: TOKENS.ink, margin: "0 0 8px" }}>
-        Rapport de conformite
+        Rapport de conformité
       </h3>
       <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: TOKENS.inkSoft, lineHeight: 1.6, margin: "0 0 18px" }}>
-        Generez un export horodate, pret a presenter lors d'un controle ou d'un renouvellement d'agrement.
+        Générez un export horodaté, prêt à présenter lors d'un contrôle ou d'un renouvellement d'agrément.
       </p>
       <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
         <button
@@ -4145,7 +4145,7 @@ function ReportsView({ staff, establishments, organizationName }) {
             opacity: generating || staff.length === 0 ? 0.6 : 1,
           }}
         >
-          {generating ? "Generation..." : "Generer le PDF"}
+          {generating ? "Génération..." : "Générer le PDF"}
         </button>
         <button
           onClick={generateCSV}
@@ -4163,7 +4163,7 @@ function ReportsView({ staff, establishments, organizationName }) {
             opacity: generatingCsv || staff.length === 0 ? 0.6 : 1,
           }}
         >
-          {generatingCsv ? "Generation..." : "Exporter en CSV"}
+          {generatingCsv ? "Génération..." : "Exporter en CSV"}
         </button>
       </div>
     </div>
@@ -4355,18 +4355,18 @@ function LandingPage({ onGetStarted, onLogin, onNavigateBlog }) {
             marginBottom: 20,
           }}
         >
-          Loi de financement de la securite sociale 2026 — obligation vaccinale medico-social
+          Loi de financement de la sécurité sociale 2026 — obligation vaccinale médico-social
         </span>
         <h1 style={{ fontSize: 36, fontWeight: 700, lineHeight: 1.25, margin: "0 0 18px" }}>
-          La conformite vaccinale de votre EHPAD,
+          La conformité vaccinale de votre EHPAD,
           <br />
-          enfin maitrisee.
+          enfin maîtrisée.
         </h1>
         <p style={{ fontSize: 15.5, color: TOKENS.inkSoft, lineHeight: 1.65, maxWidth: 620, margin: "0 auto 30px" }}>
-          Depuis le 1er janvier 2026, l'obligation vaccinale contre la grippe s'applique a l'ensemble du
-          personnel soignant en EHPAD (article L.3111-4 du code de la sante publique). Une nouvelle
-          obligation rougeole est prevue par la LFSS 2026. Confia centralise le suivi de votre personnel,
-          automatise les relances et genere vos justificatifs de conformite.
+          Depuis le 1er janvier 2026, l'obligation vaccinale contre la grippe s'applique à l'ensemble du
+          personnel soignant en EHPAD (article L.3111-4 du code de la santé publique). Une nouvelle
+          obligation rougeole est prévue par la LFSS 2026. Confia centralise le suivi de votre personnel,
+          automatise les relances et génère vos justificatifs de conformité.
         </p>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
           <button
@@ -4386,10 +4386,10 @@ function LandingPage({ onGetStarted, onLogin, onNavigateBlog }) {
               cursor: "pointer",
             }}
           >
-            Creer mon compte <ChevronRight size={16} />
+            Créer mon compte <ChevronRight size={16} />
           </button>
           <span style={{ fontSize: 12, color: TOKENS.inkSoft }}>
-            Sans engagement — annulation possible a tout moment.
+            Sans engagement — annulation possible à tout moment.
           </span>
         </div>
       </div>
@@ -4400,22 +4400,22 @@ function LandingPage({ onGetStarted, onLogin, onNavigateBlog }) {
           <LandingFeatureCard
             icon={Users}
             title="Suivi centralise du personnel"
-            description="Visualisez en un coup d'oeil le statut vaccinal de chaque salarie, etablissement par etablissement."
+            description="Visualisez en un coup d'œil le statut vaccinal de chaque salarié, établissement par établissement."
           />
           <LandingFeatureCard
             icon={BellRing}
             title="Alertes automatiques"
-            description="Recevez chaque jour un resume de conformite par email, sans avoir a verifier manuellement."
+            description="Recevez chaque jour un résumé de conformité par email, sans avoir à vérifier manuellement."
           />
           <LandingFeatureCard
             icon={FileDown}
-            title="Rapports prets pour un controle"
-            description="Generez en un clic un rapport PDF horodate a presenter lors d'une inspection ou d'un renouvellement d'agrement."
+            title="Rapports prêts pour un contrôle"
+            description="Générez en un clic un rapport PDF horodaté à présenter lors d'une inspection ou d'un renouvellement d'agrément."
           />
           <LandingFeatureCard
             icon={Building2}
-            title="Multi-etablissements"
-            description="Gerez plusieurs EHPAD et invitez votre equipe au sein d'une seule organisation."
+            title="Multi-établissements"
+            description="Gérez plusieurs EHPAD et invitez votre équipe au sein d'une seule organisation."
           />
         </div>
       </div>
@@ -4425,7 +4425,7 @@ function LandingPage({ onGetStarted, onLogin, onNavigateBlog }) {
         <div style={{ textAlign: "center", marginBottom: 30 }}>
           <h2 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 10px" }}>Nos tarifs</h2>
           <p style={{ fontSize: 14, color: TOKENS.inkSoft, margin: "0 0 18px" }}>
-            Choisissez l'offre adaptee a votre organisation. Sans engagement, resiliable a tout moment.
+            Choisissez l'offre adaptée à votre organisation. Sans engagement, résiliable à tout moment.
           </p>
           <div
             style={{
@@ -4463,7 +4463,7 @@ function LandingPage({ onGetStarted, onLogin, onNavigateBlog }) {
         </div>
       </div>
 
-      {/* Section reglementaire */}
+      {/* Section réglementaire */}
       <div style={{ background: "#fff", borderTop: "1px solid " + TOKENS.line, borderBottom: "1px solid " + TOKENS.line }}>
         <div style={{ maxWidth: 780, margin: "0 auto", padding: "44px 20px", textAlign: "center" }}>
           <div
@@ -4481,65 +4481,65 @@ function LandingPage({ onGetStarted, onLogin, onNavigateBlog }) {
             <ShieldCheck size={21} color={TOKENS.brand} />
           </div>
           <h2 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 12px" }}>
-            Une obligation legale, un outil pense pour y repondre
+            Une obligation légale, un outil pensé pour y répondre
           </h2>
           <p style={{ fontSize: 13.5, color: TOKENS.inkSoft, lineHeight: 1.7, margin: 0 }}>
             L'obligation vaccinale grippe pour le personnel soignant en EHPAD est en vigueur depuis le 1er
-            janvier 2026. La LFSS 2026 prevoit egalement une nouvelle obligation vaccinale rougeole pour le
-            personnel du secteur medico-social, dont le decret d'application est attendu. Confia est un
-            outil de suivi interne qui vous aide a anticiper ces echeances ; il ne remplace pas un avis
-            juridique ou medical.
+            janvier 2026. La LFSS 2026 prévoit également une nouvelle obligation vaccinale rougeole pour le
+            personnel du secteur médico-social, dont le décret d'application est attendu. Confia est un
+            outil de suivi interne qui vous aide à anticiper ces échéances ; il ne remplace pas un avis
+            juridique ou médical.
           </p>
         </div>
       </div>
 
-      {/* Section securite des donnees */}
+      {/* Section sécurité des données */}
       <div style={{ maxWidth: 780, margin: "0 auto", padding: "44px 20px" }}>
         <h2 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 24px", textAlign: "center" }}>
-          Securite et confidentialite des donnees
+          Sécurité et confidentialité des données
         </h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div>
             <h3 style={{ fontSize: 14.5, fontWeight: 600, color: TOKENS.ink, margin: "0 0 6px" }}>
-              Hebergement et infrastructure
+              Hébergement et infrastructure
             </h3>
             <p style={{ fontSize: 13.5, color: TOKENS.inkSoft, lineHeight: 1.7, margin: 0 }}>
-              Vos donnees sont hebergees sur des infrastructures cloud securisees (chiffrement au repos
-              et en transit, sauvegardes automatiques quotidiennes). Nous sommes actuellement engages
-              dans une demarche de migration vers un hebergement certifie HDS (Hebergement de Donnees
-              de Sante), conformement aux exigences de l'article L.1111-8 du Code de la sante publique.
+              Vos données sont hébergées sur des infrastructures cloud sécurisées (chiffrement au repos
+              et en transit, sauvegardes automatiques quotidiennes). Nous sommes actuellement engagés
+              dans une démarche de migration vers un hébergement certifié HDS (Hébergement de Données
+              de Santé), conformément aux exigences de l'article L.1111-8 du Code de la santé publique.
             </p>
           </div>
           <div>
             <h3 style={{ fontSize: 14.5, fontWeight: 600, color: TOKENS.ink, margin: "0 0 6px" }}>
-              Acces et confidentialite
+              Accès et confidentialité
             </h3>
             <p style={{ fontSize: 13.5, color: TOKENS.inkSoft, lineHeight: 1.7, margin: 0 }}>
-              Chaque etablissement n'a acces qu'a ses propres donnees. Les resumes envoyes par email
-              sont anonymises (aucun nom de salarie n'y figure). L'acces a la plateforme est protege
+              Chaque établissement n'a accès qu'à ses propres données. Les résumés envoyés par email
+              sont anonymisés (aucun nom de salarié n'y figure). L'accès à la plateforme est protégé
               par authentification individuelle.
             </p>
           </div>
           <div>
             <h3 style={{ fontSize: 14.5, fontWeight: 600, color: TOKENS.ink, margin: "0 0 6px" }}>
-              Conformite RGPD
+              Conformité RGPD
             </h3>
             <p style={{ fontSize: 13.5, color: TOKENS.inkSoft, lineHeight: 1.7, margin: 0 }}>
-              Confia respecte les principes du RGPD : minimisation des donnees collectees, droit
-              d'acces et de suppression sur demande, duree de conservation limitee aux besoins de
-              conformite reglementaire.
+              Confia respecte les principes du RGPD : minimisation des données collectées, droit
+              d'accès et de suppression sur demande, durée de conservation limitée aux besoins de
+              conformité réglementaire.
             </p>
           </div>
           <div>
             <h3 style={{ fontSize: 14.5, fontWeight: 600, color: TOKENS.ink, margin: "0 0 6px" }}>
-              Une question sur la securite de vos donnees ?
+              Une question sur la sécurité de vos données ?
             </h3>
             <p style={{ fontSize: 13.5, color: TOKENS.inkSoft, lineHeight: 1.7, margin: 0 }}>
-              Contactez-nous a{" "}
+              Contactez-nous à{" "}
               <a href="mailto:contact@confia-app.fr" style={{ color: TOKENS.brand }}>
                 contact@confia-app.fr
               </a>{" "}
-              — nous repondons personnellement a toute question avant signature.
+              — nous répondons personnellement à toute question avant signature.
             </p>
           </div>
         </div>
@@ -4576,7 +4576,7 @@ function LandingPage({ onGetStarted, onLogin, onNavigateBlog }) {
               cursor: "pointer",
             }}
           >
-            Creer mon compte <ChevronRight size={16} />
+            Créer mon compte <ChevronRight size={16} />
           </button>
         </div>
       </div>
@@ -4584,7 +4584,7 @@ function LandingPage({ onGetStarted, onLogin, onNavigateBlog }) {
       {/* Footer */}
       <div style={{ maxWidth: 1040, margin: "0 auto", padding: "24px 20px", textAlign: "center" }}>
         <span style={{ fontSize: 12, color: TOKENS.inkSoft }}>
-          Confia — Suivi de conformite vaccinale pour le secteur medico-social
+          Confia — Suivi de conformité vaccinale pour le secteur médico-social
         </span>
         <div style={{ display: "flex", justifyContent: "center", gap: 18, marginTop: 10, flexWrap: "wrap" }}>
           <button
@@ -4646,26 +4646,26 @@ function LandingPage({ onGetStarted, onLogin, onNavigateBlog }) {
             {legalModal === "mentions" ? (
               <div style={{ fontSize: 13, color: TOKENS.inkSoft, lineHeight: 1.7 }}>
                 <p style={{ background: TOKENS.warnBg, color: TOKENS.warn, padding: "10px 12px", borderRadius: 6, fontSize: 12.5, marginTop: 0 }}>
-                  Ces mentions legales sont en cours de finalisation, dans l'attente de l'attribution du
-                  numero SIRET de l'entreprise. Elles seront completees des reception.
+                  Ces mentions légales sont en cours de finalisation, dans l'attente de l'attribution du
+                  numéro SIRET de l'entreprise. Elles seront complétées dès réception.
                 </p>
-                <p><strong>Editeur du site</strong><br />Confia — [Forme juridique et SIRET a completer]<br />[Adresse du siege social a completer]</p>
-                <p><strong>Directeur de la publication</strong><br />[Nom a completer]</p>
-                <p><strong>Hebergement</strong><br />Le site est heberge par Vercel Inc. L'application et les donnees sont hebergees sur une infrastructure cloud securisee, en cours de migration vers un hebergement certifie HDS (Hebergement de Donnees de Sante).</p>
-                <p><strong>Contact</strong><br />Pour toute question, ecrivez a{" "}
+                <p><strong>Éditeur du site</strong><br />Confia — [Forme juridique et SIRET à compléter]<br />[Adresse du siège social à compléter]</p>
+                <p><strong>Directeur de la publication</strong><br />[Nom à compléter]</p>
+                <p><strong>Hébergement</strong><br />Le site est hébergé par Vercel Inc. L'application et les données sont hébergées sur une infrastructure cloud sécurisée, en cours de migration vers un hébergement certifié HDS (Hébergement de Données de Santé).</p>
+                <p><strong>Contact</strong><br />Pour toute question, écrivez à{" "}
                   <a href="mailto:contact@confia-app.fr" style={{ color: TOKENS.brand }}>contact@confia-app.fr</a>.
                 </p>
               </div>
             ) : (
               <div style={{ fontSize: 13, color: TOKENS.inkSoft, lineHeight: 1.7 }}>
                 <p style={{ marginTop: 0 }}>
-                  Confia respecte les principes du Reglement General sur la Protection des Donnees (RGPD).
+                  Confia respecte les principes du Règlement Général sur la Protection des Données (RGPD).
                 </p>
-                <p><strong>Donnees collectees</strong><br />Nom, fonction et statut vaccinal des salaries suivis par votre organisation, ainsi que les justificatifs que vous choisissez d'y associer. Ces donnees ne sont collectees que pour assurer le suivi de conformite reglementaire de votre etablissement.</p>
-                <p><strong>Finalite</strong><br />Le suivi de l'obligation vaccinale du personnel medico-social, l'envoi d'alertes automatiques, et la generation de rapports de conformite.</p>
-                <p><strong>Confidentialite</strong><br />Chaque organisation n'a acces qu'a ses propres donnees. Les resumes envoyes par email sont anonymises (aucun nom de salarie n'y figure).</p>
-                <p><strong>Conservation</strong><br />Les donnees sont conservees pour la duree necessaire au suivi de conformite reglementaire, et supprimees sur demande.</p>
-                <p><strong>Vos droits</strong><br />Conformement au RGPD, vous disposez d'un droit d'acces, de rectification et de suppression de vos donnees. Pour l'exercer, ecrivez a{" "}
+                <p><strong>Données collectées</strong><br />Nom, fonction et statut vaccinal des salariés suivis par votre organisation, ainsi que les justificatifs que vous choisissez d'y associer. Ces données ne sont collectées que pour assurer le suivi de conformité réglementaire de votre établissement.</p>
+                <p><strong>Finalité</strong><br />Le suivi de l'obligation vaccinale du personnel médico-social, l'envoi d'alertes automatiques, et la génération de rapports de conformité.</p>
+                <p><strong>Confidentialité</strong><br />Chaque organisation n'a accès qu'à ses propres données. Les résumés envoyés par email sont anonymisés (aucun nom de salarié n'y figure).</p>
+                <p><strong>Conservation</strong><br />Les données sont conservées pour la durée nécessaire au suivi de conformité réglementaire, et supprimées sur demande.</p>
+                <p><strong>Vos droits</strong><br />Conformément au RGPD, vous disposez d'un droit d'accès, de rectification et de suppression de vos données. Pour l'exercer, écrivez à{" "}
                   <a href="mailto:contact@confia-app.fr" style={{ color: TOKENS.brand }}>contact@confia-app.fr</a>.
                 </p>
               </div>
@@ -4686,150 +4686,150 @@ const BLOG_POSTS = [
     slug: "obligation-vaccinale-ehpad-2026",
     title: "Obligation vaccinale en EHPAD 2026 : ce que dit vraiment la loi",
     metaDescription:
-      "Grippe, rougeole : ce que change la loi en 2026 pour le personnel soignant en EHPAD, et comment rester conforme sans y passer vos soirees.",
+      "Grippe, rougeole : ce que change la loi en 2026 pour le personnel soignant en EHPAD, et comment rester conforme sans y passer vos soirées.",
     publishedLabel: "Janvier 2026",
     excerpt:
-      "Article L.3111-4, LFSS 2026, obligations pour le personnel et les residents : le point clair sur une situation qui prete souvent a confusion.",
+      "Article L.3111-4, LFSS 2026, obligations pour le personnel et les résidents : le point clair sur une situation qui prête souvent à confusion.",
     sections: [
       {
         type: "p",
-        text: "Depuis le 1er janvier 2026, une nouvelle obligation legale s'impose au personnel soignant des EHPAD. Entre le texte du code de la sante publique, les debats parlementaires autour du budget de la Securite sociale et les informations parfois contradictoires qui circulent, il n'est pas toujours simple de savoir precisement ce qui est exige, pour qui, et depuis quand. Voici un point clair sur la situation actuelle.",
+        text: "Depuis le 1er janvier 2026, une nouvelle obligation légale s'impose au personnel soignant des EHPAD. Entre le texte du code de la santé publique, les débats parlementaires autour du budget de la Sécurité sociale et les informations parfois contradictoires qui circulent, il n'est pas toujours simple de savoir précisément ce qui est exigé, pour qui, et depuis quand. Voici un point clair sur la situation actuelle.",
       },
       { type: "h2", text: "Ce qui est en vigueur depuis le 1er janvier 2026" },
       {
         type: "p",
-        text: "L'article L.3111-4 du code de la sante publique impose desormais la vaccination contre la grippe au personnel exercant dans un etablissement hebergeant des personnes agees, des lors que son activite l'expose ou expose les residents a un risque de contamination. Concretement, cela concerne l'ensemble du personnel soignant en contact avec les residents : infirmiers, aides-soignants, mais aussi, selon les postes, une partie du personnel paramedical.",
+        text: "L'article L.3111-4 du code de la santé publique impose désormais la vaccination contre la grippe au personnel exerçant dans un établissement hébergeant des personnes âgées, dès lors que son activité l'expose ou expose les résidents à un risque de contamination. Concrètement, cela concerne l'ensemble du personnel soignant en contact avec les résidents : infirmiers, aides-soignants, mais aussi, selon les postes, une partie du personnel paramédical.",
       },
       {
         type: "p",
-        text: "Ce n'est pas une mesure isolee : elle s'inscrit dans la meme logique que les obligations vaccinales deja connues des soignants contre l'hepatite B, la diphterie, le tetanos ou la poliomyelite.",
+        text: "Ce n'est pas une mesure isolée : elle s'inscrit dans la même logique que les obligations vaccinales déjà connues des soignants contre l'hépatite B, la diphtérie, le tétanos ou la poliomyélite.",
       },
-      { type: "h2", text: "Et du cote des residents ?" },
+      { type: "h2", text: "Et du côté des résidents ?" },
       {
         type: "p",
-        text: "C'est ici que la situation demande un peu plus de nuance. La loi de financement de la Securite sociale (LFSS) pour 2026 a ouvert la possibilite d'etendre une obligation vaccinale contre la grippe aux residents eux-memes, sauf contre-indication medicale, pendant la periode epidemique. Le sujet a fait l'objet d'allers-retours entre l'Assemblee nationale et le Senat, et son application concrete reste conditionnee a une recommandation de la Haute Autorite de Sante (HAS), attendue au premier semestre 2026.",
-      },
-      {
-        type: "p",
-        text: "Autrement dit : pour le personnel, l'obligation est effective. Pour les residents, les textes reglementaires d'application restent a preciser. Un etablissement serieux a tout interet a suivre cette actualite de pres, car les delais d'adaptation, une fois le texte definitif publie, sont rarement genereux.",
+        text: "C'est ici que la situation demande un peu plus de nuance. La loi de financement de la Sécurité sociale (LFSS) pour 2026 a ouvert la possibilité d'étendre une obligation vaccinale contre la grippe aux résidents eux-mêmes, sauf contre-indication médicale, pendant la période épidémique. Le sujet a fait l'objet d'allers-retours entre l'Assemblée nationale et le Sénat, et son application concrète reste conditionnée à une recommandation de la Haute Autorité de Santé (HAS), attendue au premier semestre 2026.",
       },
       {
         type: "p",
-        text: "La LFSS 2026 introduit egalement une piste d'obligation d'immunisation contre la rougeole pour certaines categories de personnels du secteur medico-social, avec les memes reserves de calendrier d'application.",
+        text: "Autrement dit : pour le personnel, l'obligation est effective. Pour les résidents, les textes réglementaires d'application restent à préciser. Un établissement sérieux a tout intérêt à suivre cette actualité de près, car les délais d'adaptation, une fois le texte définitif publié, sont rarement généreux.",
       },
-      { type: "h2", text: "Ce que ca change concretement pour un directeur d'etablissement" },
       {
         type: "p",
-        text: "Sur le papier, l'obligation existe. Dans la pratique, elle souleve trois questions tres concretes pour qui dirige un EHPAD :",
+        text: "La LFSS 2026 introduit également une piste d'obligation d'immunisation contre la rougeole pour certaines catégories de personnels du secteur médico-social, avec les mêmes réserves de calendrier d'application.",
+      },
+      { type: "h2", text: "Ce que ça change concrètement pour un directeur d'établissement" },
+      {
+        type: "p",
+        text: "Sur le papier, l'obligation existe. Dans la pratique, elle soulève trois questions très concrètes pour qui dirige un EHPAD :",
       },
       {
         type: "list",
         items: [
-          "Comment prouver, a tout moment, que chaque membre du personnel est a jour ? Un controle ARS, un renouvellement d'agrement ou meme une simple inspection interne peuvent demander cette preuve du jour au lendemain.",
-          "Comment gerer les renouvellements et les echeances ? Une vaccination antigrippale se renouvelle chaque annee, a des dates differentes selon les arrivees de personnel.",
-          "Comment documenter les exceptions ? Contre-indications medicales, refus, justificatifs a archiver : chaque cas particulier doit etre tracable, pas seulement memorise.",
+          "Comment prouver, à tout moment, que chaque membre du personnel est à jour ? Un contrôle ARS, un renouvellement d'agrément ou même une simple inspection interne peuvent demander cette preuve du jour au lendemain.",
+          "Comment gérer les renouvellements et les échéances ? Une vaccination antigrippale se renouvelle chaque année, à des dates différentes selon les arrivées de personnel.",
+          "Comment documenter les exceptions ? Contre-indications médicales, refus, justificatifs à archiver : chaque cas particulier doit être traçable, pas seulement mémorisé.",
         ],
       },
       { type: "h2", text: "Le risque du suivi manuel" },
       {
         type: "p",
-        text: "Beaucoup d'etablissements gerent encore ce suivi via un tableur, complete au fil de l'eau, parfois par plusieurs personnes differentes selon les periodes. Le probleme n'est pas la bonne volonte des equipes, mais la nature meme de l'exercice : un tableau Excel ne previent jamais personne quand une echeance approche, ne conserve pas d'historique fiable en cas de modification, et devient rapidement difficile a exploiter en cas de controle inopine.",
+        text: "Beaucoup d'établissements gèrent encore ce suivi via un tableur, complété au fil de l'eau, parfois par plusieurs personnes différentes selon les périodes. Le problème n'est pas la bonne volonté des équipes, mais la nature même de l'exercice : un tableau Excel ne prévient jamais personne quand une échéance approche, ne conserve pas d'historique fiable en cas de modification, et devient rapidement difficile à exploiter en cas de contrôle inopiné.",
       },
       {
         type: "p",
-        text: "Or, en matiere de conformite reglementaire, ce n'est generalement pas l'absence de vaccination qui pose probleme le jour d'un controle — c'est l'incapacite a en produire la preuve rapidement et de facon organisee.",
+        text: "Or, en matière de conformité réglementaire, ce n'est généralement pas l'absence de vaccination qui pose problème le jour d'un contrôle — c'est l'incapacité à en produire la preuve rapidement et de façon organisée.",
       },
-      { type: "h2", text: "Anticiper plutot que subir" },
+      { type: "h2", text: "Anticiper plutôt que subir" },
       {
         type: "p",
-        text: "La bonne nouvelle, c'est que cette obligation, aussi contraignante soit-elle sur le papier, devient tres gerable des lors qu'elle est suivie avec le bon outil : un tableau de bord centralise, des alertes automatiques avant chaque echeance, et un export en un clic pour tout controle ou renouvellement d'agrement.",
+        text: "La bonne nouvelle, c'est que cette obligation, aussi contraignante soit-elle sur le papier, devient très gérable dès lors qu'elle est suivie avec le bon outil : un tableau de bord centralisé, des alertes automatiques avant chaque échéance, et un export en un clic pour tout contrôle ou renouvellement d'agrément.",
       },
       {
         type: "cta",
         title: "Confia centralise ce suivi pour vous",
-        text: "Tableau de bord unique, alertes automatiques et export de rapport en un clic, pense specifiquement pour la conformite vaccinale en EHPAD.",
+        text: "Tableau de bord unique, alertes automatiques et export de rapport en un clic, pensé spécifiquement pour la conformité vaccinale en EHPAD.",
       },
       {
         type: "disclaimer",
-        text: "Cet article a une visee d'information generale et ne constitue pas un conseil juridique. Pour toute question sur l'application de ces obligations dans votre etablissement, il est recommande de se referer aux textes officiels (Legifrance) et, le cas echeant, de consulter un professionnel du droit ou votre ARS de rattachement.",
+        text: "Cet article a une visée d'information générale et ne constitue pas un conseil juridique. Pour toute question sur l'application de ces obligations dans votre établissement, il est recommandé de se référer aux textes officiels (Légifrance) et, le cas échéant, de consulter un professionnel du droit ou votre ARS de rattachement.",
       },
     ],
   },
   {
     slug: "controle-conformite-vaccinale-ehpad",
-    title: "Controle de conformite vaccinale en EHPAD : le guide pratique",
+    title: "Contrôle de conformité vaccinale en EHPAD : le guide pratique",
     metaDescription:
-      "ARS, renouvellement d'agrement, inspection : comment preparer et reussir un controle de conformite vaccinale en EHPAD sans stress.",
+      "ARS, renouvellement d'agrément, inspection : comment préparer et réussir un contrôle de conformité vaccinale en EHPAD sans stress.",
     publishedLabel: "Janvier 2026",
     excerpt:
-      "Ce qu'un controle verifie reellement, les trois failles les plus courantes, et une checklist simple a suivre avant toute inspection.",
+      "Ce qu'un contrôle vérifie réellement, les trois failles les plus courantes, et une checklist simple à suivre avant toute inspection.",
     sections: [
       {
         type: "p",
-        text: "Un controle de l'ARS, une visite dans le cadre du renouvellement d'un agrement, un audit qualite interne : dans un EHPAD, la question de la conformite vaccinale du personnel peut etre posee a peu pres n'importe quel jour de l'annee, souvent avec peu de preavis. Voici comment s'y preparer sereinement, sans y consacrer des heures de recherche dans des dossiers papier ou des fichiers Excel disperses.",
+        text: "Un contrôle de l'ARS, une visite dans le cadre du renouvellement d'un agrément, un audit qualité interne : dans un EHPAD, la question de la conformité vaccinale du personnel peut être posée à peu près n'importe quel jour de l'année, souvent avec peu de préavis. Voici comment s'y préparer sereinement, sans y consacrer des heures de recherche dans des dossiers papier ou des fichiers Excel dispersés.",
       },
-      { type: "h2", text: "Ce qu'un controle verifie reellement" },
+      { type: "h2", text: "Ce qu'un contrôle vérifie réellement" },
       {
         type: "p",
-        text: "Un controle de conformite vaccinale ne se limite pas a verifier que la vaccination a eu lieu. Dans la grande majorite des cas, ce qui est demande, c'est la capacite de l'etablissement a produire une preuve claire et a jour, pour chaque membre du personnel concerne :",
+        text: "Un contrôle de conformité vaccinale ne se limite pas à vérifier que la vaccination a eu lieu. Dans la grande majorité des cas, ce qui est demandé, c'est la capacité de l'établissement à produire une preuve claire et à jour, pour chaque membre du personnel concerné :",
       },
       {
         type: "list",
         items: [
-          "La date de la derniere vaccination contre la grippe (obligatoire depuis le 1er janvier 2026 pour le personnel soignant, en application de l'article L.3111-4 du code de la sante publique)",
-          "Les justificatifs correspondants, classes et facilement accessibles",
-          "Le traitement des cas particuliers : contre-indications medicales documentees, arrivees recentes de personnel, changements de poste",
-          "La coherence de l'ensemble avec l'effectif reel de l'etablissement au moment du controle",
+          "La date de la dernière vaccination contre la grippe (obligatoire depuis le 1er janvier 2026 pour le personnel soignant, en application de l'article L.3111-4 du code de la santé publique)",
+          "Les justificatifs correspondants, classés et facilement accessibles",
+          "Le traitement des cas particuliers : contre-indications médicales documentées, arrivées récentes de personnel, changements de poste",
+          "La cohérence de l'ensemble avec l'effectif réel de l'établissement au moment du contrôle",
         ],
       },
       {
         type: "p",
-        text: "Un controleur ne cherche pas a pieger un etablissement. Mais un dossier incomplet, une information introuvable sur le moment, ou un tableau qui ne reflete pas la realite actuelle du personnel, transforment une formalite en un moment de stress evitable.",
+        text: "Un contrôleur ne cherche pas à piéger un établissement. Mais un dossier incomplet, une information introuvable sur le moment, ou un tableau qui ne reflète pas la réalité actuelle du personnel, transforment une formalité en un moment de stress évitable.",
       },
       { type: "h2", text: "Les trois failles les plus courantes" },
       {
         type: "list",
         items: [
-          "Le suivi eclate entre plusieurs fichiers ou plusieurs personnes. Quand le tableau de suivi vaccinal a ete mis a jour tour a tour par la direction, l'IDEC, puis un remplacant pendant un conge, les versions finissent par diverger.",
-          "L'absence d'historique. Un tableur classique ecrase l'ancienne valeur des qu'elle est modifiee. Si une question porte sur l'evolution de la conformite sur les douze derniers mois, l'information a souvent disparu.",
-          "Les echeances qui passent inapercues. Sans alerte automatique, il est frequent qu'une echeance soit reperee apres coup — parfois seulement au moment du controle lui-meme.",
+          "Le suivi éclaté entre plusieurs fichiers ou plusieurs personnes. Quand le tableau de suivi vaccinal a été mis à jour tour à tour par la direction, l'IDEC, puis un remplaçant pendant un congé, les versions finissent par diverger.",
+          "L'absence d'historique. Un tableur classique écrase l'ancienne valeur dès qu'elle est modifiée. Si une question porte sur l'évolution de la conformité sur les douze derniers mois, l'information a souvent disparu.",
+          "Les échéances qui passent inaperçues. Sans alerte automatique, il est fréquent qu'une échéance soit repérée après coup — parfois seulement au moment du contrôle lui-même.",
         ],
       },
-      { type: "h2", text: "Comment transformer un controle en formalite rapide" },
+      { type: "h2", text: "Comment transformer un contrôle en formalité rapide" },
       {
         type: "p",
-        text: "La difference entre un controle vecu dans la serenite et un controle vecu dans le stress tient rarement a la realite du terrain — la plupart des equipes soignantes respectent bien leurs obligations. Elle tient presque toujours a l'organisation du suivi. Trois reflexes changent tout :",
+        text: "La différence entre un contrôle vécu dans la sérénité et un contrôle vécu dans le stress tient rarement à la réalité du terrain — la plupart des équipes soignantes respectent bien leurs obligations. Elle tient presque toujours à l'organisation du suivi. Trois réflexes changent tout :",
       },
       {
         type: "list",
         items: [
-          "Centraliser, a un seul endroit. Un tableau de bord unique, a jour en temps reel, evite les versions multiples et les incoherences.",
-          "Automatiser les alertes. Etre prevenu suffisamment a l'avance qu'une echeance approche permet d'agir avant qu'elle ne devienne un probleme.",
-          "Pouvoir exporter en un clic. Le jour ou un rapport est demande, la rapidite de la reponse en dit souvent plus long sur le serieux de l'etablissement que le contenu du rapport lui-meme.",
+          "Centraliser, à un seul endroit. Un tableau de bord unique, à jour en temps réel, évite les versions multiples et les incohérences.",
+          "Automatiser les alertes. Être prévenu suffisamment à l'avance qu'une échéance approche permet d'agir avant qu'elle ne devienne un problème.",
+          "Pouvoir exporter en un clic. Le jour où un rapport est demandé, la rapidité de la réponse en dit souvent plus long sur le sérieux de l'établissement que le contenu du rapport lui-même.",
         ],
       },
-      { type: "h2", text: "Une checklist simple avant tout controle" },
+      { type: "h2", text: "Une checklist simple avant tout contrôle" },
       {
         type: "list",
         items: [
-          "Le statut vaccinal de chaque membre du personnel soignant est-il a jour dans un seul et meme endroit ?",
-          "Les justificatifs (certificats, attestations, contre-indications) sont-ils classes et rapidement accessibles ?",
-          "Existe-t-il un historique des changements de statut, en cas de question sur une periode anterieure ?",
-          "Un rapport de synthese peut-il etre genere en quelques minutes, sans reconstitution manuelle ?",
+          "Le statut vaccinal de chaque membre du personnel soignant est-il à jour dans un seul et même endroit ?",
+          "Les justificatifs (certificats, attestations, contre-indications) sont-ils classés et rapidement accessibles ?",
+          "Existe-t-il un historique des changements de statut, en cas de question sur une période antérieure ?",
+          "Un rapport de synthèse peut-il être généré en quelques minutes, sans reconstitution manuelle ?",
         ],
       },
       {
         type: "p",
-        text: "Si l'une de ces reponses est non, c'est le signe qu'il est temps de structurer le suivi plutot que de continuer a le gerer au fil de l'eau.",
+        text: "Si l'une de ces réponses est non, c'est le signe qu'il est temps de structurer le suivi plutôt que de continuer à le gérer au fil de l'eau.",
       },
       {
         type: "cta",
-        title: "Confia prepare vos controles a l'avance",
-        text: "Tableau de bord de conformite vaccinale pense pour les EHPAD, avec alertes automatiques et export de rapport en un clic, pret pour tout controle ou renouvellement d'agrement.",
+        title: "Confia prépare vos contrôles à l'avance",
+        text: "Tableau de bord de conformité vaccinale pensé pour les EHPAD, avec alertes automatiques et export de rapport en un clic, prêt pour tout contrôle ou renouvellement d'agrément.",
       },
       {
         type: "disclaimer",
-        text: "Cet article a une visee d'information generale et ne constitue pas un conseil juridique. Pour toute question sur les modalites precises d'un controle dans votre etablissement, il est recommande de vous rapprocher de votre ARS de rattachement.",
+        text: "Cet article a une visée d'information générale et ne constitue pas un conseil juridique. Pour toute question sur les modalités précises d'un contrôle dans votre établissement, il est recommandé de vous rapprocher de votre ARS de rattachement.",
       },
     ],
   },
@@ -4907,7 +4907,7 @@ function BlogListPage({ onBack, onSelectPost, onGetStarted }) {
       <div style={{ maxWidth: 780, margin: "0 auto", padding: "20px 20px 60px" }}>
         <h1 style={{ fontSize: 28, fontWeight: 700, margin: "20px 0 8px" }}>Blog Confia</h1>
         <p style={{ fontSize: 14, color: TOKENS.inkSoft, margin: "0 0 32px", lineHeight: 1.6 }}>
-          Obligations reglementaires, conformite, bonnes pratiques : de quoi anticiper sereinement le suivi
+          Obligations réglementaires, conformité, bonnes pratiques : de quoi anticiper sereinement le suivi
           vaccinal de votre personnel soignant.
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -5073,7 +5073,7 @@ function LoginScreen({ onLogin, initialMode, onBackToLanding }) {
       await resendConfirmationEmail(email.trim());
       setResendConfirmationMessage({
         type: "ok",
-        text: "Si un compte existe avec cet email et n'est pas encore confirme, un nouvel email vient d'etre envoye.",
+        text: "Si un compte existe avec cet email et n'est pas encore confirme, un nouvel email vient d'être envoye.",
       });
     } catch (err) {
       setResendConfirmationMessage({ type: "error", text: err.message || "Erreur lors de l'envoi" });
@@ -5102,11 +5102,11 @@ function LoginScreen({ onLogin, initialMode, onBackToLanding }) {
     try {
       if (mode === "signup") {
         await signUp(email, password, orgName.trim());
-        setInfo("Compte cree. Verifiez votre email pour confirmer, puis connectez-vous.");
+        setInfo("Compte créé. Vérifiez votre email pour confirmer, puis connectez-vous.");
         setMode("login");
       } else if (mode === "forgot") {
         await requestPasswordReset(email.trim());
-        setInfo("Si un compte existe avec cet email, un lien de reinitialisation a ete envoye.");
+        setInfo("Si un compte existe avec cet email, un lien de réinitialisation a été envoyé.");
       } else {
         const session = await signIn(email, password);
         onLogin(session);
@@ -5174,18 +5174,18 @@ function LoginScreen({ onLogin, initialMode, onBackToLanding }) {
               textDecoration: "underline",
             }}
           >
-            ← Retour a l'accueil
+            ← Retour à l'accueil
           </button>
         )}
 
         <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 600, color: TOKENS.ink, margin: "0 0 16px" }}>
-          {mode === "login" ? "Connexion" : mode === "signup" ? "Creer un compte" : "Mot de passe oublie"}
+          {mode === "login" ? "Connexion" : mode === "signup" ? "Créer un compte" : "Mot de passe oublié"}
         </h2>
 
         {mode === "signup" && (
           <input
             type="text"
-            placeholder="Nom de votre etablissement ou organisation"
+            placeholder="Nom de votre établissement ou organisation"
             value={orgName}
             onChange={(e) => setOrgName(e.target.value)}
             style={inputStyle}
@@ -5213,7 +5213,7 @@ function LoginScreen({ onLogin, initialMode, onBackToLanding }) {
             />
             {mode === "signup" && (
               <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11.5, color: TOKENS.inkSoft, marginTop: -6, marginBottom: 12 }}>
-                Au moins 6 caracteres.
+                Au moins 6 caractères.
               </div>
             )}
           </>
@@ -5248,8 +5248,8 @@ function LoginScreen({ onLogin, initialMode, onBackToLanding }) {
             : mode === "login"
             ? "Se connecter"
             : mode === "signup"
-            ? "Creer mon compte"
-            : "Envoyer le lien de reinitialisation"}
+            ? "Créer mon compte"
+            : "Envoyer le lien de réinitialisation"}
         </button>
 
         {mode === "login" && (
@@ -5273,7 +5273,7 @@ function LoginScreen({ onLogin, initialMode, onBackToLanding }) {
               textDecoration: "underline",
             }}
           >
-            Mot de passe oublie ?
+            Mot de passe oublié ?
           </button>
         )}
 
@@ -5296,7 +5296,7 @@ function LoginScreen({ onLogin, initialMode, onBackToLanding }) {
               opacity: resendingConfirmation ? 0.6 : 1,
             }}
           >
-            {resendingConfirmation ? "Envoi..." : "Email de confirmation non recu ? Renvoyer"}
+            {resendingConfirmation ? "Envoi..." : "Email de confirmation non reçu ? Renvoyer"}
           </button>
         )}
         {resendConfirmationMessage && (
@@ -5334,10 +5334,10 @@ function LoginScreen({ onLogin, initialMode, onBackToLanding }) {
           }}
         >
           {mode === "login"
-            ? "Pas encore de compte ? Creez-en un"
+            ? "Pas encore de compte ? Créez-en un"
             : mode === "forgot"
-            ? "Retour a la connexion"
-            : "Deja un compte ? Connectez-vous"}
+            ? "Retour à la connexion"
+            : "Déjà un compte ? Connectez-vous"}
         </button>
       </form>
     </div>
@@ -5695,7 +5695,7 @@ export default function ConfiaPrototype() {
       if (isSessionExpired(err)) {
         handleLogout();
       } else {
-        setError("Echec de la suppression du salarie. Reessayez.");
+        setError("Echec de la suppression du salarié. Reessayez.");
       }
     }
   };
@@ -5715,7 +5715,7 @@ export default function ConfiaPrototype() {
       const staffRows = await fetchStaff(token);
       setStaff(staffRows.map((r) => mapPersonRow(r, newDays)));
     } catch (err) {
-      console.error("Erreur de rechargement apres changement de seuil:", err);
+      console.error("Erreur de rechargement après changement de seuil:", err);
     }
   };
 
@@ -5780,11 +5780,11 @@ export default function ConfiaPrototype() {
 
   const titles = {
     dashboard: "Tableau de bord",
-    staff: "Salaries",
+    staff: "Salariés",
     alerts: "Alertes",
     reports: "Rapports",
     abonnement: "Abonnement",
-    settings: "Parametres",
+    settings: "Paramètres",
   };
 
   if (loading) {
@@ -5805,7 +5805,7 @@ export default function ConfiaPrototype() {
           }}
         >
           <Loader2 size={16} className="animate-spin" />
-          Chargement des donnees...
+          Chargement des données...
         </div>
       </div>
     );
@@ -5876,11 +5876,11 @@ export default function ConfiaPrototype() {
             }}
           >
             <h2 style={{ fontFamily: "'Inter', sans-serif", fontSize: 19, fontWeight: 600, color: TOKENS.ink, margin: "0 0 8px" }}>
-              Votre essai gratuit est termine
+              Votre essai gratuit est terminé
             </h2>
             <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13.5, color: TOKENS.inkSoft, margin: 0 }}>
-              Choisissez une offre ci-dessous pour continuer a utiliser Confia sans interruption. Vos donnees
-              sont conservees.
+              Choisissez une offre ci-dessous pour continuer à utiliser Confia sans interruption. Vos données
+              sont conservées.
             </p>
           </div>
           <AbonnementView
