@@ -4645,12 +4645,13 @@ function LandingPage({ onGetStarted, onLogin, onNavigateBlog }) {
 
             {legalModal === "mentions" ? (
               <div style={{ fontSize: 13, color: TOKENS.inkSoft, lineHeight: 1.7 }}>
-                <p style={{ background: TOKENS.warnBg, color: TOKENS.warn, padding: "10px 12px", borderRadius: 6, fontSize: 12.5, marginTop: 0 }}>
-                  Ces mentions légales sont en cours de finalisation, dans l'attente de l'attribution du
-                  numéro SIRET de l'entreprise. Elles seront complétées dès réception.
+                <p><strong>Éditeur du site</strong><br />
+                  Confia, nom commercial de Miguel Pinto Teixeira, entrepreneur individuel (micro-entrepreneur).<br />
+                  SIRET : 109 343 715 00016 — RCS Thonon-les-Bains<br />
+                  Siège social : 200 Chemin de Vorzier, 74930 Reignier-Ésery, France<br />
+                  TVA non applicable, art. 293 B du CGI
                 </p>
-                <p><strong>Éditeur du site</strong><br />Confia — [Forme juridique et SIRET à compléter]<br />[Adresse du siège social à compléter]</p>
-                <p><strong>Directeur de la publication</strong><br />[Nom à compléter]</p>
+                <p><strong>Directeur de la publication</strong><br />Miguel Pinto Teixeira</p>
                 <p><strong>Hébergement</strong><br />Le site est hébergé par Vercel Inc. L'application et les données sont hébergées sur une infrastructure cloud sécurisée, en cours de migration vers un hébergement certifié HDS (Hébergement de Données de Santé).</p>
                 <p><strong>Contact</strong><br />Pour toute question, écrivez à{" "}
                   <a href="mailto:contact@confia-app.fr" style={{ color: TOKENS.brand }}>contact@confia-app.fr</a>.
