@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 
     if (!deleteRes.ok) {
       const errData = await deleteRes.json().catch(() => ({}));
-      throw new Error(errData.msg || "Echec de la suppression du compte");
+      throw new Error(errData.msg || "Échec de la suppression du compte");
     }
 
     res.status(200).json({ success: true });
