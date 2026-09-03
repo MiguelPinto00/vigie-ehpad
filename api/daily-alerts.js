@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   // Verification que cet appel vient bien de la tache planifiee Vercel (secret partage)
   const authHeader = req.headers["authorization"];
   if (authHeader !== "Bearer " + process.env.CRON_SECRET) {
-    res.status(401).json({ error: "Non autorise" });
+    res.status(401).json({ error: "Non autorisé" });
     return;
   }
   const SUPABASE_URL = "https://uhyiwqsyyikwguvlfira.supabase.co";
@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   const resendKey = process.env.RESEND_API_KEY;
   const fallbackRecipient = process.env.ALERT_RECIPIENT_EMAIL;
   if (!serviceKey || !resendKey) {
-    res.status(500).json({ error: "Configuration serveur incomplete" });
+    res.status(500).json({ error: "Configuration serveur incomplète" });
     return;
   }
 
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     if (count === 0) return "";
     return `<tr>
       <td style="padding:9px 0; border-bottom:1px solid ${BRAND.line}; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size:13px; color:${BRAND.ink};">${label}</td>
-      <td style="padding:9px 0; border-bottom:1px solid ${BRAND.line}; text-align:right;">${renderBadge(count + (count > 1 ? " salaries" : " salarie"), color, bg)}</td>
+      <td style="padding:9px 0; border-bottom:1px solid ${BRAND.line}; text-align:right;">${renderBadge(count + (count > 1 ? " salariés" : " salarié"), color, bg)}</td>
     </tr>`;
   }
 
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
     for (const estab of establishments) {
       const recipient = estab.contact_email || fallbackRecipient;
       if (!recipient) {
-        results.push({ establishment: estab.name, skipped: "aucun email configure" });
+        results.push({ establishment: estab.name, skipped: "aucun email configuré" });
         continue;
       }
       const estabFlagged = flagged.filter((f) => f.establishment_id === estab.id);
@@ -102,32 +102,32 @@ export default async function handler(req, res) {
       const dateManquanteCount = estabFlagged.filter((f) => f.status === "non_renseigne").length;
 
       if (nonConformesCount === 0 && aVenirCount === 0 && dateManquanteCount === 0) {
-        results.push({ establishment: estab.name, skipped: "rien a signaler" });
+        results.push({ establishment: estab.name, skipped: "rien à signaler" });
         continue;
       }
 
       const transparencyNote =
-        "Vous recevez cet email car vous etes designe comme contact de conformite pour " +
+        "Vous recevez cet email car vous êtes désigné comme contact de conformité pour " +
         estab.name +
-        ". Pour proteger la confidentialite des donnees de sante de vos salaries, le detail nominatif n'apparait pas dans cet email : connectez-vous a Confia pour le consulter.";
+        ". Pour protéger la confidentialité des données de santé de vos salariés, le détail nominatif n'apparaît pas dans cet email : connectez-vous à Confia pour le consulter.";
 
       const bodyHtml =
-        `<p style="margin:0 0 4px; font-size:16px; font-weight:600; color:${BRAND.ink};">Resume quotidien</p>` +
+        `<p style="margin:0 0 4px; font-size:16px; font-weight:600; color:${BRAND.ink};">Résumé quotidien</p>` +
         `<p style="margin:0 0 22px; font-size:13px; color:${BRAND.inkSoft};">${estab.name} — ${today}</p>` +
         `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:22px;">` +
         countRow("Non conformes", nonConformesCount, BRAND.danger, BRAND.dangerBg) +
-        countRow("Echeances proches", aVenirCount, BRAND.warn, BRAND.warnBg) +
+        countRow("Échéances proches", aVenirCount, BRAND.warn, BRAND.warnBg) +
         countRow("Dates manquantes", dateManquanteCount, BRAND.grey, BRAND.greyBg) +
         `</table>` +
-        `<div style="margin-bottom:20px;">${renderButton("Voir le detail dans Confia", "https://vigie-ehpad.vercel.app")}</div>` +
+        `<div style="margin-bottom:20px;">${renderButton("Voir le détail dans Confia", "https://vigie-ehpad.vercel.app")}</div>` +
         `<p style="margin:0; font-size:11.5px; color:${BRAND.inkSoft}; line-height:1.6;">${transparencyNote}</p>`;
 
       const textBody =
-        "Resume quotidien - " + estab.name + " - " + today + "\n\n" +
+        "Résumé quotidien - " + estab.name + " - " + today + "\n\n" +
         (nonConformesCount ? "Non conformes : " + nonConformesCount + "\n" : "") +
-        (aVenirCount ? "Echeances proches : " + aVenirCount + "\n" : "") +
+        (aVenirCount ? "Échéances proches : " + aVenirCount + "\n" : "") +
         (dateManquanteCount ? "Dates manquantes : " + dateManquanteCount + "\n" : "") +
-        "\nVoir le detail dans Confia : https://vigie-ehpad.vercel.app\n\n" +
+        "\nVoir le détail dans Confia : https://vigie-ehpad.vercel.app\n\n" +
         transparencyNote + "\n";
 
       const emailRes = await fetch("https://api.resend.com/emails", {
@@ -139,10 +139,10 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           from: "Confia <notifications@confia-app.fr>",
           to: [recipient],
-          subject: "Confia - Resume quotidien " + estab.name + " - " + today,
+          subject: "Confia - Résumé quotidien " + estab.name + " - " + today,
           html: renderEmailLayout({
-            title: "Resume quotidien Confia",
-            preheader: nonConformesCount + " non conforme(s), " + aVenirCount + " echeance(s) proche(s)",
+            title: "Résumé quotidien Confia",
+            preheader: nonConformesCount + " non conforme(s), " + aVenirCount + " échéance(s) proche(s)",
             bodyHtml,
           }),
           text: textBody,
@@ -176,12 +176,12 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             from: "Confia <notifications@confia-app.fr>",
             to: [adminEmail],
-            subject: "Confia - Echec d'envoi du resume quotidien (" + today + ")",
+            subject: "Confia - Échec d'envoi du résumé quotidien (" + today + ")",
             html:
-              `<p style="font-size:14px; color:${BRAND.ink};">Le resume quotidien a echoue pour ${failures.length} etablissement(s) le ${today} :</p>` +
+              `<p style="font-size:14px; color:${BRAND.ink};">Le résumé quotidien a échoué pour ${failures.length} établissement(s) le ${today} :</p>` +
               `<ul style="font-size:13px; color:${BRAND.ink};">${failureListHtml}</ul>`,
             text:
-              "Le resume quotidien a echoue pour " + failures.length + " etablissement(s) le " + today + " :\n\n" +
+              "Le résumé quotidien a échoué pour " + failures.length + " établissement(s) le " + today + " :\n\n" +
               failureListText,
           }),
         });
@@ -192,7 +192,7 @@ export default async function handler(req, res) {
 
     res.status(200).json({ success: true, emailsSent, results });
   } catch (err) {
-    console.error("Erreur tache planifiee:", err);
+    console.error("Erreur tâche planifiée:", err);
     res.status(500).json({ error: err.message || "Erreur serveur" });
   }
 }
