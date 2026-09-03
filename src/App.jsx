@@ -74,6 +74,17 @@ const PLANS = [
   },
 ];
 
+// Limites reelles associees a chaque offre (etablissements et membres
+// d'equipe max), utilisees pour bloquer cote client la creation d'un
+// etablissement ou l'envoi d'une invitation au-dela de ce qui est
+// inclus dans l'abonnement actif. Doit rester coherent avec les
+// "features" affichees ci-dessus dans PLANS.
+const PLAN_LIMITS = {
+  solo: { establishments: 1, members: 2 },
+  croissance: { establishments: 3, members: 6 },
+  groupe: { establishments: 10, members: Infinity },
+};
+
 function LogoMark({ size = 16 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
@@ -2947,6 +2958,20 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
 
   const sendInvite = async () => {
     if (!inviteEmail.trim()) return;
+    // Meme logique que pour les etablissements : limite appliquee
+    // uniquement si un abonnement est actif, jamais pendant l'essai.
+    if (subscriptionStatus === "active" && subscriptionPlan) {
+      const limit = PLAN_LIMITS[subscriptionPlan]?.members;
+      const seatsUsed = members.length + pendingInvites.length;
+      if (limit !== undefined && seatsUsed >= limit) {
+        setInviteError(
+          "Votre offre " + (PLANS.find((p) => p.key === subscriptionPlan)?.name || subscriptionPlan) +
+          " est limitée à " + limit + " membre" + (limit > 1 ? "s" : "") + " d'équipe" +
+          ". Passez à une offre supérieure dans Abonnement pour inviter davantage de monde."
+        );
+        return;
+      }
+    }
     setInviting(true);
     setInviteError(null);
     setInviteSent(false);
@@ -3125,6 +3150,20 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
 
   const createEstablishment = async () => {
     if (!newName.trim()) return;
+    // N'applique la limite d'etablissements que pour un abonnement actif.
+    // Pendant l'essai gratuit (aucun plan choisi), on laisse le nouveau
+    // client explorer l'app sans friction inutile.
+    if (subscriptionStatus === "active" && subscriptionPlan) {
+      const limit = PLAN_LIMITS[subscriptionPlan]?.establishments;
+      if (limit !== undefined && establishments.length >= limit) {
+        setCreateError(
+          "Votre offre " + (PLANS.find((p) => p.key === subscriptionPlan)?.name || subscriptionPlan) +
+          " est limitée à " + limit + " établissement" + (limit > 1 ? "s" : "") +
+          ". Passez à une offre supérieure dans Abonnement pour en ajouter davantage."
+        );
+        return;
+      }
+    }
     setCreating(true);
     setCreateError(null);
     try {
@@ -3373,7 +3412,7 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
           Nouveau mot de passe
         </label>
         <PasswordInput
-          placeholder="Au moins 6 caracteres"
+          placeholder="Au moins 6 caractères"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
           autoComplete="new-password"
