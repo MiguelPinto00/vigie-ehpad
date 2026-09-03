@@ -21,18 +21,18 @@ export default async function handler(req, res) {
       `Ceci est un rappel concernant le suivi vaccinal de <strong>${staffName}</strong> (${establishmentName}).</p>` +
       `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:22px; background:${BRAND.paper}; border-radius:6px;">` +
       `<tr><td style="padding:14px 16px; font-size:13px; color:${BRAND.ink}; line-height:1.7;">` +
-      `<strong>Vaccin concerne :</strong> ${vaccine}<br/>` +
+      `<strong>Vaccin concerné :</strong> ${vaccine}<br/>` +
       `<strong>Motif :</strong> ${reason}` +
       `</td></tr></table>` +
       `<p style="margin:0 0 24px; font-size:14px; color:${BRAND.ink}; line-height:1.6;">` +
-      `Merci de mettre a jour le justificatif correspondant dans Confia des que possible.</p>` +
+      `Merci de mettre à jour le justificatif correspondant dans Confia dès que possible.</p>` +
       renderButton("Ouvrir Confia", "https://vigie-ehpad.vercel.app");
     const textBody =
       "Bonjour,\n\n" +
       "Rappel concernant le suivi vaccinal de " + staffName + " (" + establishmentName + ").\n\n" +
-      "Vaccin concerne : " + vaccine + "\n" +
+      "Vaccin concerné : " + vaccine + "\n" +
       "Motif : " + reason + "\n\n" +
-      "Merci de mettre a jour le justificatif correspondant dans Confia des que possible : https://vigie-ehpad.vercel.app\n";
+      "Merci de mettre à jour le justificatif correspondant dans Confia dès que possible : https://vigie-ehpad.vercel.app\n";
     const emailRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -42,9 +42,9 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         from: "Confia <notifications@confia-app.fr>",
         to: [toEmail],
-        subject: "Relance conformite vaccinale - " + staffName,
+        subject: "Relance conformité vaccinale - " + staffName,
         html: renderEmailLayout({
-          title: "Relance conformite vaccinale",
+          title: "Relance conformité vaccinale",
           preheader: "Rappel pour " + staffName + " (" + vaccine + ")",
           bodyHtml,
         }),
