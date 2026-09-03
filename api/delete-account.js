@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   const serviceKey = process.env.SUPABASE_SERVICE_KEY;
 
   if (!serviceKey) {
-    res.status(500).json({ error: "Configuration serveur incomplete" });
+    res.status(500).json({ error: "Configuration serveur incomplète" });
     return;
   }
 
