@@ -3,36 +3,25 @@ import Stripe from "stripe";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // ============================================================
-// PRICE IDS STRIPE
+// PRICE IDS STRIPE (mode PRODUCTION)
 // ============================================================
-// Ci-dessous, les Price IDs actuels du compte Stripe EN MODE TEST.
-//
-// >>> QUAND TU ACTIVES STRIPE EN PRODUCTION <<<
-// 1. Va dans ton dashboard Stripe, en HAUT A DROITE bascule le toggle
-//    "Mode test" sur "OFF" (tu passes en mode production/live).
-// 2. Recree les memes 3 produits x 2 tarifs (Solo, Croissance, Groupe,
-//    chacun en mensuel + annuel) EN MODE PRODUCTION.
-// 3. Stripe va te donner 6 NOUVEAUX Price IDs (differents de ceux-ci,
-//    ils commenceront quand meme par "price_" mais avec une suite de
-//    caracteres differente).
-// 4. Remplace UNIQUEMENT les valeurs ci-dessous par les nouveaux IDs
-//    de production. Ne touche a rien d'autre dans ce fichier.
-// 5. N'oublie pas aussi de remplacer la variable STRIPE_SECRET_KEY
-//    dans Vercel par la cle secrete de PRODUCTION (elle commence par
-//    "sk_live_" au lieu de "sk_test_").
+// Mis à jour le 03/09/2026 avec les Price IDs du compte Stripe en
+// mode production, une fois le SIRET reçu et le compte Stripe activé.
+// Si les tarifs changent un jour, recree le tarif dans Stripe (jamais
+// modifier un tarif existant) et remplace l'ID correspondant ci-dessous.
 // ============================================================
 const PRICE_IDS = {
   solo: {
-    monthly: "price_1U9WG3Iu6RBpaJu5c7rTvDf1", // TEST - a remplacer en production
-    annual: "price_1U9jlhIu6RBpaJu5OK6N8eJb",  // TEST - a remplacer en production
+    monthly: "price_1UBXjXIvn6AP9O7X0MrdmCCu",
+    annual: "price_1UBXjXIvn6AP9O7XR9kDk11F",
   },
   croissance: {
-    monthly: "price_1U9jr4Iu6RBpaJu5iNuVRRLu", // TEST - a remplacer en production
-    annual: "price_1U9jsBIu6RBpaJu51JLW3QlQ",  // TEST - a remplacer en production
+    monthly: "price_1UBXjXIvn6AP9O7XKronaS4B",
+    annual: "price_1UBXjXIvn6AP9O7XNgyNvcxj",
   },
   groupe: {
-    monthly: "price_1U9jtaIu6RBpaJu5wTZbFplH", // TEST - a remplacer en production
-    annual: "price_1U9juVIu6RBpaJu5cFpiGo5y",  // TEST - a remplacer en production
+    monthly: "price_1UBXjXIvn6AP9O7XFPGCOolW",
+    annual: "price_1UBXjXIvn6AP9O7XrbV4ggMF",
   },
 };
 
