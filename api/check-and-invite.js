@@ -54,7 +54,7 @@ export default async function handler(req, res) {
     if (memberCheckData.length > 0) {
       return res.status(200).json({
         status: "already_member",
-        message: "Cette personne fait deja partie de votre organisation.",
+        message: "Cette personne fait déjà partie de votre organisation.",
       });
     }
 
@@ -92,7 +92,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       status: "added_existing",
       message:
-        "Cette personne avait deja un compte Confia et a ete ajoutee directement a votre organisation.",
+        "Cette personne avait déjà un compte Confia et a été ajoutée directement à votre organisation.",
     });
   } catch (err) {
     console.error("Erreur check-and-invite:", err);
