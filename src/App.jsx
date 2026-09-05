@@ -4873,6 +4873,75 @@ const BLOG_POSTS = [
       },
     ],
   },
+  {
+    slug: "risques-non-conformite-vaccinale-ehpad",
+    title: "Non-conformité vaccinale en EHPAD : quels risques réels pour l'établissement ?",
+    metaDescription:
+      "Mise en demeure, renouvellement d'agrément, responsabilité du directeur : ce que risque concrètement un EHPAD non conforme à l'obligation vaccinale du personnel.",
+    publishedLabel: "Septembre 2026",
+    excerpt:
+      "Au-delà du texte de loi, ce qui pèse le plus lourd en pratique pour un établissement : l'incapacité à prouver sa conformité au bon moment.",
+    sections: [
+      {
+        type: "p",
+        text: "« Que risque-t-on vraiment si le suivi vaccinal n'est pas à jour ? » C'est une des questions les plus fréquentes de la part des directeurs d'EHPAD depuis l'entrée en vigueur de l'article L.3111-4 du code de la santé publique. La réponse est moins simple qu'un simple montant d'amende — et c'est justement ce qui la rend importante à comprendre.",
+      },
+      { type: "h2", text: "Ce que prévoit le cadre réglementaire" },
+      {
+        type: "p",
+        text: "L'obligation vaccinale du personnel soignant s'inscrit dans le même régime que les obligations vaccinales déjà connues du secteur (hépatite B, DTP). En cas de manquement constaté, les autorités sanitaires disposent de plusieurs leviers gradués : signalement dans le cadre d'un contrôle, demande de mise en conformité dans un délai donné, et, dans les cas les plus sérieux, incidence possible sur le renouvellement de l'autorisation ou de l'agrément de l'établissement.",
+      },
+      {
+        type: "p",
+        text: "Ce n'est donc pas tant une sanction automatique et chiffrée qui est en jeu, mais un engrenage administratif : une non-conformité constatée entraîne des échanges, des justificatifs à produire dans l'urgence, parfois un suivi renforcé de l'établissement par l'ARS lors des contrôles suivants.",
+      },
+      { type: "h2", text: "Le vrai risque : l'incapacité à répondre dans l'instant" },
+      {
+        type: "p",
+        text: "En pratique, la difficulté n'est presque jamais que le personnel ne soit pas vacciné — la plupart des équipes soignantes respectent leurs obligations. Le problème, c'est de ne pas pouvoir le prouver rapidement, avec des justificatifs à jour et classés, au moment précis où on le demande.",
+      },
+      {
+        type: "list",
+        items: [
+          "Un contrôle ARS ou une inspection ne prévient pas toujours longtemps à l'avance",
+          "Un renouvellement d'agrément peut exiger un état des lieux complet du personnel, y compris sur des périodes passées",
+          "Une famille de résident, en cas d'incident sanitaire dans l'établissement, peut légitimement interroger la traçabilité du suivi vaccinal du personnel en contact",
+        ],
+      },
+      { type: "h2", text: "La responsabilité du directeur en toile de fond" },
+      {
+        type: "p",
+        text: "Au-delà du seul volet réglementaire, un directeur d'établissement engage sa responsabilité d'employeur dans l'organisation de la santé au travail et la protection des résidents. Un suivi manifestement défaillant — dossiers introuvables, échéances oubliées, absence d'historique — est difficile à défendre, y compris en interne, en cas de question de la direction générale, d'un audit qualité, ou d'une évaluation externe de l'établissement (HAS).",
+      },
+      { type: "h2", text: "Comment limiter concrètement ce risque" },
+      {
+        type: "p",
+        text: "La bonne nouvelle, c'est que ce risque se traite presque entièrement par l'organisation du suivi, indépendamment du taux de vaccination réel du personnel :",
+      },
+      {
+        type: "list",
+        items: [
+          "Disposer à tout moment d'une vue d'ensemble à jour du statut de chaque salarié, sans reconstitution manuelle",
+          "Conserver un historique fiable, y compris pour répondre à une question sur une période antérieure",
+          "Être alerté avant chaque échéance, plutôt que de la découvrir a posteriori",
+          "Pouvoir produire un rapport de synthèse en quelques minutes, à n'importe quel moment",
+        ],
+      },
+      {
+        type: "p",
+        text: "Un établissement capable de répondre à ces quatre points n'élimine pas le risque réglementaire à zéro, mais il transforme un contrôle potentiellement stressant en une simple formalité administrative — ce qui, en pratique, fait toute la différence.",
+      },
+      {
+        type: "cta",
+        title: "Confia réduit ce risque au quotidien",
+        text: "Suivi centralisé, historique conservé, alertes automatiques et export de rapport en un clic : conçu pour qu'un contrôle ne soit jamais une source de stress.",
+      },
+      {
+        type: "disclaimer",
+        text: "Cet article a une visée d'information générale et ne constitue pas un conseil juridique. Les conséquences précises d'une non-conformité dépendent de chaque situation ; pour toute question, il est recommandé de consulter les textes officiels (Légifrance), votre ARS de rattachement, ou un professionnel du droit.",
+      },
+    ],
+  },
 ];
 
 function BlogNav({ onNavigateHome, onNavigateBlog, onLogin }) {
