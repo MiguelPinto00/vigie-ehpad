@@ -2742,6 +2742,7 @@ function AbonnementView({ token, organizationId, establishments, staffCount, cur
                   ))}
                 </ul>
                 <button
+                {!isCurrentPlan && (<div style={{ fontSize: 11.5, color: TOKENS.ok, fontWeight: 600, marginBottom: 8, textAlign: "center" }}>Essai gratuit de 14 jours inclus</div>)}
                   onClick={() => handleSubscribe(plan.key, billingPeriod)}
                   disabled={isCurrentPlan || loadingThisButton}
                   style={{
