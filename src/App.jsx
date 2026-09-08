@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   LayoutDashboard,
   Users,
@@ -4080,51 +4081,33 @@ function ReportsView({ staff, establishments, organizationName }) {
       doc.text("Généré le " + today, 14, 32);
       doc.text("Taux de conformité global : " + percent + "% (" + conforme + "/" + total + ")", 14, 40);
 
-      let y = 52;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
-      doc.text("Détail par salarié", 14, y);
-      y += 8;
-
-      doc.setFontSize(9);
-      doc.text("Nom", 14, y);
-      doc.text("Établissement", 65, y);
-      doc.text("Vaccin", 120, y);
-      doc.text("Statut", 145, y);
-      doc.text("Échéance", 172, y);
-      y += 5;
-      doc.setLineWidth(0.2);
-      doc.line(14, y, 196, y);
-      y += 6;
-
-      doc.setFont("helvetica", "normal");
+      const rows = [];
       staff.forEach((s) => {
         const estabName = establishments.find((e) => e.id === s.site)?.name || "-";
-        const rows = s.vaccinations.length > 0
+        const vaccinations = s.vaccinations.length > 0
           ? s.vaccinations
           : [{ vaccine: "-", status: "non_conforme", next: "Aucun suivi" }];
-        rows.forEach((v) => {
-          if (y > 280) {
-            doc.addPage();
-            y = 20;
-          }
+        vaccinations.forEach((v) => {
           const statusLabel = STATUS_META[v.status]?.label || v.status;
-          doc.text(s.name.slice(0, 26), 14, y);
-          doc.text(estabName.slice(0, 26), 65, y);
-          doc.text(v.vaccine || "-", 120, y);
-          doc.text(statusLabel, 145, y);
-          doc.text(v.next || "-", 172, y);
-          y += 6;
+          rows.push([s.name, estabName, v.vaccine || "-", statusLabel, v.next || "-"]);
         });
       });
 
-      doc.setFontSize(8);
-      doc.setTextColor(150);
-      doc.text(
-        "Document généré automatiquement par Confia - à des fins de suivi interne.",
-        14,
-        290
-      );
+      autoTable(doc, {
+        startY: 48,
+        head: [["Nom", "Établissement", "Vaccin", "Statut", "Échéance"]],
+        body: rows,
+        styles: { font: "helvetica", fontSize: 9, cellPadding: 3, overflow: "linebreak" },
+        headStyles: { fillColor: [30, 41, 59], textColor: 255, fontStyle: "bold" },
+        columnStyles: {
+          0: { cellWidth: 35 },
+          1: { cellWidth: 45 },
+          2: { cellWidth: 30 },
+          3: { cellWidth: 35 },
+          4: { cellWidth: "auto" },
+        },
+        margin: { left: 14, right: 14 },
+      });
 
       doc.save("rapport-conformite-vaccinale-" + today.replace(/\//g, "-") + ".pdf");
     } catch (err) {
