@@ -3238,6 +3238,34 @@ function SettingsView({ establishments, token, onUpdate, organizationId, onAddEs
     <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 640 }}>
       <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
         <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
+          Besoin d'aide ?
+        </h3>
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 14px" }}>
+          Une question, un bug à signaler, ou besoin d'aide pour utiliser Confia ? Écrivez-nous directement, nous répondons personnellement.
+        </p>
+        <a
+          href={"mailto:contact@confia-app.fr?subject=" + encodeURIComponent("Question Confia - " + (organizationName || ""))}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "9px 16px",
+            borderRadius: 6,
+            border: "none",
+            background: TOKENS.brand,
+            color: "#fff",
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 13,
+            fontWeight: 500,
+            textDecoration: "none",
+          }}
+        >
+          Nous contacter
+        </a>
+      </div>
+
+      <div style={{ background: "#fff", border: "1px solid " + TOKENS.line, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.06)", borderRadius: 8, padding: "20px 24px" }}>
+        <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 15, fontWeight: 600, color: TOKENS.ink, margin: "0 0 4px" }}>
           Mon profil
         </h3>
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: TOKENS.inkSoft, margin: "0 0 16px" }}>
