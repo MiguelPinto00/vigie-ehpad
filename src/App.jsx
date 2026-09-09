@@ -164,7 +164,48 @@ async function patchAndExpectRow(url, body, token, actionLabel) {
   return data[0];
 }
 
+// Retire tout ce qui suit un "+" (alias Gmail/type "plus addressing") et, pour
+// Gmail specifiquement, les points du nom (qui sont ignores par Gmail), pour
+// obtenir une version canonique d'une adresse email. Sert uniquement a
+// detecter les tentatives de recreer un compte avec une variante de la
+// meme adresse pour renouveler indefiniment l'essai gratuit.
+function normalizeEmail(email) {
+  const [local, domain] = email.toLowerCase().trim().split("@");
+  if (domain === "gmail.com" || domain === "googlemail.com") {
+    return local.split("+")[0].replace(/\./g, "") + "@gmail.com";
+  }
+  return local.split("+")[0] + "@" + domain;
+}
+
+// Enregistre la version normalisee de l'email dans une table dediee avant
+// toute inscription. Comme cette table a une cle primaire sur
+// normalized_email, une deuxieme tentative avec une variante de la meme
+// adresse (ex: nom+essai2@gmail.com) est automatiquement rejetee par la
+// base de donnees (erreur 409 Conflict), sans logique complexe cote client.
+async function reserveNormalizedEmail(email) {
+  const normalized = normalizeEmail(email);
+  const res = await fetch(SUPABASE_URL + "/rest/v1/normalized_signups", {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify({ normalized_email: normalized }),
+  });
+  if (res.status === 409) {
+    throw new Error(
+      "Un compte existe déjà avec cette adresse email (ou une variante proche). Connectez-vous ou contactez-nous si besoin."
+    );
+  }
+  if (!res.ok) {
+    throw new Error("Erreur lors de la vérification de l'adresse email.");
+  }
+}
+
 async function signUp(email, password, orgName) {
+  await reserveNormalizedEmail(email);
   const res = await fetch(SUPABASE_URL + "/auth/v1/signup", {
     method: "POST",
     headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
