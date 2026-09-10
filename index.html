@@ -29,5 +29,13 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <!-- Badge FranceSaaS : présent en HTML statique (pas rendu par React)
+         pour que les robots qui ne chargent pas JavaScript (comme le
+         vérificateur de FranceSaaS.fr) puissent le détecter. -->
+    <div style="text-align: center; padding: 12px 0 4px;">
+      <a href="https://francesaas.fr/saas/confia" target="_blank" rel="noopener" title="Profil du SaaS Confia sur FranceSaaS.fr">
+        <img src="https://francesaas.fr/badge-francesaas.svg" alt="Badge FranceSaaS" width="200" height="44" style="height: auto;" />
+      </a>
+    </div>
   </body>
 </html>
