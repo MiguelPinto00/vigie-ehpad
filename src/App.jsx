@@ -4697,22 +4697,6 @@ function LandingPage({ onGetStarted, onLogin, onNavigateBlog }) {
             Politique de confidentialite
           </button>
         </div>
-        <div style={{ marginTop: 14 }}>
-          <a
-            href="https://francesaas.fr/saas/confia"
-            target="_blank"
-            rel="noopener"
-            title="Profil du SaaS Confia sur FranceSaaS.fr"
-          >
-            <img
-              src="https://francesaas.fr/badge-francesaas.svg"
-              alt="Badge FranceSaaS"
-              width="200"
-              height="44"
-              style={{ height: "auto" }}
-            />
-          </a>
-        </div>
       </div>
 
       {legalModal && (
