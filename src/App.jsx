@@ -5263,6 +5263,15 @@ function LoginScreen({ onLogin, initialMode, onBackToLanding }) {
     try {
       if (mode === "signup") {
         await signUp(email, password, orgName.trim());
+        // Signale la conversion "Inscrição" a Google Ads des qu'un compte
+        // est cree avec succes. window.gtag est defini de facon globale
+        // dans index.html (balise de suivi Google Ads), donc deja
+        // disponible ici sans import supplementaire.
+        if (typeof window.gtag === "function") {
+          window.gtag("event", "conversion", {
+            send_to: "AW-18421778937/K-AcCM7L4uscEPmTmNBE",
+          });
+        }
         setInfo("Compte créé. Vérifiez votre email pour confirmer, puis connectez-vous.");
         setMode("login");
       } else if (mode === "forgot") {
