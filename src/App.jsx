@@ -213,6 +213,17 @@ async function signUp(email, password, orgName) {
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.msg || data.error_description || "Erreur d'inscription");
+  // Supabase renvoie volontairement une reponse "de succes" (sans jamais
+  // envoyer d'email) quand l'adresse est deja utilisee par un compte
+  // confirme, pour ne pas reveler cette info a un tiers malveillant. Le
+  // signe distinctif est un tableau "identities" vide. On detecte ce cas
+  // ici pour informer clairement la personne elle-meme, au lieu de la
+  // laisser croire a une reelle inscription qui ne recevra jamais d'email.
+  if (data && Array.isArray(data.identities) && data.identities.length === 0) {
+    throw new Error(
+      "Un compte existe déjà avec cette adresse email. Connectez-vous, ou utilisez \"Mot de passe oublié\" si besoin."
+    );
+  }
   return data;
 }
 
