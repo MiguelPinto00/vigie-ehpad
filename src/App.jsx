@@ -4311,7 +4311,10 @@ function LandingPricingCard({ plan, billingPeriod, onGetStarted }) {
           {billingPeriod === "monthly" ? "/mois" : "/an"}
         </span>
       </div>
-      <ul style={{ margin: "14px 0 18px", padding: "0 0 0 18px", fontSize: 12.5, color: TOKENS.inkSoft, lineHeight: 1.85, flex: 1 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: TOKENS.ok, margin: "6px 0 0" }}>
+        14 jours d'essai gratuit inclus, sans carte bancaire
+      </div>
+      <ul style={{ margin: "10px 0 18px", padding: "0 0 0 18px", fontSize: 12.5, color: TOKENS.inkSoft, lineHeight: 1.85, flex: 1 }}>
         {plan.features.map((f) => (
           <li key={f}>{f}</li>
         ))}
@@ -4470,7 +4473,24 @@ function LandingPage({ onGetStarted, onLogin, onNavigateBlog }) {
           obligation rougeole est prévue par la LFSS 2026. Confia centralise le suivi de votre personnel,
           automatise les relances et génère vos justificatifs de conformité.
         </p>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "9px 18px",
+              borderRadius: 8,
+              background: TOKENS.okBg,
+              border: "1px solid " + TOKENS.ok + "55",
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 16,
+              fontWeight: 700,
+              color: TOKENS.ok,
+            }}
+          >
+            <ShieldCheck size={18} /> 14 jours gratuits — sans carte bancaire à l'inscription
+          </div>
           <button
             onClick={onGetStarted}
             style={{
@@ -4491,7 +4511,7 @@ function LandingPage({ onGetStarted, onLogin, onNavigateBlog }) {
             Créer mon compte <ChevronRight size={16} />
           </button>
           <span style={{ fontSize: 12, color: TOKENS.inkSoft }}>
-            14 jours gratuits, sans carte bancaire à l'inscription — annulation possible à tout moment.
+            Annulation possible à tout moment, en un clic.
           </span>
         </div>
       </div>
@@ -4527,7 +4547,7 @@ function LandingPage({ onGetStarted, onLogin, onNavigateBlog }) {
         <div style={{ textAlign: "center", marginBottom: 30 }}>
           <h2 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 10px" }}>Nos tarifs</h2>
           <p style={{ fontSize: 14, color: TOKENS.inkSoft, margin: "0 0 18px" }}>
-            Choisissez l'offre adaptée à votre organisation. Sans engagement, résiliable à tout moment.
+            Chaque offre commence par 14 jours d'essai gratuit, sans carte bancaire. Sans engagement, résiliable à tout moment.
           </p>
           <div
             style={{
