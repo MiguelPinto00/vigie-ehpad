@@ -5225,6 +5225,16 @@ function BlogPostPage({ post, onBackToBlog, onBackToLanding, onGetStarted }) {
 
 function LoginScreen({ onLogin, initialMode, onBackToLanding }) {
   const [mode, setMode] = useState(initialMode || "login"); // "login", "signup" ou "forgot"
+
+  // Suivi d'entonnoir (Google Analytics) : signale chaque fois que le
+  // formulaire d'inscription devient visible, pour pouvoir comparer combien
+  // de personnes l'atteignent par rapport a combien terminent reellement
+  // leur inscription plus bas dans submit().
+  useEffect(() => {
+    if (mode === "signup" && typeof window.gtag === "function") {
+      window.gtag("event", "view_signup_form");
+    }
+  }, [mode]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [orgName, setOrgName] = useState("");
@@ -5273,6 +5283,9 @@ function LoginScreen({ onLogin, initialMode, onBackToLanding }) {
     setLoading(true);
     try {
       if (mode === "signup") {
+        if (typeof window.gtag === "function") {
+          window.gtag("event", "signup_attempted");
+        }
         await signUp(email, password, orgName.trim());
         // Signale la conversion "Inscrição" a Google Ads des qu'un compte
         // est cree avec succes. window.gtag est defini de facon globale
@@ -5282,6 +5295,10 @@ function LoginScreen({ onLogin, initialMode, onBackToLanding }) {
           window.gtag("event", "conversion", {
             send_to: "AW-18421778937/K-AcCM7L4uscEPmTmNBE",
           });
+          // Evenement equivalent cote Google Analytics 4, pour voir le
+          // taux de reussite de l'inscription independamment du suivi
+          // publicitaire (utile aussi pour le trafic non-publicitaire).
+          window.gtag("event", "sign_up");
         }
         setInfo("Compte créé. Vérifiez votre email pour confirmer, puis connectez-vous.");
         setMode("login");
@@ -5293,6 +5310,14 @@ function LoginScreen({ onLogin, initialMode, onBackToLanding }) {
         onLogin(session);
       }
     } catch (err) {
+      // Distingue, cote Google Analytics, un echec technique d'inscription
+      // (ex: email deja utilise) d'un simple abandon silencieux du
+      // formulaire (personne qui ferme l'onglet sans jamais valider) :
+      // les deux ont la meme consequence (pas de compte cree) mais des
+      // causes tres differentes a corriger.
+      if (mode === "signup" && typeof window.gtag === "function") {
+        window.gtag("event", "signup_failed", { reason: (err.message || "").slice(0, 100) });
+      }
       setError(err.message);
     } finally {
       setLoading(false);
