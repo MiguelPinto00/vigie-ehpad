@@ -196,7 +196,7 @@ async function reserveNormalizedEmail(email) {
   });
   if (res.status === 409) {
     throw new Error(
-      "Un compte existe déjà avec cette adresse email (ou une variante proche). Connectez-vous ou contactez-nous si besoin."
+      "Un compte existe déjà avec cette adresse email. Connectez-vous, ou utilisez \"Mot de passe oublié\" si besoin."
     );
   }
   if (!res.ok) {
