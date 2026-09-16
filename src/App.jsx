@@ -4491,7 +4491,7 @@ function LandingPage({ onGetStarted, onLogin, onNavigateBlog }) {
             Créer mon compte <ChevronRight size={16} />
           </button>
           <span style={{ fontSize: 12, color: TOKENS.inkSoft }}>
-            Sans engagement — annulation possible à tout moment.
+            14 jours gratuits, sans carte bancaire à l'inscription — annulation possible à tout moment.
           </span>
         </div>
       </div>
